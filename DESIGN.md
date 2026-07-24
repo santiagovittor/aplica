@@ -186,6 +186,14 @@ glow, no gradients.
 
 ## 10. The checklist (run on every screen before done)
 
+Items are verified by measurement on the rendered page (computed styles, rendered
+text, resolved colors), never by assertion from source. A green build and a read
+of the CSS both miss things a ruler catches.
+
+Item 5 applies per product screen. The styleguide is the catalog, not a screen,
+and is exempt for displayed specimens: showing one button in six states is the
+page doing its job, and is not precedent for a second green action anywhere else.
+
 1. Every gap, size, radius, color, duration comes from section 1.
 2. Between-group spacing ≥ two steps larger than within-group.
 3. Prose ≤ 65ch; tabular figures on numbers; baselines hold.
