@@ -1,0 +1,308 @@
+/* The specimen sheet. Layout follows DESIGN.md §3: 12 columns, 1120px, a 4/12
+   secondary rail beside a 7/12 primary column. No centred hero, no card grid. */
+
+.page {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--margin-outer) var(--space-10);
+}
+
+.layout {
+  display: grid;
+  gap: var(--space-8) var(--gutter);
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: 600;
+}
+
+.intro {
+  max-width: var(--measure);
+  margin-top: var(--space-4);
+  color: var(--ink-soft);
+}
+
+.index {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+  list-style: none;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.index a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.index a:hover {
+  color: var(--ink);
+}
+
+.specimens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-9);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* The spec slip: every specimen carries the tokens it is made of, set like the
+   annotation on a shop drawing. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.heading {
+  font-size: var(--text-xl);
+  font-weight: 500;
+}
+
+/* Lowercase on purpose: these are token names, and a reader should be able to
+   copy one straight into CSS. */
+.slip {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.stateLabel {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* --- color ---------------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.table th {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.table td {
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+
+.table td:last-child {
+  color: var(--ink-soft);
+}
+
+.swatch {
+  display: block;
+  width: var(--space-7);
+  height: var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Judged on the real surfaces, never on white in isolation. DESIGN.md §5. */
+.pairs {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.onBase,
+.onPaper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.onBase {
+  background: var(--base);
+}
+
+.onPaper {
+  background: var(--paper);
+}
+
+.soft {
+  color: var(--ink-soft);
+}
+
+/* Only ever at 20px and up: --green-soft is 4.4:1 on the oat base, under AA for
+   body text. DESIGN.md §5 restricts it for exactly this reason. */
+.greenSoft {
+  font-size: var(--text-lg);
+  color: var(--green-soft);
+}
+
+.link {
+  color: var(--green);
+  text-underline-offset: 0.2em;
+}
+
+/* --- type, space, depth --------------------------------------------- */
+
+.specimen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.specimenMeta {
+  flex: 0 0 5rem;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.typeSpecimen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.display {
+  font-family: var(--font-display), Georgia, serif;
+  font-optical-sizing: auto;
+  line-height: 1.15;
+}
+
+.cardTitle {
+  font-size: var(--text-xl);
+  font-weight: 500;
+}
+
+.cardBody {
+  max-width: var(--measure);
+  margin-top: var(--space-3);
+  color: var(--ink-soft);
+}
+
+.bar {
+  height: var(--space-3);
+  background: var(--ink-soft);
+  border-radius: var(--radius-sm);
+}
+
+.depths {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.depth {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.depthFlat {
+  background: var(--surface-sunken);
+}
+
+.depthPaper {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+}
+
+.depthRaised {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-soft);
+}
+
+/* --- the motif ------------------------------------------------------- */
+
+.motif {
+  width: 100%;
+  max-width: 17rem;
+  height: auto;
+}
+
+.emptyCopy {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+/* --- desktop --------------------------------------------------------- */
+
+@media (min-width: 60rem) {
+  .page {
+    padding-inline: var(--space-7);
+  }
+
+  .layout {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .rail {
+    position: sticky;
+    top: var(--space-7);
+    grid-column: 1 / span 4;
+    align-self: start;
+  }
+
+  .specimens {
+    grid-column: 6 / span 7;
+  }
+}

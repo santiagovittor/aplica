@@ -1,0 +1,90 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target-min);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    border-color var(--dur-micro) var(--ease-soft),
+    transform var(--dur-micro) var(--ease-soft);
+}
+
+/* ponytail: [data-force] mirrors each interactive selector so the styleguide can
+   show hover, focus and press side by side on one static page. */
+.button[data-force~='focus'] {
+  outline: var(--focus-width) solid var(--green);
+  outline-offset: var(--focus-offset);
+}
+
+.primary {
+  background: var(--green);
+  color: var(--paper);
+}
+
+/* Lifts to --green-soft on hover and sinks below --green on press, so the two
+   directions are told apart at a glance. Paper on --green-soft is 4.8:1, over AA. */
+.primary:hover:not(:disabled),
+.primary[data-force~='hover'] {
+  background: var(--green-soft);
+}
+
+.primary:active:not(:disabled),
+.primary[data-force~='active'] {
+  background: var(--green-pressed);
+  transform: translateY(1px);
+}
+
+.secondary {
+  background: var(--paper);
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+.secondary:hover:not(:disabled),
+.secondary[data-force~='hover'] {
+  background: var(--surface-sunken);
+  border-color: var(--ink-soft);
+}
+
+.secondary:active:not(:disabled),
+.secondary[data-force~='active'] {
+  background: var(--surface-sunken);
+  border-color: var(--ink);
+  transform: translateY(1px);
+}
+
+.quiet {
+  padding-inline: var(--space-3);
+  background: transparent;
+  color: var(--ink);
+}
+
+.quiet:hover:not(:disabled),
+.quiet[data-force~='hover'] {
+  background: var(--surface-sunken);
+}
+
+.quiet:active:not(:disabled),
+.quiet[data-force~='active'] {
+  transform: translateY(1px);
+}
+
+.button:disabled:not([aria-busy='true']) {
+  background: var(--surface-disabled);
+  border-color: transparent;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+/* A working button keeps its color and says what is running. It does not grey
+   out and it does not spin: DESIGN.md §2, nothing pretends to think. */
+.button[aria-busy='true'] {
+  cursor: progress;
+}

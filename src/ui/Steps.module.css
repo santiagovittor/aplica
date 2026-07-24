@@ -1,0 +1,47 @@
+/* §6 Zeigarnik: progress stays visible and resumable. The rule under each step
+   carries the state, so no pills and no traffic lights (§7). */
+.steps {
+  display: flex;
+  gap: var(--space-5);
+  list-style: none;
+}
+
+.step {
+  flex: 1;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.number {
+  display: block;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+  color: var(--ink-soft);
+}
+
+.label {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--ink-soft);
+}
+
+/* Selection earns the thicker border, per §9. */
+.current {
+  border-top: 2px solid var(--ink);
+}
+
+.current .number {
+  color: var(--ink);
+}
+
+.current .label {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* Stays a hairline: §9 reserves the thicker border for selection, so only the
+   current step gets one. Done versus not-yet is carried by color. */
+.complete {
+  border-top-color: var(--ink-soft);
+}
