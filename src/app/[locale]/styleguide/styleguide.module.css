@@ -179,6 +179,7 @@
 }
 
 .soft {
+  max-width: var(--measure);
   color: var(--ink-soft);
 }
 
