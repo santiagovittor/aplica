@@ -1,0 +1,10 @@
+.next
+node_modules
+package-lock.json
+.claude/skills
+
+# The specs are hand-wrapped prose. Formatting them rewrites their line breaks.
+PROJECT.md
+DESIGN.md
+CLAUDE.md
+KICKOFF.md

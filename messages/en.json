@@ -1,0 +1,16 @@
+{
+  "Meta": {
+    "title": "Aplica",
+    "description": "Paste a job posting, get a resume and cover letter in your real voice."
+  },
+  "Home": {
+    "title": "Aplica",
+    "tagline": "Paste a job posting, get a resume and cover letter in your real voice, that does not sound like AI.",
+    "status": "The shell is running. Fonts, translations and motion are wired. The design system comes next."
+  },
+  "LocaleToggle": {
+    "label": "Language",
+    "en": "English",
+    "es": "Spanish"
+  }
+}

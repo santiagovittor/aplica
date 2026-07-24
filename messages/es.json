@@ -1,0 +1,16 @@
+{
+  "Meta": {
+    "title": "Aplica",
+    "description": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real."
+  },
+  "Home": {
+    "title": "Aplica",
+    "tagline": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real, que no suena a IA.",
+    "status": "El esqueleto ya corre. Las fuentes, las traducciones y el movimiento están conectados. Ahora sigue el sistema de diseño."
+  },
+  "LocaleToggle": {
+    "label": "Idioma",
+    "en": "Inglés",
+    "es": "Español"
+  }
+}
