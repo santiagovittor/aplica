@@ -12,5 +12,117 @@
     "label": "Idioma",
     "en": "Inglés",
     "es": "Español"
+  },
+  "Styleguide": {
+    "title": "El sistema de diseño",
+    "intro": "Todos los valores que este producto puede usar, mostrados haciendo su trabajo real sobre el papel real. Si una pantalla necesita algo que no está acá, el error está en el sistema y no en la pantalla.",
+    "indexLabel": "Secciones",
+    "backToTop": "Volver arriba",
+    "sections": {
+      "color": "Color",
+      "type": "Tipografía",
+      "space": "Espacio",
+      "depth": "Profundidad y radios",
+      "motion": "Movimiento",
+      "button": "Botones",
+      "field": "Campos",
+      "card": "Tarjetas",
+      "steps": "Pasos"
+    },
+    "table": {
+      "swatch": "Muestra",
+      "token": "Token",
+      "value": "Valor",
+      "role": "Uso"
+    },
+    "color": {
+      "base": "Fondo de página",
+      "paper": "Tarjetas, campos y superficies elevadas",
+      "ink": "Texto principal",
+      "ink-soft": "Texto secundario y marcadores de posición",
+      "green": "Acción principal, enlaces, éxito",
+      "green-soft": "Texto de 20px o más, íconos, gráficos",
+      "human": "El motivo y la revelación del resultado, nada más",
+      "clay": "Errores, en palabras simples",
+      "hairline": "Separadores y bordes"
+    },
+    "pairs": {
+      "onBase": "Sobre la base de avena",
+      "onPaper": "Sobre papel",
+      "body": "El texto principal vive acá, con tinta plena.",
+      "secondary": "El texto secundario lleva la mitad más callada de la pantalla.",
+      "greenSoft": "Verde de veinte píxeles para arriba",
+      "note": "Se juzga sobre la superficie donde realmente cae, nunca sobre blanco."
+    },
+    "type": {
+      "sample": "Pegá la oferta, quedate con tu voz",
+      "text-4xl": "Título de portada",
+      "text-3xl": "Título de página",
+      "text-2xl": "Título de sección",
+      "text-xl": "Título de tarjeta",
+      "text-lg": "Párrafo de entrada",
+      "text-base": "Cuerpo",
+      "text-xs": "Etiqueta chica"
+    },
+    "motion": {
+      "dur-micro": "Hover, presión y foco",
+      "dur-move": "Todo lo que entra o se mueve",
+      "dur-reveal": "La revelación del resultado",
+      "easing": "Una sola familia de easing: un resorte suave y muy amortiguado. Nada rebota, nada gira, nada crece desde cero. Con movimiento reducido, todo pasa a estados instantáneos."
+    },
+    "depth": {
+      "flat": "Hundido",
+      "paper": "Papel y línea fina",
+      "raised": "Una sombra de tinta suave"
+    },
+    "states": {
+      "default": "Normal",
+      "hover": "Hover",
+      "focus": "Foco",
+      "pressed": "Presionado",
+      "disabled": "Deshabilitado",
+      "loading": "Cargando",
+      "hint": "Con ayuda",
+      "error": "Con error",
+      "empty": "Vacío",
+      "filled": "Con contenido"
+    },
+    "button": {
+      "primary": "Preparar mi postulación",
+      "primaryLoading": "Leyendo la oferta…",
+      "secondary": "Guardar para después",
+      "quiet": "Cancelar",
+      "note": "Una sola acción verde por pantalla. El resto es contorno o texto plano."
+    },
+    "field": {
+      "titleLabel": "Puesto",
+      "titlePlaceholder": "Diseñador de producto",
+      "titleHint": "Opcional. Afina la coincidencia.",
+      "emailLabel": "Correo",
+      "emailError": "A esa dirección le falta el @.",
+      "keyLabel": "Clave del proveedor",
+      "keyHint": "Se guarda cifrada. La podés borrar cuando quieras.",
+      "keyValue": "Guardada",
+      "postingLabel": "Oferta de trabajo",
+      "postingPlaceholder": "Pegá la oferta acá. Entera está bien.",
+      "postingError": "Pegá algunas líneas más para tener con qué trabajar."
+    },
+    "card": {
+      "title": "Diseñador de producto senior",
+      "body": "Preparada hace dos días. El CV mantuvo cada línea de tu perfil y no descartó ninguna.",
+      "emptyTitle": "Todavía no hay postulaciones",
+      "emptyBody": "Pegá tu primera oferta y va a aparecer acá.",
+      "emptyAction": "Pegar una oferta",
+      "loadingLabel": "Cargando tus postulaciones"
+    },
+    "steps": {
+      "label": "Progreso de la configuración",
+      "one": "Tu CV",
+      "two": "Tu voz",
+      "three": "Tu primera postulación",
+      "complete": "Listo",
+      "current": "Paso actual",
+      "incomplete": "Sin empezar"
+    }
   }
 }

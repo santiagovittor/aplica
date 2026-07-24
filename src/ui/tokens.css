@@ -1,0 +1,89 @@
+/* The design system. Every value here is DESIGN.md; nothing here is invented.
+   Section 1 below is copied verbatim from DESIGN.md section 1. Section 2 holds
+   values DESIGN.md fixes in prose rather than in its token block, written as
+   tokens so no component has to re-derive them. A value used in UI code that is
+   not in this file is a bug. */
+
+:root {
+  /* --- 1. DESIGN.md section 1, verbatim ------------------------------- */
+
+  /* color */
+  --base: #f3eee5; /* page background, warm oat */
+  --paper: #fbf8f1; /* cards, inputs, raised surfaces */
+  --ink: #26221b; /* text, near-black warm */
+  --ink-soft: #5c554a; /* secondary text on paper/base */
+  --green: #3f5a3c; /* THE accent: primary action, links, success */
+  --green-soft: #5c7355; /* green for large text 20px+, icons, graphics */
+  --human: #b65c3f; /* terracotta: motif + result reveal ONLY */
+  --clay: #8f3d2e; /* errors, calm */
+  --hairline: #ded7c9; /* 1px separators, borders */
+
+  /* type scale, major third 1.25 */
+  --text-xs: 13px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 25px;
+  --text-2xl: 31px;
+  --text-3xl: 39px;
+  --text-4xl: 49px;
+
+  /* space, 8px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  /* radii: two values, ever */
+  --radius-sm: 6px; /* inputs, buttons */
+  --radius-md: 10px; /* cards, dialogs */
+
+  /* motion */
+  --dur-micro: 180ms;
+  --dur-move: 250ms;
+  --dur-reveal: 500ms;
+
+  /* --- 2. Derived from DESIGN.md prose -------------------------------- */
+
+  /* §3 grid: 12 columns, 1120px content, 24px gutter, 24/48px outer margins */
+  --content-max: 1120px;
+  --gutter: var(--space-5);
+  --margin-outer: var(--space-5);
+
+  /* §4 measure: 65ch on all prose */
+  --measure: 65ch;
+
+  /* §4 uppercase micro-labels. 13px is the scale floor, so it is the only
+     legal size for the 11-13px range the rule names. */
+  --tracking-label: 0.06em;
+
+  /* §5 depth: at most one soft ink shadow. Mixed from --ink, never black,
+     which goes muddy on the cream. */
+  --shadow-soft:
+    0 1px 2px color-mix(in srgb, var(--ink) 7%, transparent),
+    0 8px 24px color-mix(in srgb, var(--ink) 6%, transparent);
+
+  /* §5 tints: mixed from --base or --ink, never white/black at low opacity */
+  --surface-sunken: color-mix(in srgb, var(--ink) 5%, var(--base));
+  --surface-disabled: color-mix(in srgb, var(--hairline) 45%, var(--base));
+  --green-pressed: color-mix(in srgb, var(--ink) 18%, var(--green));
+
+  /* §9 focus: 2px --green ring at 2px offset, on every focusable element */
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* §6 Fitts: interactive targets ≥ 44×44px */
+  --target-min: 44px;
+
+  /* §8 one easing family: soft spring, high damping, no visible overshoot */
+  --ease-soft: cubic-bezier(0.22, 0.75, 0.24, 1);
+
+  /* §8 enter: 8-12px translate + fade, staggered 40-60ms in groups */
+  --enter-rise: 10px;
+  --stagger: 50ms;
+}

@@ -12,5 +12,117 @@
     "label": "Language",
     "en": "English",
     "es": "Spanish"
+  },
+  "Styleguide": {
+    "title": "The design system",
+    "intro": "Every value this product is allowed to use, shown doing its real job on the real paper. If a screen needs something that is not here, the system is wrong, not the screen.",
+    "indexLabel": "Sections",
+    "backToTop": "Back to the top",
+    "sections": {
+      "color": "Color",
+      "type": "Type",
+      "space": "Space",
+      "depth": "Depth and radius",
+      "motion": "Motion",
+      "button": "Buttons",
+      "field": "Fields",
+      "card": "Cards",
+      "steps": "Steps"
+    },
+    "table": {
+      "swatch": "Swatch",
+      "token": "Token",
+      "value": "Value",
+      "role": "Role"
+    },
+    "color": {
+      "base": "Page background",
+      "paper": "Cards, inputs, raised surfaces",
+      "ink": "Body text",
+      "ink-soft": "Secondary text and placeholders",
+      "green": "Primary action, links, success",
+      "green-soft": "Text at 20px and up, icons, graphics",
+      "human": "The motif and the result reveal, nothing else",
+      "clay": "Errors, in plain words",
+      "hairline": "Separators and borders"
+    },
+    "pairs": {
+      "onBase": "On the oat base",
+      "onPaper": "On paper",
+      "body": "Body text sits here, at full ink.",
+      "secondary": "Secondary text carries the quieter half of a screen.",
+      "greenSoft": "Green at twenty pixels and up",
+      "note": "Judged on the surface it actually lands on, never on white."
+    },
+    "type": {
+      "sample": "Paste the posting, keep your voice",
+      "text-4xl": "Landing headline",
+      "text-3xl": "Page title",
+      "text-2xl": "Section title",
+      "text-xl": "Card title",
+      "text-lg": "Lead paragraph",
+      "text-base": "Body",
+      "text-xs": "Micro label"
+    },
+    "motion": {
+      "dur-micro": "Hovers, presses, focus",
+      "dur-move": "Anything entering or moving",
+      "dur-reveal": "The result reveal",
+      "easing": "One easing family: a soft spring with high damping. Nothing bounces, nothing spins, nothing scales up from zero. Reduced motion swaps all of it for instant states."
+    },
+    "depth": {
+      "flat": "Sunken",
+      "paper": "Paper and hairline",
+      "raised": "One soft ink shadow"
+    },
+    "states": {
+      "default": "Default",
+      "hover": "Hover",
+      "focus": "Focus",
+      "pressed": "Pressed",
+      "disabled": "Disabled",
+      "loading": "Loading",
+      "hint": "With a hint",
+      "error": "With an error",
+      "empty": "Empty",
+      "filled": "Holding content"
+    },
+    "button": {
+      "primary": "Tailor my application",
+      "primaryLoading": "Reading the posting…",
+      "secondary": "Save for later",
+      "quiet": "Cancel",
+      "note": "One green action per screen. Everything else is an outline or plain text."
+    },
+    "field": {
+      "titleLabel": "Job title",
+      "titlePlaceholder": "Product designer",
+      "titleHint": "Optional. It sharpens the match.",
+      "emailLabel": "Email",
+      "emailError": "That address is missing an @.",
+      "keyLabel": "Provider key",
+      "keyHint": "Stored encrypted. You can delete it any time.",
+      "keyValue": "Saved",
+      "postingLabel": "Job posting",
+      "postingPlaceholder": "Paste the posting here. The whole thing is fine.",
+      "postingError": "Paste a few more lines so there is something to work from."
+    },
+    "card": {
+      "title": "Senior product designer",
+      "body": "Tailored two days ago. The resume kept every line from your profile and dropped nothing.",
+      "emptyTitle": "No applications yet",
+      "emptyBody": "Paste your first posting and it will show up here.",
+      "emptyAction": "Paste a posting",
+      "loadingLabel": "Loading your applications"
+    },
+    "steps": {
+      "label": "Setup progress",
+      "one": "Your CV",
+      "two": "Your voice",
+      "three": "Your first application",
+      "complete": "Done",
+      "current": "Current step",
+      "incomplete": "Not started"
+    }
   }
 }

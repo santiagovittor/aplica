@@ -1,5 +1,7 @@
-/* Reset and font wiring only. The design tokens (color, scale, space, radii,
-   motion) are defined once in step 2, from DESIGN.md. Nothing else belongs here. */
+/* Reset, font wiring, and the base surface. The design tokens themselves live in
+   ../ui/tokens.css, imported below. Nothing else belongs here. */
+
+@import '../ui/tokens.css';
 
 *,
 *::before,
@@ -20,7 +22,10 @@ html {
 body {
   min-height: 100%;
   font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--text-base);
   line-height: 1.55;
+  background: var(--base);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -55,6 +60,23 @@ select {
 
 a {
   color: inherit;
+}
+
+/* Announced to screen readers, not painted. The one global utility class. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* DESIGN.md §9: a designed focus ring on every focusable element. Set globally so
+   a component cannot ship without one; components may move it, never remove it. */
+:focus-visible {
+  outline: var(--focus-width) solid var(--green);
+  outline-offset: var(--focus-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {

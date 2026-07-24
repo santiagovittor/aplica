@@ -1,0 +1,37 @@
+/* DESIGN.md §5: depth is a paper/base shift plus a hairline. No shadow by
+   default, no glass, no glow, no gradient. */
+.card {
+  padding: var(--space-5);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+/* §9: an empty state invites and holds the next action, so it is centred and
+   roomier than the working card. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-7);
+  text-align: center;
+}
+
+/* §9: loading is calm paper-value placeholders, never a spinner. Static, because
+   there is no long-loop duration in the scale to invent one from. */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bar {
+  height: var(--space-3);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.bar:last-child {
+  width: 60%;
+}

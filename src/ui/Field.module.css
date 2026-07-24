@@ -1,0 +1,80 @@
+/* Shared by Input and Textarea. DESIGN.md §3: 12px from label to control is
+   within-group spacing; the ≥32px to the next group is the page's job. */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.control {
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  transition: border-color var(--dur-micro) var(--ease-soft);
+}
+
+/* §6 Norman: the paste box reads as paper you write on. */
+.textarea {
+  min-height: calc(var(--space-10) + var(--space-6));
+  padding: var(--space-4);
+  line-height: 1.55;
+  resize: vertical;
+}
+
+/* Full-strength --ink-soft, not faded ink: DESIGN.md §5 forbids low-opacity
+   black on the cream, it goes muddy. */
+.control::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.control:hover:not(:disabled),
+.control[data-force~='hover'] {
+  border-color: var(--ink-soft);
+}
+
+.control:focus {
+  border-color: var(--green);
+}
+
+/* ponytail: [data-force] mirrors the live selectors so the styleguide can show
+   hover, focus and error side by side on one static page. */
+.control[data-force~='focus'] {
+  border-color: var(--green);
+  outline: var(--focus-width) solid var(--green);
+  outline-offset: var(--focus-offset);
+}
+
+/* The border and the message carry the error. No tinted fill: DESIGN.md §5 keeps
+   errors calm, and a wash would take the paper out from under the writing. */
+.control[aria-invalid='true'] {
+  border-color: var(--clay);
+}
+
+.control:disabled {
+  background: var(--surface-disabled);
+  border-color: transparent;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+/* Sits tight under its control: it belongs to the field, not to the page. */
+.note {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--clay);
+}
