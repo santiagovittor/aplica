@@ -70,6 +70,7 @@
 
 /* Sits tight under its control: it belongs to the field, not to the page. */
 .note {
+  max-width: var(--measure);
   margin-top: var(--space-2);
   font-size: var(--text-xs);
   color: var(--ink-soft);
