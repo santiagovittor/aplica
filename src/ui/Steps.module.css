@@ -40,8 +40,14 @@
   color: var(--ink);
 }
 
-/* Stays a hairline: §9 reserves the thicker border for selection, so only the
-   current step gets one. Done versus not-yet is carried by color. */
+/* Stays a hairline: §9 reserves the thicker border for selection. Done work is
+   not faded work, so it reads at full ink and differs from the current step by
+   rule weight and label weight, and from an unstarted one by color throughout. */
 .complete {
-  border-top-color: var(--ink-soft);
+  border-top-color: var(--ink);
+}
+
+.complete .number,
+.complete .label {
+  color: var(--ink);
 }
