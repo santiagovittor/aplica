@@ -168,6 +168,25 @@ end $$;
 
 reset role;
 
+-- What deleting an account actually removes. The four public tables cascade
+-- from auth.users; storage.objects does not, so the uploaded CV outlives the
+-- account unless the deletion path removes it from Storage explicitly. That is
+-- a step 7 obligation, and this pins the behaviour so the day Supabase changes
+-- it, this assertion says so instead of the doc quietly going stale.
+do $$
+begin
+  delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
+
+  assert (select count(*) from public.users) = 1, 'the account row survived deletion';
+  assert (select count(*) from public.profiles) = 1, 'the profile survived deletion';
+  assert (select count(*) from public.api_keys) = 1, 'the encrypted key survived deletion';
+  assert (select count(*) from public.applications) = 1, 'the applications survived deletion';
+  assert (select count(*) from public.usage_counters) = 1, 'the usage counter survived deletion';
+
+  assert (select count(*) from storage.objects where name like '11111111%') = 1,
+    'storage now cascades from auth.users; docs/security.md and the account-deletion path can be simplified';
+end $$;
+
 do $$
 begin
   raise notice 'RLS: every assertion passed';

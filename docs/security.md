@@ -56,9 +56,14 @@ assertion was confirmed to fail it, so a green run means something.
 
 ## Deleting it
 
-One click, and the row is deleted outright rather than blanked. Deleting the
-account cascades from `auth.users` through `public.users` to every table here,
-including `api_keys`, the profile, applications, and the stored CV.
+One click, and the row is deleted outright rather than blanked.
+
+Deleting the whole account cascades from `auth.users` through `public.users` to
+every table here: the encrypted key, the profile, the applications, the usage
+counter. **It does not remove the uploaded CV.** Storage objects have no cascade
+from `auth.users`, so the account-deletion path has to delete the file from the
+`cvs` bucket itself. That is a step 7 obligation, and `supabase/tests/rls.sql`
+asserts the current behaviour so this paragraph cannot go quietly stale.
 
 ## The CV
 
