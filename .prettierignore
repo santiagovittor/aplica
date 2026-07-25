@@ -3,6 +3,11 @@ node_modules
 package-lock.json
 .claude/skills
 
+# Local Supabase scratch. Already gitignored by supabase/.gitignore, but
+# Prettier does not read nested ignore files.
+supabase/.temp
+supabase/.branches
+
 # The specs are hand-wrapped prose. Formatting them rewrites their line breaks.
 PROJECT.md
 DESIGN.md
