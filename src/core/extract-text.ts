@@ -136,8 +136,12 @@ async function pdfText(bytes: Uint8Array): Promise<string> {
   // pdf.js, and a docx upload should not pay to load it.
   const { extractText, getDocumentProxy } = await import('unpdf');
 
+  let pdf;
   try {
-    const pdf = await getDocumentProxy(bytes);
+    // A copy, and a plain Uint8Array. pdf.js rejects a Node Buffer by name, and
+    // a CV read off disk is one; it also takes ownership of what it is given,
+    // and the caller still needs these bytes to store the file afterwards.
+    pdf = await getDocumentProxy(new Uint8Array(bytes));
     const { text } = await extractText(pdf, { mergePages: true });
     return text;
   } catch (error) {
@@ -148,6 +152,11 @@ async function pdfText(bytes: Uint8Array): Promise<string> {
         ? 'encrypted_pdf'
         : 'corrupt',
     );
+  } finally {
+    // A loaded document holds a worker and its buffers open. In a route handler
+    // that is a leak per upload, and in a script it is a process that will not
+    // end on its own. `destroy` lives on the loading task, not on the document.
+    await pdf?.loadingTask.destroy();
   }
 }
 

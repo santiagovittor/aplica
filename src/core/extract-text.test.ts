@@ -196,6 +196,19 @@ describe('extractCvText reads', () => {
     expect(text).toContain('Ran the on-call rotation for the payments service');
   });
 
+  it('a PDF handed over as a Buffer', async () => {
+    // pdf.js refuses a Node Buffer by name, and a file read off disk is one, so
+    // without normalising it every real upload would fail as corrupt.
+    const buffer = Buffer.from(pdf(textStream(CV_LINES)));
+    expect(await extractCvText(buffer)).toContain('Ada Lovelace');
+  });
+
+  it('a docx handed over as a Buffer', async () => {
+    expect(await extractCvText(Buffer.from(docx(CV_LINES)))).toContain(
+      'Ada Lovelace',
+    );
+  });
+
   it('a docx whose entry is stored rather than deflated', async () => {
     expect(await extractCvText(docx(CV_LINES, true))).toContain('Ada Lovelace');
   });
