@@ -45,6 +45,10 @@ export function createAnthropicProvider(apiKey: string): Provider {
           model:
             opts.model ??
             (searching ? SEARCH_MODELS.anthropic : DEFAULT_MODELS.anthropic),
+          // `max_tokens`, checked 2026-07-26: it is the field in every example
+          // on Anthropic's own Messages and web search pages, and it is
+          // required rather than optional. Anthropic has no
+          // `max_completion_tokens`; that is OpenAI's rename.
           max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
           ...(opts.system ? { system: opts.system } : {}),
           ...(searching ? { tools: [WEB_SEARCH_TOOL] } : {}),

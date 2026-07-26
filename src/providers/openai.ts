@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   assertResolvesSafely,
+  guardedLookup,
   type HostPolicy,
   type SafeEndpoint,
 } from '../core/url-guard';
@@ -12,6 +13,7 @@ import {
   type Provider,
   type ProviderId,
   postJson,
+  postJsonPinned,
 } from './types';
 
 const Response = z.object({
@@ -73,20 +75,44 @@ export function createOpenAiProvider({
         );
       }
 
-      if (endpoint !== undefined) {
+      const hostPolicy = policy ?? { allowPrivate: false };
+      if (endpoint !== undefined && !hostPolicy.allowPrivate) {
         // Re-checked per request, not once at construction: a hostname is free
         // to start resolving somewhere private later. The hostname comes from
         // the guard rather than from `new URL(base).hostname`, which would hand
         // DNS a bracketed `[::1]` that is neither an address nor a name.
-        await assertResolvesSafely(
-          endpoint.hostname,
-          policy ?? { allowPrivate: false },
-        );
+        //
+        // This is the cheap pre-check that gives a clear error. The request
+        // below is what actually closes the window, by resolving through
+        // `guardedLookup` so the checked address is the connected address.
+        await assertResolvesSafely(endpoint.hostname, hostPolicy);
       }
 
       const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
 
-      const body = await postJson(
+      // A user-supplied host goes over the pinned transport, so the address the
+      // guard approved is the address the socket connects to. Everything else,
+      // including a self-hoster who turned the guard off, uses plain fetch.
+      const post =
+        endpoint !== undefined && !hostPolicy.allowPrivate
+          ? (
+              provider: typeof id,
+              url: string,
+              headers: Record<string, string>,
+              payload: unknown,
+              signal?: AbortSignal,
+            ) =>
+              postJsonPinned(
+                provider,
+                url,
+                headers,
+                payload,
+                guardedLookup(hostPolicy),
+                signal,
+              )
+          : postJson;
+
+      const body = await post(
         id,
         `${base}/chat/completions`,
         { authorization: `Bearer ${apiKey}` },
@@ -95,8 +121,13 @@ export function createOpenAiProvider({
           messages: opts.system
             ? [{ role: 'system', content: opts.system }, ...messages]
             : messages,
-          // OpenAI renamed this field; most compatible hosts only know the old
-          // name, so each gets the one it accepts.
+          // Checked 2026-07-26 against OpenAI's own docs. `max_tokens` is
+          // deprecated in favour of `max_completion_tokens` and is not accepted
+          // by the reasoning models at all; it still works on older models, so
+          // it is deprecated rather than removed. OpenAI therefore gets the new
+          // name. The compatible hosts (NIM, Ollama, vLLM, OpenRouter)
+          // implement the older Chat Completions surface, where `max_tokens` is
+          // the field with universal support, so they get that one.
           ...(compatible
             ? { max_tokens: maxTokens }
             : { max_completion_tokens: maxTokens }),

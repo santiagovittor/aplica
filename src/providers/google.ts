@@ -47,6 +47,10 @@ export function createGoogleProvider(apiKey: string): Provider {
           // Grounding with Google Search. Older models used
           // `google_search_retrieval`; every current model uses this.
           ...(searching ? { tools: [{ google_search: {} }] } : {}),
+          // `generationConfig.maxOutputTokens`, checked 2026-07-26. Google uses
+          // neither of the OpenAI names and nests the cap rather than putting
+          // it at the top level, so this is the one adapter where the field is
+          // not called some variant of max tokens.
           generationConfig: {
             maxOutputTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
           },

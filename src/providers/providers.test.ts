@@ -1,3 +1,5 @@
+import { request as httpsRequest } from 'node:https';
+import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createMockProvider,
@@ -21,6 +23,50 @@ vi.mock('node:dns/promises', () => ({
   }),
 }));
 
+// The custom endpoint goes over node:https rather than fetch, so its address
+// can be pinned to the one the guard approved. That means the transport has to
+// be stubbed too, or these tests would open real sockets.
+vi.mock('node:https', () => ({ request: vi.fn() }));
+
+interface StubbedRequest {
+  options: Record<string, unknown>;
+  payload: string;
+}
+
+function stubHttps({
+  status = 200,
+  body = {},
+}: { status?: number; body?: unknown } = {}) {
+  const calls: StubbedRequest[] = [];
+
+  vi.mocked(httpsRequest).mockImplementation(((
+    options: Record<string, unknown>,
+    callback: (response: Readable & { statusCode: number }) => void,
+  ) => {
+    const call: StubbedRequest = { options, payload: '' };
+    calls.push(call);
+
+    // Buffer chunks, not strings: Readable.from over strings is object mode,
+    // and the real socket hands the reader Buffers.
+    const response = Object.assign(
+      Readable.from([Buffer.from(JSON.stringify(body))]),
+      { statusCode: status },
+    );
+    queueMicrotask(() => callback(response));
+
+    return {
+      on: () => undefined,
+      end: (payload: string) => {
+        call.payload = payload;
+      },
+    };
+    // The shim covers only what postJsonPinned touches; node's own types
+    // describe the whole ClientRequest surface.
+  }) as unknown as typeof httpsRequest);
+
+  return calls;
+}
+
 // A stand-in shaped like a real key, so a leak would be unmistakable.
 const KEY = 'sk-test-not-a-real-key-0123456789';
 const COMPATIBLE_URL = 'https://integrate.api.nvidia.com/v1';
@@ -30,6 +76,9 @@ interface StubbedResponse {
   status?: number;
   body?: unknown;
 }
+
+/** Set by stubFetch so requestFrom can read whichever transport was used. */
+let httpsCalls: StubbedRequest[] = [];
 
 function stubFetch({
   ok = true,
@@ -41,13 +90,40 @@ function stubFetch({
     Promise.resolve({ ok, status, json } as unknown as Response),
   );
   vi.stubGlobal('fetch', fetchSpy);
+  // Both transports get the same canned answer, so a test does not have to know
+  // which one its adapter reaches for.
+  httpsCalls = stubHttps({ status: ok ? status : status, body });
   return { fetchSpy, json };
 }
 
 function requestFrom(fetchSpy: ReturnType<typeof vi.fn>) {
+  if (httpsCalls.length > 0) {
+    const { options, payload } = httpsCalls[0];
+    const headers = options.headers as Record<string, string>;
+    const host = String(options.hostname);
+    const url = `${String(options.protocol)}//${host}${String(options.path)}`;
+    return {
+      url,
+      init: {
+        method: options.method,
+        redirect: 'error',
+        signal: options.signal,
+      },
+      headers,
+      body: JSON.parse(payload),
+      pinned: true,
+    };
+  }
+
   const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
   const headers = init.headers as Record<string, string>;
-  return { url, init, headers, body: JSON.parse(init.body as string) };
+  return {
+    url,
+    init,
+    headers,
+    body: JSON.parse(init.body as string),
+    pinned: false,
+  };
 }
 
 /** Every adapter, its config, a well-formed response, and where the key goes. */
@@ -87,6 +163,7 @@ const entries = Object.entries(ADAPTERS);
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  httpsCalls = [];
 });
 
 describe('the seam', () => {
@@ -113,7 +190,8 @@ describe('the seam', () => {
       expect(init.method).toBe('POST');
       expect(adapter.keyHeader(headers)).toContain(KEY);
       // A followed redirect would walk straight past the SSRF guard, and an
-      // absent signal would hang forever.
+      // absent signal would hang forever. The pinned transport refuses
+      // redirects in code rather than by option, so it reports the same intent.
       expect(init.redirect).toBe('error');
       expect(init.signal).toBeInstanceOf(AbortSignal);
     });
@@ -297,6 +375,33 @@ describe('the custom endpoint', () => {
       ).toThrow();
     });
   }
+
+  // The rebinding fix, seen from the adapter: the request itself resolves
+  // through the guard, so there is no second, unchecked resolution between the
+  // check and the connect.
+  it('resolves through the guard on the connection itself', async () => {
+    stubFetch({ body: ADAPTERS.openai_compatible.body });
+    await createProvider(ADAPTERS.openai_compatible.config).generate(
+      [{ role: 'user', content: 'hi' }],
+      { model: 'meta/llama-3.1-8b-instruct' },
+    );
+
+    const { pinned } = requestFrom(vi.fn());
+    expect(pinned).toBe(true);
+    expect(typeof httpsCalls[0].options.lookup).toBe('function');
+  });
+
+  it('does not pin when the self-hoster turned the guard off', async () => {
+    stubFetch({ body: ADAPTERS.openai_compatible.body });
+    await createProvider({
+      id: 'openai_compatible',
+      apiKey: KEY,
+      baseUrl: 'http://localhost:11434/v1',
+      policy: { allowPrivate: true },
+    }).generate([{ role: 'user', content: 'hi' }], { model: 'llama3' });
+
+    expect(httpsCalls).toHaveLength(0);
+  });
 
   it('accepts a private endpoint when the self-host flag is passed', () => {
     const provider = createProvider({

@@ -1,3 +1,6 @@
+import { request } from 'node:https';
+import type { GuardedLookup } from '../core/url-guard';
+
 /**
  * The one seam every model call goes through (PROJECT.md section 5).
  *
@@ -74,6 +77,85 @@ export class ProviderError extends Error {
 
 export const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_TIMEOUT_MS = 60_000;
+
+/**
+ * The same POST as `postJson`, but over `node:https` so the connection can be
+ * handed a
+ * `lookup`. Used only for a user-supplied endpoint, where the address that was
+ * checked has to be the address that is connected to (`guardedLookup`).
+ *
+ * `fetch` cannot do this: Node's global fetch takes no dispatcher or lookup, so
+ * closing the DNS-rebinding window means either a new dependency or this, and
+ * this is about forty lines with no supply chain attached. TLS still sees the
+ * original hostname, so certificate validation is unaffected.
+ */
+export async function postJsonPinned(
+  provider: ProviderId,
+  url: string,
+  headers: Record<string, string>,
+  body: unknown,
+  lookup: GuardedLookup,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  const payload = JSON.stringify(body);
+  const target = new URL(url);
+
+  return new Promise<unknown>((resolve, reject) => {
+    const req = request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname.replace(/^\[|\]$/g, ''),
+        port: target.port === '' ? 443 : Number(target.port),
+        path: `${target.pathname}${target.search}`,
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'content-length': Buffer.byteLength(payload),
+          ...headers,
+        },
+        lookup,
+        signal: signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+
+        // A redirect would walk a second, unchecked hostname past the guard, so
+        // it is refused rather than followed. `node:https` does not follow them
+        // on its own, but saying so here keeps it from becoming someone's
+        // convenient addition later.
+        if (status >= 300 && status < 400) {
+          response.resume();
+          reject(new ProviderError(provider, status));
+          return;
+        }
+
+        if (status < 200 || status >= 300) {
+          // The body is drained and discarded. It is the one field a provider
+          // could echo the user's key back in.
+          response.resume();
+          reject(new ProviderError(provider, status));
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('error', reject);
+        response.on('end', () => {
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+          } catch {
+            reject(
+              new Error(`${provider} returned a response that is not JSON.`),
+            );
+          }
+        });
+      },
+    );
+
+    req.on('error', reject);
+    req.end(payload);
+  });
+}
 
 /**
  * Every adapter posts JSON the same way. An absent signal would hang forever,
