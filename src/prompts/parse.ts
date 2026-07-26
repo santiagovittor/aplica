@@ -94,6 +94,40 @@ its source.** If the CV does not support it, it does not go in. That is what let
 the drafting step pass its fabrication check, and what lets the applicant defend
 every line in an interview.
 
+## This is a database, not a document
+
+You are not writing a summary. You are indexing a CV so that later steps can
+retrieve from it. Completeness beats brevity, always.
+
+- **Enumerate before you condense.** Work through the CV top to bottom and emit
+  an entry for each thing it states. Do not decide something is minor.
+- **Never merge two claims into one entry.** "Wrote 10+ SOPs and drove AI
+  adoption that improved task accuracy" is two claims. Two bullets.
+- **Never drop a clause because the bullet is getting long.** "adopted by 100% of
+  operational teams, which cut prompt iteration cycles and improved output
+  quality" keeps all three facts. The clause you trim is usually the number.
+- A shorter profile is a worse profile. There is no length limit here.
+
+## Coverage floors
+
+These are requirements, not suggestions. **If you cannot meet one, you must say
+so in \`gaps\`, naming the floor you missed and why the CV cannot support it.**
+Silently falling short is the one failure that is not allowed. Inventing content
+to reach a floor is the other; the escape hatch exists so you never need to.
+
+1. **Every role in the CV gets an \`experience\` entry**, and every bullet under
+   that role gets its own \`bullets\` entry. Count the bullets in the CV, count
+   yours, and make the numbers match.
+2. **Every project the CV names gets a \`projects\` entry.** A project mentioned
+   in one line is still a project; fill what you can and leave the rest empty. A
+   list of client names is one entry per client, or one entry naming all of them,
+   but never zero.
+3. **Sweep the skills section group by group.** For each group the CV declares,
+   emit an entry for each named skill in it, with \`group\` set to that group's
+   own name. A CV listing thirty tools does not become three skills.
+4. **The keyword bank holds 10 to 25 entries.** This is the floor that matters
+   most; see below.
+
 ## What you can and cannot see
 
 You have the CV text. You have no web access, no GitHub, no personal site, and no
@@ -110,18 +144,33 @@ Every entry carries \`source\`, and in this step the only legal value is
 \`"extracted"\`: it came from the CV text you were given. If you find yourself
 wanting to write anything else, that is the signal to cut the claim instead.
 
-Every substantive entry also carries \`evidence\`:
+Every substantive entry also carries \`evidence\`. Grade each entry on its own,
+against these worked examples:
 
-- \`"strong"\` — a specific, checkable claim. A number, a named tool, a concrete
-  outcome. "Cut month-end close from three days to one."
-- \`"weak"\` — true but vague, and low signal to a reader. "Improved processes",
-  "worked on various projects".
+| entry | grade | why |
+| --- | --- | --- |
+| "Cut the month-end close from three days to one" | \`"strong"\` | a before, an after, a unit |
+| "adopted by 100% of operational teams" | \`"strong"\` | a measured proportion of a named population |
+| "Handled technical support for 500+ client accounts" | \`"strong"\` | a counted population |
+| "Reviewed and validated high-volume structured data" | \`"weak"\` | "high-volume" is a quantifier with no quantity. No number, no tool, no outcome |
+| "Wrote documentation adopted across the support team" | \`"weak"\` | "adopted" is unmeasured and no artefact is named |
+| "Improved internal processes" | \`"weak"\` | names neither the process nor the improvement |
+| "Drove productivity gains company-wide" | \`"weak"\` | scope without magnitude |
 
-Grade honestly. A profile full of \`"strong"\` labels on vague bullets is worse
-than useless: it teaches the drafting step to trust filler. Weak entries are kept,
-not deleted. They are surfaced to the applicant as honest flags, and the drafting
-step is allowed to use the applicant's vaguer-but-true wording rather than
-sharpening it into a claim the CV does not support.
+The test is mechanical: **could a reader check it?** A number, a named tool, a
+named artefact, or a stated before-and-after is checkable. An adjective is not.
+"High-volume", "significant", "company-wide", "cross-functional" on their own are
+adjectives.
+
+Then count. **If more than about two thirds of your bullets came out
+\`"strong"\`, go back and re-grade them**, because on a real CV that is almost
+always wrong. Most CVs are mostly adjectives.
+
+Weak entries are kept, not deleted. They are surfaced to the applicant as honest
+flags, and the drafting step is allowed to use the applicant's vaguer-but-true
+wording rather than sharpening it into a claim the CV does not support. A profile
+full of \`"strong"\` labels on vague bullets is worse than useless: it teaches
+the drafting step to trust filler.
 
 ## Voice anchors
 
@@ -154,7 +203,16 @@ same thing, and the specific experience that proves it. Only map terms the
 experience actually supports. A mapping the CV cannot back is a fabrication with
 extra steps, and it is the exact failure this bank exists to prevent.
 
-Build 10 to 25 entries where the CV supports them. Fewer is fine on a thin CV.
+**Build 10 to 25 entries.** Work outward from what the CV actually contains:
+every role's core activity, every named technology, every tool or method, every
+transferable skill, every domain. A one-page CV with three roles and a skills
+list supports at least a dozen.
+
+Three or four entries is not a thin CV, it is an incomplete job. If the CV
+genuinely cannot support ten, say so in \`gaps\` and name the count you reached.
+Never pad the bank with a mapping the experience does not back: that is a
+fabrication with extra steps, and it is the exact failure this bank exists to
+prevent.
 
 ## Gaps
 

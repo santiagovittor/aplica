@@ -12,12 +12,21 @@ import { profileSchema, type Profile } from './profile';
  */
 
 /**
- * A full profile is long: every role's bullets, the STAR stories, and 10 to 25
- * keyword bank entries. The provider default of 4096 truncates it, and a
- * truncated JSON object fails as unparseable rather than as too small, which is
- * a confusing way to learn the limit was wrong.
+ * A full profile is long, and a truncated one fails as unparseable JSON rather
+ * than as too small, which is a confusing way to learn the cap was wrong.
+ *
+ * Measured, not guessed: once `parse.ts` was told to enumerate rather than
+ * summarise, a complete profile for a dense one-page CV came to 20,337
+ * characters, about 17,400 tokens. 8192 truncated it mid-object. This is that
+ * measurement plus headroom for a longer CV.
+ *
+ * ponytail: one number for every provider. It is a cap and not a reservation,
+ * so asking for headroom costs nothing unless it is used. The known ceiling is
+ * a host that rejects a cap above its model's own limit, which is a real risk
+ * for small self-hosted `openai_compatible` models; those callers pass their
+ * own `model` already and would need their own cap too.
  */
-export const PARSE_MAX_TOKENS = 8192;
+export const PARSE_MAX_TOKENS = 32_768;
 
 export interface ParseCvOptions {
   locale: 'en' | 'es';
