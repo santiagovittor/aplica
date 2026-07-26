@@ -24,6 +24,31 @@ export const DEFAULT_MODELS: Record<NamedProviderId, string> = {
   google: 'gemini-3.1-flash-lite',
 };
 
+/**
+ * The model the one-off CV parse uses, where it should not be the cheap default.
+ *
+ * Parse happens once per user; apply happens every time they use the product.
+ * Spending a better model on the once is defensible in a way it is not on the
+ * many, and it was measured rather than assumed. On the same real CV, keyword
+ * bank entries went 10 -> 14 and skills 3 -> 34, and the cheap model
+ * intermittently returned output that failed schema validation outright.
+ *
+ * checked 2026-07-26 against ai.google.dev/gemini-api/docs/models and
+ * /pricing, paid tier, per million tokens:
+ *   google  gemini-3.6-flash  $1.50 / $7.50, stable
+ * It strictly dominates gemini-3.5-flash, which is $1.50 / $9.00 for an older
+ * model. Roughly $0.14 per parse at the measured 17,400 output tokens, against
+ * $0.03 on the cheap default.
+ *
+ * A provider absent from this table uses `DEFAULT_MODELS`. Anthropic and OpenAI
+ * are absent deliberately: picking a parse model for them needs the same
+ * measurement on a real key, and there is none to hand. Naming one from a price
+ * list would be the guess this table exists to avoid.
+ */
+export const PARSE_MODELS: Partial<Record<NamedProviderId, string>> = {
+  google: 'gemini-3.6-flash',
+};
+
 /** Where each named provider lives. `openai_compatible` supplies its own. */
 export const DEFAULT_BASE_URLS: Record<NamedProviderId, string> = {
   anthropic: 'https://api.anthropic.com/v1',

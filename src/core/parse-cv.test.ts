@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsePrompt } from '../prompts/parse';
+import { PARSE_MODELS } from '../providers/defaults';
 import { createMockProvider } from '../providers/mock';
 import type { GenerateOptions, Message, Provider } from '../providers/types';
 import { PARSE_MAX_TOKENS, ProfileParseError, parseCv } from './parse-cv';
@@ -135,6 +136,29 @@ describe('parseCv', () => {
     await parseCv(provider, CV_TEXT, { locale: 'en', model: 'some/model' });
 
     expect(calls[0].opts?.model).toBe('some/model');
+  });
+
+  it('otherwise asks for the parse model, not the cheap default', async () => {
+    // Parse runs once per user and apply runs every time, so this is the one
+    // call where a better model is worth the money.
+    const { provider, calls } = recording(
+      createMockProvider({
+        id: 'google',
+        responses: { [MARKER]: profileJson() },
+      }),
+    );
+    await parseCv(provider, CV_TEXT, { locale: 'en' });
+
+    expect(calls[0].opts?.model).toBe(PARSE_MODELS.google);
+  });
+
+  it('leaves the model unset for a provider with no parse model', async () => {
+    // Anthropic and OpenAI are absent from the table on purpose: nobody has
+    // measured a parse model for them on a real key.
+    const { provider, calls } = recording(providerReturning(profileJson()));
+    await parseCv(provider, CV_TEXT, { locale: 'en' });
+
+    expect(calls[0].opts?.model).toBeUndefined();
   });
 
   it('accepts a response the model wrapped in a markdown fence', async () => {

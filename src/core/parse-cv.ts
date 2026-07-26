@@ -1,6 +1,7 @@
 import { parsePrompt } from '../prompts/parse';
 // The seam, as a type only, so nothing about a concrete vendor reaches `core`
 // and the import disappears at compile time (CLAUDE.md section 3).
+import { PARSE_MODELS } from '../providers/defaults';
 import type { GenerateOptions, Provider } from '../providers/types';
 import { groundProfile } from './grounding';
 import { profileSchema, type Profile } from './profile';
@@ -57,7 +58,10 @@ export async function parseCv(
     [{ role: 'user', content: cvText }],
     {
       system: parsePrompt({ locale }),
-      model,
+      // An explicit model always wins. Otherwise the parse model, which is
+      // better than the cheap default because this call happens once per user
+      // and every later call happens repeatedly.
+      model: model ?? PARSE_MODELS[provider.id as keyof typeof PARSE_MODELS],
       signal,
       maxTokens: PARSE_MAX_TOKENS,
     } satisfies GenerateOptions,
