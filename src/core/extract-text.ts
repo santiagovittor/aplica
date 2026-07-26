@@ -131,7 +131,30 @@ function startsWith(bytes: Uint8Array, signature: number[]): boolean {
   return signature.every((byte, index) => bytes[index] === byte);
 }
 
+/**
+ * pdf.js calls `Math.sumPrecise`, an ES2026 builtin that V8 has not shipped, so
+ * on Node it throws and pdf.js falls back: measured, six warnings per document
+ * and a font-substitution path that gives up. Text extraction is unaffected
+ * today, which is why this is three lines and not a dependency change. Neither
+ * a Node upgrade nor an unpdf pin fixes it; V8 has to implement it first.
+ *
+ * ponytail: naive left-to-right summation, not Neumaier. It is what every
+ * earlier pdf.js used for the same arithmetic. Delete this when V8 ships the
+ * builtin.
+ */
+function polyfillSumPrecise(): void {
+  const math = Math as { sumPrecise?: (values: Iterable<number>) => number };
+  math.sumPrecise ??= (values) => {
+    let total = 0;
+    for (const value of values) {
+      total += value;
+    }
+    return total;
+  };
+}
+
 async function pdfText(bytes: Uint8Array): Promise<string> {
+  polyfillSumPrecise();
   // Imported here rather than at the top of the file: unpdf carries a build of
   // pdf.js, and a docx upload should not pay to load it.
   const { extractText, getDocumentProxy } = await import('unpdf');

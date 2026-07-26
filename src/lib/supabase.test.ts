@@ -18,6 +18,9 @@ const PROFILE: Profile = {
   projects: [],
   skills: [],
   starStories: [],
+  education: [],
+  certifications: [],
+  languages: [],
   keywordBank: [],
   gaps: [],
 };

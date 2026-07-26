@@ -47,6 +47,26 @@ function profileJson(overrides: Record<string, unknown> = {}): string {
       },
     ],
     starStories: [],
+    education: [
+      {
+        institution: 'Coderhouse',
+        qualification: 'Full Stack Developer',
+        start: '2020',
+        end: '2021',
+        source: 'extracted',
+        evidence: 'strong',
+      },
+    ],
+    certifications: [],
+    languages: [
+      {
+        name: 'Spanish',
+        level: 'native',
+        provenBy: 'Stated as native on the CV.',
+        source: 'extracted',
+        evidence: 'weak',
+      },
+    ],
     keywordBank: [
       {
         ownTerm: 'month-end close',
