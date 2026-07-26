@@ -69,10 +69,11 @@ export async function extractCvText(bytes: Uint8Array): Promise<string> {
     throw new CvExtractionError('too_large');
   }
 
+  const format = cvFormat(bytes);
   const text = normalise(
-    isPdf(bytes)
+    format === 'pdf'
       ? await pdfText(bytes)
-      : isZip(bytes)
+      : format === 'docx'
         ? docxText(bytes)
         : refuse(bytes),
   );
@@ -81,6 +82,20 @@ export async function extractCvText(bytes: Uint8Array): Promise<string> {
     throw new CvExtractionError('no_text_layer');
   }
   return text;
+}
+
+export type CvFormat = 'pdf' | 'docx';
+
+/**
+ * What the bytes actually are, or nothing. Exported because storage needs the
+ * same answer for the object's extension and content type, and asking twice
+ * with two different rules is how a file gets saved as something it is not.
+ */
+export function cvFormat(bytes: Uint8Array): CvFormat | undefined {
+  if (isPdf(bytes)) {
+    return 'pdf';
+  }
+  return isZip(bytes) ? 'docx' : undefined;
 }
 
 function refuse(bytes: Uint8Array): never {
