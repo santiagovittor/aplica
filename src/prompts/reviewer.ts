@@ -1,4 +1,4 @@
-import { BANNED_WORDS } from '../core/slop';
+import { BANNED_WORDS_EN, BANNED_WORDS_ES } from '../core/slop';
 import type { VoiceProfile } from './voice';
 
 /**
@@ -114,7 +114,10 @@ Skip this step entirely if there is no cover letter.
 ## Step 3 — Slop and voice scan (both documents)
 
 - **Any em dashes? Flag every one.** This is a hard fail.
-- Any banned words? Flag each. The list: ${BANNED_WORDS.join(', ')}.
+- Any banned words? Flag each, including inflected forms. Both lists apply
+  whatever language the drafts are in.
+  English: ${BANNED_WORDS_EN.join(', ')}.
+  Spanish: ${BANNED_WORDS_ES.join(', ')}.
 - Any sentence that reads like AI wrote it? Name it and say why.
 - Does it sound like the applicant, or like a template?
 

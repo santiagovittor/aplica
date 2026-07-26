@@ -216,6 +216,16 @@ Copy these from the Claude Code repo into `src/prompts/` as the system prompts:
 The voice profile is per-user here (built from their CV), not hardcoded to one
 person. Store voice anchors extracted from their own CV.
 
+**The banned-word list is bilingual.** The app ships EN and ES, and a Spanish
+application would otherwise pass a gate that only knows English words. Both lists
+are authored, not translated: the Spanish list has its own idioms
+(`cabe destacar`, `un antes y un después`) that have no English counterpart, and
+the English list has words with no Spanish equivalent. The gate runs the **union
+of both lists on every output regardless of language**, since one document can
+mix them and the cost of an extra check is nil. The no-em-dash rule is universal.
+Matching handles each language's morphology (English `-ing`/`-ed`, Spanish gender,
+number and verb stems) so the lists stay verbatim.
+
 ## 8. Design direction: the maker's desk (warm & grounded)
 
 Reject both dominant SaaS camps (neon dashboard, cream-serif editorial); both now

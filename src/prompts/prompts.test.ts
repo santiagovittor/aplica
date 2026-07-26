@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BANNED_WORDS, isSlopFree } from '../core/slop';
+import { BANNED_WORDS_EN, BANNED_WORDS_ES, isSlopFree } from '../core/slop';
+
+const BANNED_WORDS = [...BANNED_WORDS_EN, ...BANNED_WORDS_ES];
 import { MOCK_RESPONSES } from '../providers/mock';
 import {
   draftSystemPrompt,
