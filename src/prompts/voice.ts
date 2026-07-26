@@ -1,4 +1,4 @@
-import { BANNED_WORDS } from '../core/slop';
+import { BANNED_WORDS_EN, BANNED_WORDS_ES } from '../core/slop';
 
 /**
  * The anti-slop rules, ported from the `writing-voice` skill (PROJECT.md
@@ -30,7 +30,11 @@ export const VOICE_RULES = `
 
 - **No em dashes, ever.** Not \`—\`, not \`–\` used as a dash. Use a period, a comma,
   a colon, or parentheses instead.
-- **No banned words:** ${BANNED_WORDS.join(', ')}.
+- **No banned words, in English:** ${BANNED_WORDS_EN.join(', ')}.
+- **No banned words, in Spanish:** ${BANNED_WORDS_ES.join(', ')}.
+  Both lists apply whatever language you are writing in, including inflected
+  forms: the gender and number of an adjective, the plural of a noun, and every
+  conjugation of a verb.
 - **No "it's not just X, it's Y"** constructions. No "not only... but also" crutch.
 - **No throat-clearing openers:** "In today's fast-paced world," "As a seasoned
   professional," "I am excited to apply," "I am writing to express my interest."

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BANNED_WORDS,
+  BANNED_WORDS_EN,
+  BANNED_WORDS_ES,
   findBannedWords,
   findEmDashes,
   isSlopFree,
 } from './slop';
+
+const BANNED_WORDS = BANNED_WORDS_EN;
 
 describe('the banned-word list', () => {
   // Pinned, not counted. SLICE-4 requires this list to match the writing-voice
@@ -81,6 +84,143 @@ describe('findBannedWords', () => {
     expect(
       findBannedWords('I cut the month-end close from three days to one.'),
     ).toEqual([]);
+  });
+});
+
+describe('the Spanish banned-word list', () => {
+  // Pinned exactly like the English one. Its author curates it; nothing here
+  // trims an entry to silence a collision.
+  it('is the authored list, in order', () => {
+    expect([...BANNED_WORDS_ES]).toEqual([
+      'sinergia',
+      'apalancar',
+      'robusto',
+      'holístico',
+      'apasionado',
+      'proactivo',
+      'dinámico',
+      'disruptivo',
+      'vanguardista',
+      'potenciar',
+      'empoderar',
+      'impulsar',
+      'desbloquear',
+      'embarcar',
+      'travesía',
+      'panorama',
+      'entramado',
+      'meticuloso',
+      'bullicioso',
+      'punta de lanza',
+      'de clase mundial',
+      'orientado a resultados',
+      'un antes y un después',
+      'en la era digital',
+      'en un mundo cada vez más',
+      'cabe destacar',
+      'no es solo',
+      'clave del éxito',
+      'llevar al siguiente nivel',
+      'marcar la diferencia',
+    ]);
+  });
+
+  for (const entry of BANNED_WORDS_ES) {
+    it(`flags ${entry}`, () => {
+      expect(findBannedWords(`Texto con ${entry} dentro.`)).toHaveLength(1);
+    });
+  }
+});
+
+describe('Spanish morphology', () => {
+  const inflected: Record<string, string[]> = {
+    // Gender and number on an adjective.
+    apasionado: ['apasionada', 'apasionados', 'apasionadas'],
+    holístico: ['holística', 'holísticos', 'holísticas'],
+    meticuloso: ['meticulosa', 'meticulosos'],
+    // Plural on a noun.
+    sinergia: ['sinergias'],
+    travesía: ['travesías'],
+    // Verb stems across tense and person.
+    potenciar: ['potencié', 'potenciando', 'potenciamos', 'potenciaron'],
+    empoderar: ['empoderado', 'empoderaba', 'empoderará'],
+    impulsar: ['impulsando', 'impulsaron', 'impulsaría'],
+  };
+
+  for (const [base, forms] of Object.entries(inflected)) {
+    for (const form of forms) {
+      it(`catches ${form} from ${base}`, () => {
+        expect(findBannedWords(`Lo ${form} el equipo.`)).toHaveLength(1);
+      });
+    }
+  }
+
+  it('catches an accented word typed without its accent', () => {
+    expect(findBannedWords('un enfoque holistico')).toHaveLength(1);
+    expect(findBannedWords('un equipo dinamico')).toHaveLength(1);
+  });
+
+  it('reports the term as it appeared, not as it was folded', () => {
+    const [first] = findBannedWords('Un enfoque holístico.');
+    expect(first.term).toBe('holístico');
+    expect(first.index).toBe(11);
+  });
+
+  it('matches multi-word idioms as substrings, case insensitively', () => {
+    expect(findBannedWords('Cabe destacar que funciona.')).toHaveLength(1);
+    expect(findBannedWords('esto no es solo un trabajo')).toHaveLength(1);
+    expect(findBannedWords('la CLAVE DEL ÉXITO')).toHaveLength(1);
+  });
+
+  it('runs both lists on one document regardless of language', () => {
+    expect(findBannedWords('A robust sinergia between teams.')).toHaveLength(2);
+  });
+
+  it('passes a clean Spanish sentence written in voseo', () => {
+    const text =
+      'Vos armaste el informe mensual y lo entregaste en tres días. Bajaste el cierre de tres días a uno.';
+    expect(findBannedWords(text)).toEqual([]);
+    expect(isSlopFree(text)).toBe(true);
+  });
+});
+
+// Documented, not decided. The list belongs to its author; these tests pin what
+// the matcher currently does so the collisions are visible and can be curated.
+describe('known Spanish collisions', () => {
+  it('flags dinámica used as a noun, not an adjective', () => {
+    // "dinámicas de grupo" is ordinary Spanish, not slop, but it is the
+    // feminine of `dinámico` and the matcher cannot tell them apart.
+    expect(findBannedWords('las dinámicas de grupo del equipo')).toHaveLength(
+      1,
+    );
+  });
+
+  it('flags panorama in a legitimate use', () => {
+    // "el panorama político" is normal register.
+    expect(findBannedWords('el panorama político del país')).toHaveLength(1);
+  });
+
+  it('flags potencia and impulso, the nouns behind two listed verbs', () => {
+    // Both are ordinary words that collide with a conjugation of the verb.
+    expect(findBannedWords('la potencia del motor')).toHaveLength(1);
+    expect(findBannedWords('el impulso inicial')).toHaveLength(1);
+    expect(findBannedWords('el desbloqueo de la cuenta')).toHaveLength(1);
+  });
+
+  it('does not flag derived nouns that fall outside the conjugation', () => {
+    // The ending lists are enumerated rather than open-ended, so these stay
+    // clean: apalancamiento is a real finance term and potencial is ordinary.
+    expect(findBannedWords('el apalancamiento financiero')).toEqual([]);
+    expect(findBannedWords('un cliente potencial')).toEqual([]);
+    expect(findBannedWords('el empoderamiento de la comunidad')).toEqual([]);
+  });
+
+  it('misses gendered variants of the multi-word idioms', () => {
+    // "orientado a resultados" is matched as a fixed string, so the feminine
+    // form slips through. Surfaced rather than patched: changing it means
+    // changing what a multi-word entry means.
+    expect(findBannedWords('orientado a resultados')).toHaveLength(1);
+    expect(findBannedWords('orientada a resultados')).toEqual([]);
   });
 });
 
