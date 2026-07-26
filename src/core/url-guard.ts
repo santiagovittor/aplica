@@ -1,3 +1,4 @@
+import type { LookupOptions } from 'node:dns';
 import { lookup } from 'node:dns/promises';
 import { BlockList, isIP, isIPv4 } from 'node:net';
 
@@ -7,9 +8,16 @@ import { BlockList, isIP, isIPv4 } from 'node:net';
  *
  * The server makes the request, so a user who points the base URL at
  * `http://169.254.169.254/` is asking us to reach somewhere they cannot reach
- * themselves. Two checks, because neither covers the other: the URL check
- * catches a literal address, and the DNS check catches a public hostname that
- * resolves to a private one.
+ * themselves. Three layers, because none of them covers the others:
+ *
+ * 1. `assertSafeBaseUrl` catches a literal private address, at save time.
+ * 2. `assertResolvesSafely` catches a public hostname that resolves to a
+ *    private one, and gives a clear error before any connection is made.
+ * 3. `guardedLookup` is what actually holds. Checking DNS and then connecting
+ *    resolves the name twice, and an attacker who runs their own DNS can answer
+ *    public on the check and private on the connect. Handing this to the
+ *    request removes the second resolution: the address approved here is the
+ *    address the socket uses.
  *
  * The policy is a parameter rather than a module-level env read, so this stays
  * a pure function and no test needs an environment. Same reasoning as
@@ -180,6 +188,90 @@ export async function assertResolvesSafely(
       );
     }
   }
+}
+
+/**
+ * The address family and address a connection resolved to.
+ *
+ * This is `node:net`'s `LookupFunction` shape rather than an invention: it is
+ * what `https.request({ lookup })` calls.
+ */
+export type GuardedLookup = (
+  hostname: string,
+  options: LookupOptions,
+  callback: (
+    error: NodeJS.ErrnoException | null,
+    address: string,
+    family: number,
+  ) => void,
+) => void;
+
+/**
+ * Closes the validate-then-connect window.
+ *
+ * `assertResolvesSafely` checks DNS and then a separate connection resolves it
+ * again, so an attacker who controls their own DNS can answer public on the
+ * check and private on the connect. Passing this to `https.request` removes the
+ * second resolution entirely: the address this function approves is the address
+ * the socket connects to, because the socket got it from here.
+ */
+export function guardedLookup(policy: HostPolicy): GuardedLookup {
+  return (hostname, options, callback) => {
+    lookup(hostname, { all: true })
+      .then((resolved) => {
+        if (resolved.length === 0) {
+          callback(notFound(hostname), '', 0);
+          return;
+        }
+
+        if (!policy.allowPrivate) {
+          const blockedEntry = resolved.find(({ address }) =>
+            isBlockedAddress(address),
+          );
+          if (blockedEntry !== undefined) {
+            callback(
+              refused(
+                `Endpoint host resolves to a private address (${hostname}).`,
+              ),
+              '',
+              0,
+            );
+            return;
+          }
+        }
+
+        // Every answer passed, so any of them is safe. Honour the caller's
+        // family preference when it expressed one; `family` arrives as a
+        // number or as the strings IPv4 and IPv6.
+        const preferred =
+          options.family === 4 || options.family === 'IPv4'
+            ? 4
+            : options.family === 6 || options.family === 'IPv6'
+              ? 6
+              : undefined;
+        const wanted =
+          preferred === undefined
+            ? resolved[0]
+            : (resolved.find((entry) => entry.family === preferred) ??
+              resolved[0]);
+        callback(null, wanted.address, wanted.family);
+      })
+      .catch((error: unknown) => {
+        callback(error instanceof Error ? error : notFound(hostname), '', 0);
+      });
+  };
+}
+
+function notFound(hostname: string): NodeJS.ErrnoException {
+  const error: NodeJS.ErrnoException = new Error(`ENOTFOUND ${hostname}`);
+  error.code = 'ENOTFOUND';
+  return error;
+}
+
+function refused(message: string): NodeJS.ErrnoException {
+  const error: NodeJS.ErrnoException = new Error(message);
+  error.code = 'EACCES';
+  return error;
 }
 
 /** The one read of the escape hatch. Off unless explicitly turned on. */

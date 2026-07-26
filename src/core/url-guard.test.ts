@@ -4,6 +4,7 @@ import {
   allowPrivateHosts,
   assertResolvesSafely,
   assertSafeBaseUrl,
+  guardedLookup,
   isBlockedAddress,
 } from './url-guard';
 
@@ -204,6 +205,96 @@ describe('assertResolvesSafely', () => {
       assertResolvesSafely('localhost', OPEN),
     ).resolves.toBeUndefined();
     expect(mockedLookup).not.toHaveBeenCalled();
+  });
+});
+
+// The rebinding fix. `assertResolvesSafely` checks DNS and then a separate
+// connection resolves it again, which leaves a window an attacker with their
+// own DNS can drive. This closes it: the socket takes its address from here, so
+// the address that is checked is the address that is connected to.
+describe('guardedLookup', () => {
+  afterEach(() => {
+    mockedLookup.mockReset();
+  });
+
+  const resolve = (
+    hostname: string,
+    policy: { allowPrivate: boolean },
+    family = 0,
+  ) =>
+    new Promise<{ error: Error | null; address: string; family: number }>(
+      (done) => {
+        guardedLookup(policy)(
+          hostname,
+          { family },
+          (error, address, resolvedFamily) => {
+            done({ error, address, family: resolvedFamily });
+          },
+        );
+      },
+    );
+
+  it('refuses to hand the socket a private address', async () => {
+    mockedLookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }]);
+    const { error, address } = await resolve('rebind.example.com', CLOSED);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toMatch(/private address/);
+    expect(address).toBe('');
+  });
+
+  it('refuses when any one of several answers is private', async () => {
+    mockedLookup.mockResolvedValue([
+      { address: '8.8.8.8', family: 4 },
+      { address: '10.0.0.5', family: 4 },
+    ]);
+    expect((await resolve('mixed.example.com', CLOSED)).error).toBeInstanceOf(
+      Error,
+    );
+  });
+
+  it('hands over the address it approved, so nothing resolves twice', async () => {
+    mockedLookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }]);
+    const { error, address, family } = await resolve('api.example.com', CLOSED);
+
+    expect(error).toBeNull();
+    expect(address).toBe('203.0.113.10');
+    expect(family).toBe(4);
+  });
+
+  it('honours a requested address family', async () => {
+    mockedLookup.mockResolvedValue([
+      { address: '203.0.113.10', family: 4 },
+      { address: '2606:4700::1111', family: 6 },
+    ]);
+    expect((await resolve('api.example.com', CLOSED, 6)).address).toBe(
+      '2606:4700::1111',
+    );
+    expect((await resolve('api.example.com', CLOSED, 4)).address).toBe(
+      '203.0.113.10',
+    );
+  });
+
+  it('lets a self-hoster through to their own network', async () => {
+    mockedLookup.mockResolvedValue([{ address: '127.0.0.1', family: 4 }]);
+    const { error, address } = await resolve('localhost', OPEN);
+
+    expect(error).toBeNull();
+    expect(address).toBe('127.0.0.1');
+  });
+
+  it('surfaces a DNS failure rather than swallowing it', async () => {
+    mockedLookup.mockRejectedValue(new Error('ENOTFOUND nope.example.com'));
+    expect((await resolve('nope.example.com', CLOSED)).error).toBeInstanceOf(
+      Error,
+    );
+  });
+
+  it('treats an empty answer as a failure, not as permission', async () => {
+    mockedLookup.mockResolvedValue([]);
+    expect((await resolve('empty.example.com', CLOSED)).error).toBeInstanceOf(
+      Error,
+    );
   });
 });
 
