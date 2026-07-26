@@ -61,7 +61,10 @@ export function groundProfile(
   profile: Profile,
   sourceText: string,
 ): GroundingResult {
-  const source = sourceText.toLowerCase();
+  // Whitespace is flattened on both sides of every comparison. A PDF has no
+  // idea where a sentence ends, so extracted text carries newlines inside one,
+  // and a raw substring test throws away quotes that are exactly verbatim.
+  const source = flatten(sourceText);
   const sourceNumbers = new Set(numbersIn(sourceText));
   const findings: GroundingFinding[] = [];
 
@@ -71,7 +74,7 @@ export function groundProfile(
     const entities = entitiesIn(text).filter(
       (entity) =>
         !DOCUMENT_TERMS.has(entity.toLowerCase()) &&
-        !source.includes(entity.toLowerCase()),
+        !source.includes(flatten(entity)),
     );
 
     if (numbers.length === 0 && entities.length === 0) {
@@ -96,7 +99,7 @@ export function groundProfile(
   // A voice anchor is the one field where a paraphrase is worse than nothing:
   // it becomes the model of how this person writes. Exact or gone.
   const droppedAnchors = profile.voiceAnchors.filter(
-    (anchor) => !source.includes(anchor.toLowerCase()),
+    (anchor) => !source.includes(flatten(anchor)),
   );
   const voiceAnchors = profile.voiceAnchors.filter(
     (anchor) => !droppedAnchors.includes(anchor),
@@ -178,6 +181,11 @@ function describe({ numbers, entities }: GroundingFinding): string {
     entities.length > 0 ? `the term ${entities.join(', ')}` : '',
   ].filter(Boolean);
   return parts.join(' or ');
+}
+
+/** Lowercase, and every run of whitespace collapsed to one space. */
+function flatten(text: string): string {
+  return text.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 function truncate(text: string): string {
