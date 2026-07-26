@@ -115,10 +115,16 @@ reaches every OpenAI-shaped host without a fourth code path.
      honestly. Returns fit score, recommendation, and drafts.
    - Reviewer call: fresh context, system prompt = the reviewer rules. Critiques
      for missed keywords, weak framing, slop, em dashes, unsupported claims.
-     **v1 reviewer does not web-research the company.** Search-tool support
-     differs across providers and spends the user's tokens; company research is
-     a v2 provider capability. The reviewer still catches everything that
-     matters most: keywords, slop, fabrication.
+     **The v1 reviewer researches the company when the provider can.** The
+     `Provider` interface carries a `supportsSearch` capability flag, derived
+     from whether that adapter has a model it is documented to search with, and
+     each capable adapter uses its vendor's own server-side search tool. The
+     reviewer prompt has two modes selected by a `researchAvailable` parameter:
+     with research it opens on company notes, without it states plainly that it
+     has no web access. The critique format is identical either way, so the
+     revision pass does not care which ran. Search costs the user real money on
+     top of tokens, so it is a visible toggle with an honest cost line (step 7),
+     defaulting to on where it is available.
    - Then a revision pass applies the critique. This whole flow runs in one
      streaming route handler (SSE) that drives the calm progress sequence.
 3. **Render + store.** A separate route handler renders the approved drafts to
@@ -199,9 +205,10 @@ Copy these from the Claude Code repo into `src/prompts/` as the system prompts:
 - `writing-voice` -> `voice.ts` (the anti-slop rules; keep the banned-word list and
   the no-em-dash rule verbatim).
 - `apply.md` phases 1-4, 6 -> `draft.ts`.
-- `reviewer.md` -> `reviewer.ts`, **minus Step 1 (company research)** for v1, per
+- `reviewer.md` -> `reviewer.ts`, **including Step 1 (company research)**, per
   section 5. Port the critique structure, the slop scan, and the output format
-  intact.
+  intact. Research is conditional on the provider: one prompt with two modes,
+  chosen by parameter, with the same output format in both.
 - `expand.md` -> `parse.ts` (CV -> profile), **including the Phase 4 keyword-bank
   logic**: `parse.ts` must produce the per-user keyword bank (experience mapped
   to each field's vocabulary), and `draft.ts` must consume it. This is the most

@@ -48,6 +48,20 @@ export function createOpenAiProvider({
 
   return {
     id,
+    // Both ids report false, for different reasons.
+    //
+    // `openai_compatible` is a user-supplied host. We cannot know what it
+    // serves, and a search tool it does not implement is a 400 at best.
+    //
+    // `openai` is a genuine gap rather than a choice. OpenAI's `web_search`
+    // tool runs on the Responses API; this adapter speaks `/chat/completions`
+    // because that is the shape every OpenAI-compatible host implements, and
+    // one shape serving both is the reason there is no fourth adapter. The web
+    // search guide names a `gpt-5-search-api` model for Chat Completions, but
+    // that string is absent from the models page, and shipping an unverified
+    // model ID is not worth a capability. Closing this means a second request
+    // shape in this file, used only by the reviewer's research pass.
+    supportsSearch: false,
     async generate(messages: Message[], opts: GenerateOptions = {}) {
       // A custom endpoint has no default: guessing a model name for someone
       // else's host is how you get a confusing 404 instead of a clear error.

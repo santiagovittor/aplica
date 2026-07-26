@@ -5,15 +5,17 @@ import type { VoiceProfile } from './voice';
  * The critic pass, ported from the `reviewer` agent (PROJECT.md sections 5
  * and 7).
  *
- * **Step 1, company research, is deliberately gone.** Search-tool support
- * differs across providers and it spends the user's own tokens, so company
- * research is a v2 provider capability (PROJECT.md section 5). Do not
- * reintroduce it: this prompt must work identically on a provider with no tools
- * at all. The COMPANY NOTES block went with it.
+ * **Company research is conditional, not absent.** Search is a per-model
+ * capability and no provider has it universally, so the prompt has two modes
+ * selected by `researchAvailable`: with search it opens on company notes, and
+ * without it it says plainly that it has no web access. The critique itself and
+ * the FIXES / HARD FAILS / VERDICT format are byte-identical in both, so the
+ * revision pass never has to know which one ran, and a provider with no tools
+ * at all still gets a complete review.
  *
  * Everything else ports intact: the critique structure, the slop scan and the
- * output format. The reviewer still catches what matters most, which is
- * keywords, slop and fabrication.
+ * output format. Even without research the reviewer catches what matters most,
+ * which is keywords, slop and fabrication.
  *
  * It runs in a fresh context as its own provider call. It critiques and never
  * rewrites, which is the property that makes it worth a second call at all: a
@@ -22,9 +24,41 @@ import type { VoiceProfile } from './voice';
 
 export interface ReviewerOptions {
   voice: VoiceProfile;
+  /**
+   * Whether the provider running this call can search the web
+   * (`Provider.supportsSearch`, and the user left the toggle on). One prompt,
+   * two modes: the critique and the output format are identical either way, so
+   * the revision pass never has to know which ran.
+   */
+  researchAvailable?: boolean;
 }
 
-export function reviewerSystemPrompt({ voice }: ReviewerOptions): string {
+/** Ported from the source agent's Step 1, minus the name of one applicant. */
+const RESEARCH_MODE = `You can search the web. Before you critique anything,
+research the company and establish, briefly:
+
+- What they actually do and what they sell.
+- Anything recent worth referencing: a launch, funding, a change of direction,
+  the public tone they take.
+- The tone they use about themselves: formal, casual, technical, mission-heavy.
+
+If you cannot find them, say so and move on. **Do not invent facts about them.**
+An unverified claim about the company is the same failure as an unverified claim
+about the applicant, and it is worse in an interview.
+
+Keep this short. It exists to sharpen the critique, not to become the output.
+Search costs the applicant money per search, so search enough to be useful and
+then stop.`;
+
+const NO_RESEARCH_MODE = `You have no web access. You know nothing about this
+company beyond what the posting says, so do not characterise them, their market,
+or their recent news. If the drafts assert something about the company that the
+posting does not support, that is itself a finding.`;
+
+export function reviewerSystemPrompt({
+  voice,
+  researchAvailable = false,
+}: ReviewerOptions): string {
   const anchors =
     voice.anchors.length > 0
       ? `The applicant's real sentences, for comparison:
@@ -43,10 +77,7 @@ You receive the job posting, the applicant's source-tagged profile, and the draf
 resume and cover letter. **You do not edit or rewrite the drafts.** You return a
 prioritised list of fixes for the drafter to apply.
 
-You have no web access. You know nothing about this company beyond what the
-posting says, so do not characterise them, their market, or their recent news.
-If the drafts assert something about the company that the posting does not
-support, that is itself a finding.
+${researchAvailable ? RESEARCH_MODE : NO_RESEARCH_MODE}
 
 Write your critique in the language the drafts are written in.
 
@@ -103,7 +134,7 @@ failure: the drafter sharpened a vague truth into a precise-sounding claim.
 Return only this, and nothing else:
 
 \`\`\`
-FIXES (highest priority first):
+${researchAvailable ? 'COMPANY NOTES: 2-3 lines on what they do and any hook worth using.\n\n' : ''}FIXES (highest priority first):
 1. [resume/cover, location] problem -> specific fix
 2. ...
 
