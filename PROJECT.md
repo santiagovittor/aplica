@@ -41,9 +41,13 @@ In:
 - A simple list of past applications with fit score and download links.
 - Account/settings: manage or delete the API key (one-click), change language,
   delete account, sign out.
-- Model-agnostic provider layer (Anthropic, OpenAI, Google) chosen by the user.
-  Each provider gets a recommended cheap default model, so a new user isn't asked
-  to pick one.
+- Model-agnostic provider layer chosen by the user: **Anthropic, OpenAI, Google,
+  plus one `openai_compatible` endpoint** for any OpenAI-shaped host the user
+  points at (NVIDIA NIM, Ollama local or cloud, OpenRouter, vLLM). The three
+  named providers each get a recommended cheap default model, so a new user isn't
+  asked to pick one. The compatible endpoint takes a user-supplied base URL and
+  model name, since only the host knows what it serves. One adapter, no
+  per-vendor code.
 
 **Billing is deliberately v2, not forgotten — but the price structure is decided
 now.** BYO-key means there is no inference cost forcing us to charge, so v1
@@ -93,7 +97,9 @@ salary tools, the just-in-time micro-interview and the voice-diff loop (see 5b).
 ## 5. Architecture
 
 Three flows, all model-agnostic through one `Provider` interface
-(`generate(messages, opts)`), with adapters for Anthropic, OpenAI, and Google.
+(`generate(messages, opts)`), with adapters for Anthropic, OpenAI, and Google —
+plus `openai_compatible`, the OpenAI adapter parameterised by a base URL, which
+reaches every OpenAI-shaped host without a fourth code path.
 
 1. **Parse CV -> profile.** On upload, extract text, then one model call turns it
    into a structured, source-tagged profile (experience, projects, skills, STAR
@@ -179,6 +185,13 @@ The user's API key is a credential. Get this right or the product loses trust.
   browser network tab.
 - Show the user, in plain language, where their key is stored and how to delete it.
   One-click "remove my key."
+- A user-supplied `base_url` (the `openai_compatible` provider, section 3) is
+  fetched **by the server**, which makes it an SSRF surface. Validate it before
+  every request: `https` only, no credentials in the URL, no loopback, private,
+  link-local, CGNAT, or cloud-metadata address, DNS resolved with every returned
+  address checked, and redirects refused. Self-hosters who genuinely need
+  `http://localhost:11434` for Ollama set `ALLOW_PRIVATE_PROVIDER_HOSTS=true`; it
+  is off by default and never on in the hosted app.
 
 ## 7. Prompt port
 

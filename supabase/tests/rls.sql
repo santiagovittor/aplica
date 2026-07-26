@@ -32,6 +32,49 @@ insert into public.profiles (user_id, data) values
 insert into public.api_keys (user_id, provider, ciphertext) values
   (:'alice', 'anthropic', 'v1.aaa.bbb.ccc'), (:'bob', 'openai', 'v1.ddd.eee.fff');
 
+-- The openai_compatible provider carries a base URL and the three named ones do
+-- not. That pairing is a check constraint, so this asserts the constraint holds
+-- rather than trusting the application to respect it. Alice's row is borrowed
+-- and put back; a failed statement inside a plpgsql exception block rolls back
+-- to its own savepoint, so the successful ones before it survive.
+do $$
+declare rejected boolean;
+begin
+  update public.api_keys
+     set provider = 'openai_compatible', base_url = 'https://integrate.api.nvidia.com/v1'
+   where user_id = '11111111-1111-1111-1111-111111111111';
+  assert (select base_url from public.api_keys
+           where user_id = '11111111-1111-1111-1111-111111111111') is not null,
+    'openai_compatible with a base URL was rejected';
+
+  rejected := false;
+  begin
+    update public.api_keys set base_url = null
+     where user_id = '11111111-1111-1111-1111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  assert rejected, 'openai_compatible without a base URL was accepted';
+
+  rejected := false;
+  begin
+    update public.api_keys set provider = 'anthropic'
+     where user_id = '11111111-1111-1111-1111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  assert rejected, 'a named provider was allowed to keep a base URL';
+
+  rejected := false;
+  begin
+    update public.api_keys set provider = 'llamafile', base_url = null
+     where user_id = '11111111-1111-1111-1111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  assert rejected, 'an unknown provider was accepted';
+
+  update public.api_keys set provider = 'anthropic', base_url = null
+   where user_id = '11111111-1111-1111-1111-111111111111';
+end $$;
+
 insert into public.applications (user_id, company, role, tier, fit_score) values
   (:'alice', 'Acme', 'Engineer', 'full', 80), (:'bob', 'Globex', 'Analyst', 'basic', 40);
 
