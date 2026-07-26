@@ -22,6 +22,19 @@ export interface HostPolicy {
 }
 
 /**
+ * An endpoint that has been through `assertSafeBaseUrl`. The hostname comes
+ * back alongside the URL so callers never re-derive it: `new URL(u).hostname`
+ * keeps the brackets on a literal IPv6 host, and `[::1]` is neither an address
+ * `isIP` recognises nor a name DNS can resolve.
+ */
+export interface SafeEndpoint {
+  /** Normalised, without a trailing slash, so a path can be appended. */
+  url: string;
+  /** Brackets and any trailing dot stripped, ready for a DNS lookup. */
+  hostname: string;
+}
+
+/**
  * Ranges that are never a legitimate provider endpoint: unspecified, private,
  * loopback, carrier-grade NAT, link-local (where every cloud metadata service
  * lives), benchmarking, multicast and reserved.
@@ -80,7 +93,10 @@ export function isBlockedAddress(address: string): boolean {
  * Validates the URL itself and returns it normalised, without a trailing slash
  * so callers can append a path. Throws with the reason on anything rejected.
  */
-export function assertSafeBaseUrl(raw: string, policy: HostPolicy): string {
+export function assertSafeBaseUrl(
+  raw: string,
+  policy: HostPolicy,
+): SafeEndpoint {
   let url: URL;
   try {
     url = new URL(raw);
@@ -109,8 +125,10 @@ export function assertSafeBaseUrl(raw: string, policy: HostPolicy): string {
     throw new Error('Endpoint URL has no host.');
   }
 
+  const endpoint = { url: trimTrailingSlash(url.toString()), hostname };
+
   if (policy.allowPrivate) {
-    return trimTrailingSlash(url.toString());
+    return endpoint;
   }
 
   if (isIP(hostname)) {
@@ -119,7 +137,7 @@ export function assertSafeBaseUrl(raw: string, policy: HostPolicy): string {
         `Endpoint URL resolves to a private address (${hostname}).`,
       );
     }
-    return trimTrailingSlash(url.toString());
+    return endpoint;
   }
 
   if (
@@ -139,7 +157,7 @@ export function assertSafeBaseUrl(raw: string, policy: HostPolicy): string {
     );
   }
 
-  return trimTrailingSlash(url.toString());
+  return endpoint;
 }
 
 /**

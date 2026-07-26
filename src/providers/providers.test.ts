@@ -9,7 +9,14 @@ import {
 // No network and no DNS. The suite must pass with every provider environment
 // variable unset, because CI never holds a key (CLAUDE.md section 5).
 vi.mock('node:dns/promises', () => ({
-  lookup: vi.fn(async () => [{ address: '203.0.113.10', family: 4 }]),
+  lookup: vi.fn((hostname: string) => {
+    // Real DNS cannot resolve a bracketed literal, so neither does this. Without
+    // that, a caller handing DNS `[::1]` would pass here and fail in production.
+    if (hostname.startsWith('[')) {
+      throw new Error(`ENOTFOUND ${hostname}`);
+    }
+    return Promise.resolve([{ address: '203.0.113.10', family: 4 }]);
+  }),
 }));
 
 // A stand-in shaped like a real key, so a leak would be unmistakable.
@@ -197,6 +204,22 @@ describe('the custom endpoint', () => {
     ).rejects.toThrow(/model is required/);
   });
 
+  // Before the guard returned a normalised hostname this threw: the adapter
+  // re-derived it with `new URL(base).hostname`, which keeps the brackets, and
+  // handed DNS `[2606:4700::1111]`.
+  it('reaches a public IPv6 literal endpoint', async () => {
+    stubFetch({ body: ADAPTERS.openai_compatible.body });
+    const provider = createProvider({
+      id: 'openai_compatible',
+      apiKey: KEY,
+      baseUrl: 'https://[2606:4700::1111]/v1',
+    });
+
+    await expect(
+      provider.generate([{ role: 'user', content: 'hi' }], { model: 'llama' }),
+    ).resolves.toBe('drafted');
+  });
+
   it('sends the token cap under the name compatible hosts understand', async () => {
     const { fetchSpy } = stubFetch({ body: ADAPTERS.openai_compatible.body });
     await createProvider(ADAPTERS.openai_compatible.config).generate(
@@ -263,6 +286,19 @@ describe('the mock provider', () => {
       expect(text).not.toContain('—');
       expect(text).not.toContain(KEY);
     }
+  });
+
+  // A real posting is free to say "we need a reviewer". The stage is the
+  // caller's decision, so the pasted input must not be able to change it.
+  it('ignores stage words in the pasted job posting', async () => {
+    const provider = createMockProvider();
+    const posting = [
+      { role: 'user' as const, content: 'Hiring a reviewer to revise drafts.' },
+    ];
+
+    await expect(
+      provider.generate(posting, { system: 'draft the resume' }),
+    ).resolves.toBe(await provider.generate(messages, { system: 'draft' }));
   });
 
   it('stands in for whichever provider a test needs', () => {

@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { assertResolvesSafely, type HostPolicy } from '../core/url-guard';
+import {
+  assertResolvesSafely,
+  type HostPolicy,
+  type SafeEndpoint,
+} from '../core/url-guard';
 import { DEFAULT_BASE_URLS, DEFAULT_MODELS } from './defaults';
 import {
   DEFAULT_MAX_TOKENS,
@@ -18,8 +22,12 @@ const Response = z.object({
 
 export interface OpenAiOptions {
   apiKey: string;
-  /** Set for `openai_compatible`. Already through `assertSafeBaseUrl`. */
-  baseUrl?: string;
+  /**
+   * Set for `openai_compatible`, and only ever the value `assertSafeBaseUrl`
+   * returned. Taking `SafeEndpoint` rather than a bare string is what stops a
+   * caller handing this adapter a URL that never went through the guard.
+   */
+  endpoint?: SafeEndpoint;
   policy?: HostPolicy;
 }
 
@@ -31,12 +39,12 @@ export interface OpenAiOptions {
  */
 export function createOpenAiProvider({
   apiKey,
-  baseUrl,
+  endpoint,
   policy,
 }: OpenAiOptions): Provider {
-  const compatible = baseUrl !== undefined;
+  const compatible = endpoint !== undefined;
   const id: ProviderId = compatible ? 'openai_compatible' : 'openai';
-  const base = baseUrl ?? DEFAULT_BASE_URLS.openai;
+  const base = endpoint?.url ?? DEFAULT_BASE_URLS.openai;
 
   return {
     id,
@@ -51,11 +59,13 @@ export function createOpenAiProvider({
         );
       }
 
-      if (compatible) {
+      if (endpoint !== undefined) {
         // Re-checked per request, not once at construction: a hostname is free
-        // to start resolving somewhere private later.
+        // to start resolving somewhere private later. The hostname comes from
+        // the guard rather than from `new URL(base).hostname`, which would hand
+        // DNS a bracketed `[::1]` that is neither an address nor a name.
         await assertResolvesSafely(
-          new URL(base).hostname,
+          endpoint.hostname,
           policy ?? { allowPrivate: false },
         );
       }

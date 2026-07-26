@@ -48,7 +48,7 @@ export function createProvider(config: ProviderConfig): Provider {
       const policy = config.policy ?? { allowPrivate: allowPrivateHosts() };
       return createOpenAiProvider({
         apiKey: config.apiKey,
-        baseUrl: assertSafeBaseUrl(config.baseUrl, policy),
+        endpoint: assertSafeBaseUrl(config.baseUrl, policy),
         policy,
       });
     }
