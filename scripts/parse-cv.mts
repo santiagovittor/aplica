@@ -82,7 +82,9 @@ async function main(): Promise<0 | 1> {
 
     const owner = flag('save');
     if (owner !== undefined) {
-      console.error(`Stored at ${await saveProfile(owner, profile, bytes)}.`);
+      console.error(
+        `Stored at ${await saveProfile(owner, profile, bytes, text)}.`,
+      );
     }
 
     console.log(JSON.stringify(profile, null, 2));

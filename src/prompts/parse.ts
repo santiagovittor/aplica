@@ -180,6 +180,25 @@ model for everything written as this person, so a paraphrase is worse than
 nothing. If the CV is written in third person or has no usable sentence, return
 an empty list and say so in \`gaps\`.
 
+## STAR stories
+
+Assemble these **only** from what the CV states. Every field has to be traceable
+to a line in the document.
+
+The failure to avoid, because it has already happened: writing a \`situation\`
+like "the team needed to work productively with LLMs but lacked structured
+frameworks" when the CV says nothing about what anybody needed or lacked. That is
+invented framing. It reads as plausible, it carries no fabricated number and no
+fabricated name, so no automated check will catch it, and it is a fabrication.
+
+- \`situation\` describes only circumstances the CV states. If the CV gives no
+  circumstances, this story does not exist. Do not supply motivation, pressure,
+  team sentiment, or a business problem the CV never mentions.
+- \`task\`, \`action\` and \`result\` come from the CV's own bullets.
+- Most CVs contain no STAR narratives at all. **An empty \`starStories\` list is
+  the correct answer far more often than not**, and it belongs in \`gaps\`. It is
+  the one place where returning nothing beats returning something.
+
 ## Education, certifications and languages
 
 Take these from the CV exactly as stated. A course is not a degree, an

@@ -2,6 +2,7 @@ import { parsePrompt } from '../prompts/parse';
 // The seam, as a type only, so nothing about a concrete vendor reaches `core`
 // and the import disappears at compile time (CLAUDE.md section 3).
 import type { GenerateOptions, Provider } from '../providers/types';
+import { groundProfile } from './grounding';
 import { profileSchema, type Profile } from './profile';
 
 /**
@@ -63,6 +64,7 @@ export async function parseCv(
   );
 
   const result = profileSchema.safeParse(toJson(response));
+
   if (!result.success) {
     // Paths only. A Zod message quotes the offending value, and the offending
     // value here is a line of somebody's CV.
@@ -73,7 +75,9 @@ export async function parseCv(
     );
   }
 
-  return result.data;
+  // The schema checked that every entry claims to come from the CV. This checks
+  // whether the prose does (PROJECT.md section 5b).
+  return groundProfile(result.data, cvText).profile;
 }
 
 function toJson(response: string): unknown {

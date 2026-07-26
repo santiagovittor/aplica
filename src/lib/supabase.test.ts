@@ -10,6 +10,7 @@ const URL_BASE = 'http://127.0.0.1:54321';
 const USER = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
 const PDF_BYTES = new TextEncoder().encode('%PDF-1.4\nnot really a pdf\n');
+const CV_TEXT = 'Santiago Vittor. Squad Leader at FoodStyles since May 2024.';
 const DOCX_BYTES = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]);
 
 const PROFILE: Profile = {
@@ -75,7 +76,7 @@ describe('saveProfile', () => {
   it('uploads the file before it writes the row', async () => {
     // Order matters: an orphaned object is overwritten by the next attempt, but
     // a row written first would point cv_path at a file that never arrived.
-    await saveProfile(USER, PROFILE, PDF_BYTES);
+    await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT);
 
     expect(calls.map((call) => call.url)).toEqual([
       `${URL_BASE}/storage/v1/object/cvs/${USER}/cv`,
@@ -84,11 +85,13 @@ describe('saveProfile', () => {
   });
 
   it('returns the stored path', async () => {
-    expect(await saveProfile(USER, PROFILE, PDF_BYTES)).toBe(`${USER}/cv`);
+    expect(await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT)).toBe(
+      `${USER}/cv`,
+    );
   });
 
   it('types the object from the bytes, not from an extension', async () => {
-    await saveProfile(USER, PROFILE, DOCX_BYTES);
+    await saveProfile(USER, PROFILE, DOCX_BYTES, CV_TEXT);
 
     expect(calls[0].headers['content-type']).toBe(
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -98,26 +101,28 @@ describe('saveProfile', () => {
   it('overwrites the previous CV rather than orphaning it', async () => {
     // Same key whatever the format. A key that carried the extension would
     // leave the old PDF behind the day somebody re-parses from a docx.
-    await saveProfile(USER, PROFILE, PDF_BYTES);
-    await saveProfile(USER, PROFILE, DOCX_BYTES);
+    await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT);
+    await saveProfile(USER, PROFILE, DOCX_BYTES, CV_TEXT);
 
     expect(calls[0].url).toBe(calls[2].url);
     expect(calls[0].headers['x-upsert']).toBe('true');
   });
 
   it('upserts on user_id and sets updated_at', async () => {
-    await saveProfile(USER, PROFILE, PDF_BYTES);
+    await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT);
 
     expect(calls[1].headers.prefer).toBe('resolution=merge-duplicates');
     const row = JSON.parse(String(calls[1].body));
     expect(row.user_id).toBe(USER);
     expect(row.cv_path).toBe(`${USER}/cv`);
     expect(row.data).toEqual(PROFILE);
+    // The evidence grounding checks against, stored with the profile.
+    expect(row.source_text).toBe(CV_TEXT);
     expect(Date.parse(row.updated_at)).not.toBeNaN();
   });
 
   it('authenticates with the secret key on both requests', async () => {
-    await saveProfile(USER, PROFILE, PDF_BYTES);
+    await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT);
 
     for (const call of calls) {
       expect(call.headers.apikey).toBe(SECRET);
@@ -131,14 +136,19 @@ describe('saveProfile refuses', () => {
     // The id is a URL path segment and the storage policy keys off it, so
     // anything else could put one person's CV in another person's folder.
     await expect(
-      saveProfile('../../other-user', PROFILE, PDF_BYTES),
+      saveProfile('../../other-user', PROFILE, PDF_BYTES, CV_TEXT),
     ).rejects.toThrow();
     expect(calls).toHaveLength(0);
   });
 
   it('a file that is neither a PDF nor a docx', async () => {
     await expect(
-      saveProfile(USER, PROFILE, new TextEncoder().encode('plain text')),
+      saveProfile(
+        USER,
+        PROFILE,
+        new TextEncoder().encode('plain text'),
+        CV_TEXT,
+      ),
     ).rejects.toThrow(/neither a PDF nor a docx/);
     expect(calls).toHaveLength(0);
   });
@@ -146,18 +156,18 @@ describe('saveProfile refuses', () => {
   it('a failed upload, without writing the row', async () => {
     respondWith(413);
 
-    await expect(saveProfile(USER, PROFILE, PDF_BYTES)).rejects.toBeInstanceOf(
-      SupabaseError,
-    );
+    await expect(
+      saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT),
+    ).rejects.toBeInstanceOf(SupabaseError);
     expect(calls).toHaveLength(1);
   });
 
   it('a failed row write', async () => {
     respondWith(200, 409);
 
-    await expect(saveProfile(USER, PROFILE, PDF_BYTES)).rejects.toThrow(
-      /profile upsert failed with status 409/,
-    );
+    await expect(
+      saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT),
+    ).rejects.toThrow(/profile upsert failed with status 409/);
   });
 });
 
@@ -165,17 +175,17 @@ describe('saveProfile fails fast', () => {
   it('when the project URL is missing', async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    await expect(saveProfile(USER, PROFILE, PDF_BYTES)).rejects.toThrow(
-      /NEXT_PUBLIC_SUPABASE_URL is not set/,
-    );
+    await expect(
+      saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT),
+    ).rejects.toThrow(/NEXT_PUBLIC_SUPABASE_URL is not set/);
   });
 
   it('when the secret key is missing', async () => {
     delete process.env.SUPABASE_SECRET_KEY;
 
-    await expect(saveProfile(USER, PROFILE, PDF_BYTES)).rejects.toThrow(
-      /SUPABASE_SECRET_KEY is not set/,
-    );
+    await expect(
+      saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT),
+    ).rejects.toThrow(/SUPABASE_SECRET_KEY is not set/);
   });
 });
 
@@ -187,7 +197,7 @@ describe('a failed write leaks nothing', () => {
 
     let thrown: unknown;
     try {
-      await saveProfile(USER, PROFILE, PDF_BYTES);
+      await saveProfile(USER, PROFILE, PDF_BYTES, CV_TEXT);
     } catch (error) {
       thrown = error;
     }
