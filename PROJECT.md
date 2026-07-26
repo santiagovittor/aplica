@@ -159,6 +159,19 @@ guess the scope.
   Only verbatim and extracted may appear in output. On a gap the model has exactly
   three legal moves: omit it, keep the user's vaguer-but-true wording, or ask. It
   may never smooth a gap into a specific-sounding claim.
+
+  **The contract is enforced by grounding, not by the tag.** A source tag is a
+  claim the model makes about itself, and a real parse proved it worthless on its
+  own: it returned an invented STAR situation carrying `source: "extracted"`, and
+  schema validation passed it because the label was legal. So the parsed text of
+  the CV is stored (`profiles.source_text`) and every claim's prose is checked
+  against it by `src/core/grounding.ts`: a voice anchor must be a verbatim quote,
+  and a claim's numbers and named entities must appear in the source. An
+  ungrounded claim is downgraded to weak and reported in `gaps`, never silently
+  kept and never silently deleted. The check is a pure function, never an LLM
+  judge. Its measured limits are recorded in `/docs/grounding.md`; whole-sentence
+  overlap scoring was tried and rejected because it cannot tell a paraphrase from
+  a fabrication.
 - **[v1] Vagueness triggers a flag, not a beautification.** Low-confidence items
   aren't foregrounded and are surfaced on the result as honest flags. (The
   STAR-style probing conversation is part of the v2 micro-interview.)

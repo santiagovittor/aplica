@@ -48,6 +48,7 @@ export async function saveProfile(
   userId: string,
   profile: Profile,
   cvBytes: Uint8Array,
+  sourceText: string,
 ): Promise<string> {
   // The id goes straight into a URL path, so it is validated as a UUID before
   // it gets there. The `cvs owner full access` policy keys off the first path
@@ -83,6 +84,9 @@ export async function saveProfile(
       user_id: owner,
       data: profile,
       cv_path: path,
+      // The evidence the profile was checked against. Stored with the profile
+      // so a claim can be re-verified without re-running the extractor.
+      source_text: sourceText,
       // `merge-duplicates` writes only the columns in this payload, so the
       // column default never fires on the update half of the upsert.
       updated_at: new Date().toISOString(),
