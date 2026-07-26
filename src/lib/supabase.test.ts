@@ -75,28 +75,30 @@ describe('saveProfile', () => {
     await saveProfile(USER, PROFILE, PDF_BYTES);
 
     expect(calls.map((call) => call.url)).toEqual([
-      `${URL_BASE}/storage/v1/object/cvs/${USER}/cv.pdf`,
+      `${URL_BASE}/storage/v1/object/cvs/${USER}/cv`,
       `${URL_BASE}/rest/v1/profiles?on_conflict=user_id`,
     ]);
   });
 
   it('returns the stored path', async () => {
-    expect(await saveProfile(USER, PROFILE, PDF_BYTES)).toBe(`${USER}/cv.pdf`);
+    expect(await saveProfile(USER, PROFILE, PDF_BYTES)).toBe(`${USER}/cv`);
   });
 
-  it('names the object from the bytes, not from an extension', async () => {
+  it('types the object from the bytes, not from an extension', async () => {
     await saveProfile(USER, PROFILE, DOCX_BYTES);
 
-    expect(calls[0].url).toBe(
-      `${URL_BASE}/storage/v1/object/cvs/${USER}/cv.docx`,
-    );
     expect(calls[0].headers['content-type']).toBe(
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     );
   });
 
   it('overwrites the previous CV rather than orphaning it', async () => {
+    // Same key whatever the format. A key that carried the extension would
+    // leave the old PDF behind the day somebody re-parses from a docx.
     await saveProfile(USER, PROFILE, PDF_BYTES);
+    await saveProfile(USER, PROFILE, DOCX_BYTES);
+
+    expect(calls[0].url).toBe(calls[2].url);
     expect(calls[0].headers['x-upsert']).toBe('true');
   });
 
@@ -106,7 +108,7 @@ describe('saveProfile', () => {
     expect(calls[1].headers.prefer).toBe('resolution=merge-duplicates');
     const row = JSON.parse(String(calls[1].body));
     expect(row.user_id).toBe(USER);
-    expect(row.cv_path).toBe(`${USER}/cv.pdf`);
+    expect(row.cv_path).toBe(`${USER}/cv`);
     expect(row.data).toEqual(PROFILE);
     expect(Date.parse(row.updated_at)).not.toBeNaN();
   });

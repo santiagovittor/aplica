@@ -36,9 +36,11 @@ export class SupabaseError extends Error {
 /**
  * Stores the CV and its parsed profile, replacing whatever was there.
  *
- * One profile per user (`profiles.user_id` is unique), so one file per user:
- * the object path is fixed rather than timestamped, because a new name on every
- * re-parse would leave the old CV in the bucket with nothing pointing at it.
+ * One profile per user (`profiles.user_id` is unique), so one file per user.
+ * The object key is the same on every re-parse, with no extension and no
+ * timestamp in it: a key that varies with the format would leave the old PDF in
+ * the bucket the day somebody re-parses from a docx. The format is carried by
+ * the content type instead, which is where a reader looks anyway.
  *
  * Returns the stored object path, which is what `profiles.cv_path` holds.
  */
@@ -63,7 +65,7 @@ export async function saveProfile(
   // The file first. A failed row write leaves an object that the next attempt
   // overwrites; a failed upload after a successful row write would leave
   // `cv_path` pointing at nothing.
-  const path = `${owner}/cv.${format}`;
+  const path = `${owner}/cv`;
   await request('storage upload', `/storage/v1/object/cvs/${path}`, {
     headers: { 'content-type': CONTENT_TYPES[format], 'x-upsert': 'true' },
     // `BodyInit` will not take a view over an arbitrary buffer, and a Buffer
