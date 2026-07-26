@@ -9,7 +9,10 @@ real model outputs, two of which contained inventions found by hand first.
 
 ## The rules that shipped
 
-1. **A voice anchor must appear in the source verbatim** (case-insensitive).
+1. **A voice anchor must appear in the source verbatim**, comparing with case
+   and runs of whitespace flattened. A PDF wraps lines mid-sentence, so a raw
+   substring test drops quotes that are exactly verbatim; that was measured on a
+   real CV, where it threw away a true anchor.
    The prompt demands an exact quote, so a paraphrase is a quote that is not
    one. Dropped, with a `gaps` entry.
 2. **A claim's numbers must appear in the source.** Digit runs are compared, so

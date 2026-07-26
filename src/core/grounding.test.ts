@@ -191,6 +191,31 @@ describe('groundProfile drops a voice anchor that is not a quote', () => {
     expect(grounded.gaps.some((g) => g.area === 'voiceAnchors')).toBe(true);
   });
 
+  it('but not one the PDF happened to wrap mid-sentence', () => {
+    // Found on a real CV. A PDF has no idea where a sentence ends, so the
+    // extracted text carries a newline inside one, and a raw substring test
+    // then throws away a quote that is exactly verbatim.
+    const wrapped =
+      'Lead a cross-functional squad of 6 to 7 people\nacross quality and learning.';
+    const source = CV.replace(
+      'Lead a cross-functional squad of 6 to 7 people across quality and learning.',
+      wrapped,
+    );
+    const quoting = profile({
+      voiceAnchors: [
+        'Lead a cross-functional squad of 6 to 7 people across quality and learning.',
+      ],
+    });
+
+    const { profile: grounded, droppedAnchors } = groundProfile(
+      quoting,
+      source,
+    );
+
+    expect(droppedAnchors).toEqual([]);
+    expect(grounded.voiceAnchors).toHaveLength(1);
+  });
+
   it('ignoring case, because a quote is about words not capitals', () => {
     const shouted = profile({
       voiceAnchors: [
