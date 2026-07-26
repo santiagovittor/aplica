@@ -26,6 +26,13 @@ export interface GenerateOptions {
   model?: string;
   maxTokens?: number;
   signal?: AbortSignal;
+  /**
+   * Ask the provider to run its own server-side web search for this call. Only
+   * the reviewer uses it, and only when `supportsSearch` is true. It switches
+   * the call to the provider's search-capable model, which is not the cheap
+   * default, and it bills per search on top of tokens.
+   */
+  search?: boolean;
 }
 
 /**
@@ -35,6 +42,17 @@ export interface GenerateOptions {
  */
 export interface Provider {
   readonly id: ProviderId;
+  /**
+   * Whether this adapter can run a server-side web search, which is what lets
+   * the reviewer research the company (PROJECT.md section 5).
+   *
+   * Capability is per **model**, not per vendor: every provider here has some
+   * models that search and some that do not. So this is derived from whether
+   * the adapter has a model it is documented to search with (`SEARCH_MODELS`),
+   * rather than hand-declared per vendor, which would be a claim the docs do
+   * not back.
+   */
+  readonly supportsSearch: boolean;
   generate(messages: Message[], opts?: GenerateOptions): Promise<string>;
 }
 

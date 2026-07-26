@@ -8,7 +8,7 @@ import { createGoogleProvider } from './google';
 import { createOpenAiProvider } from './openai';
 import type { Provider } from './types';
 
-export { DEFAULT_BASE_URLS, DEFAULT_MODELS } from './defaults';
+export { DEFAULT_BASE_URLS, DEFAULT_MODELS, SEARCH_MODELS } from './defaults';
 export { createMockProvider, MOCK_RESPONSES } from './mock';
 export {
   PROVIDER_IDS,

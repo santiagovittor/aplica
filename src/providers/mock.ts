@@ -21,6 +21,18 @@ import type { GenerateOptions, Message, Provider, ProviderId } from './types';
  * prompt files land.
  */
 export const MOCK_RESPONSES: Record<string, string> = {
+  researched: [
+    'COMPANY NOTES: they sell payroll software to small firms in three markets.',
+    'Their own posting language is plain and short.',
+    '',
+    'FIXES (highest priority first):',
+    '1. [resume, summary] the posting says "incident response" and the summary',
+    '   does not. The profile supports it under the on-call rotation line.',
+    '',
+    'HARD FAILS (must fix before sending): none.',
+    '',
+    'VERDICT: ready after fixes.',
+  ].join('\n'),
   reviewer: [
     'Two gaps. The summary omits the posting term "incident response", which the',
     'profile supports under the on-call rotation line.',
@@ -46,17 +58,28 @@ export interface MockProviderOptions {
   /** Which provider this stands in for. There is no `mock` provider id: the
    *  id is a real column value in `api_keys`, not a test artefact. */
   id?: ProviderId;
+  /** Stand in for a search-capable provider, or one without it. */
+  supportsSearch?: boolean;
 }
 
 export function createMockProvider({
   responses = {},
   id = 'anthropic',
+  supportsSearch = false,
 }: MockProviderOptions = {}): Provider {
   const table = { ...MOCK_RESPONSES, ...responses };
 
   return {
     id,
+    supportsSearch,
     generate(_messages: Message[], opts: GenerateOptions = {}) {
+      // A searching call is a different call, so it gets a different canned
+      // answer. Keyed explicitly rather than by marker, because both reviewer
+      // modes talk about research and a substring match cannot tell them apart.
+      if (opts.search === true) {
+        return Promise.resolve(table.researched ?? FALLBACK);
+      }
+
       // The system prompt only. A real job posting is free to contain the word
       // "draft" or "reviewer", and matching on it would silently pick the wrong
       // stage: the caller decides which stage a call is, not the pasted input.

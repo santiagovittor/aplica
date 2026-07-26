@@ -93,31 +93,70 @@ describe('the keyword bank', () => {
   });
 });
 
-describe('company research is gone from the reviewer', () => {
-  const reviewer = reviewerSystemPrompt({ voice: VOICE });
-
-  // Not a blanket word ban: the prompt names recent news precisely to forbid
-  // characterising it. What must be gone is the instruction to go and look.
-  it('never tells it to research', () => {
-    expect(reviewer).not.toContain('Research the company');
-    expect(reviewer).not.toContain('Web-search the company');
-    expect(reviewer).not.toMatch(/\bweb.?search\b/i);
+describe('the reviewer has two modes', () => {
+  const withResearch = reviewerSystemPrompt({
+    voice: VOICE,
+    researchAvailable: true,
+  });
+  const without = reviewerSystemPrompt({
+    voice: VOICE,
+    researchAvailable: false,
   });
 
-  it('drops the COMPANY NOTES block from the output format', () => {
-    expect(reviewer).not.toContain('COMPANY NOTES');
+  it('defaults to no research, since most models cannot', () => {
+    expect(reviewerSystemPrompt({ voice: VOICE })).toBe(without);
   });
 
-  it('keeps the rest of the output format intact', () => {
-    expect(reviewer).toContain('FIXES (highest priority first)');
-    expect(reviewer).toContain('HARD FAILS (must fix before sending)');
-    expect(reviewer).toContain(
-      'VERDICT: ready after fixes / needs another pass.',
-    );
+  it('researches the company when the provider can', () => {
+    expect(withResearch).toContain('You can search the web.');
+    expect(withResearch).toContain('research the company and establish');
+    expect(withResearch).toContain('the public tone they take');
+    expect(withResearch).toContain('COMPANY NOTES:');
   });
 
-  it('says plainly that it knows nothing about the company', () => {
-    expect(reviewer).toContain('You have no web access.');
+  it('says plainly that it cannot when the provider cannot', () => {
+    expect(without).toContain('You have no web access.');
+    expect(without).not.toContain('You can search the web.');
+    expect(without).not.toContain('COMPANY NOTES');
+  });
+
+  it('forbids inventing the company in either mode', () => {
+    expect(withResearch).toContain('Do not invent facts about them.');
+    expect(without).toContain('do not characterise them');
+  });
+
+  it('warns that research costs the applicant money', () => {
+    expect(withResearch).toContain('costs the applicant money per search');
+  });
+
+  // The revision pass must not care which mode ran. The critique itself is
+  // byte-identical, and so is the output format from FIXES down. The only
+  // difference anywhere is the research block and the COMPANY NOTES line above
+  // FIXES, which is additive.
+  it('has a byte-identical critique in both modes', () => {
+    const critique = (prompt: string) =>
+      prompt.slice(
+        prompt.indexOf('## Step 1 — Critique the resume'),
+        prompt.indexOf('## Output format'),
+      );
+    expect(critique(withResearch)).toBe(critique(without));
+    expect(critique(without)).not.toBe('');
+  });
+
+  it('has a byte-identical output format from FIXES down', () => {
+    const format = (prompt: string) =>
+      prompt.slice(prompt.indexOf('FIXES (highest priority first)'));
+    expect(format(withResearch)).toBe(format(without));
+  });
+
+  it('keeps the same output format in both', () => {
+    for (const prompt of [withResearch, without]) {
+      expect(prompt).toContain('FIXES (highest priority first)');
+      expect(prompt).toContain('HARD FAILS (must fix before sending)');
+      expect(prompt).toContain(
+        'VERDICT: ready after fixes / needs another pass.',
+      );
+    }
   });
 });
 

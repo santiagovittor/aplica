@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEFAULT_BASE_URLS, DEFAULT_MODELS } from './defaults';
+import { DEFAULT_BASE_URLS, DEFAULT_MODELS, SEARCH_MODELS } from './defaults';
 import {
   DEFAULT_MAX_TOKENS,
   type GenerateOptions,
@@ -21,8 +21,13 @@ const Response = z.object({
 export function createGoogleProvider(apiKey: string): Provider {
   return {
     id: 'google',
+    supportsSearch: SEARCH_MODELS.google !== undefined,
     async generate(messages: Message[], opts: GenerateOptions = {}) {
-      const model = opts.model ?? DEFAULT_MODELS.google;
+      const searching =
+        opts.search === true && SEARCH_MODELS.google !== undefined;
+      const model =
+        opts.model ??
+        (searching ? SEARCH_MODELS.google : DEFAULT_MODELS.google);
 
       const body = await postJson(
         'google',
@@ -39,6 +44,9 @@ export function createGoogleProvider(apiKey: string): Provider {
           ...(opts.system
             ? { systemInstruction: { parts: [{ text: opts.system }] } }
             : {}),
+          // Grounding with Google Search. Older models used
+          // `google_search_retrieval`; every current model uses this.
+          ...(searching ? { tools: [{ google_search: {} }] } : {}),
           generationConfig: {
             maxOutputTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
           },

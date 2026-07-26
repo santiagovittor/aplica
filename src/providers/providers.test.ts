@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createMockProvider,
   createProvider,
+  DEFAULT_MODELS,
   PROVIDER_IDS,
+  SEARCH_MODELS,
   type ProviderConfig,
 } from './index';
 
@@ -170,6 +172,116 @@ describe('no adapter leaks the key', () => {
   }
 });
 
+describe('the search capability', () => {
+  // Derived from SEARCH_MODELS, not hand-declared, because search support is a
+  // property of the model rather than the vendor.
+  const expected: Record<string, boolean> = {
+    anthropic: true,
+    google: true,
+    openai: false,
+    openai_compatible: false,
+  };
+
+  for (const [name, adapter] of entries) {
+    it(`${name} reports supportsSearch ${expected[name]}`, () => {
+      stubFetch({ body: adapter.body });
+      expect(createProvider(adapter.config).supportsSearch).toBe(
+        expected[name],
+      );
+    });
+  }
+
+  it('anthropic sends the basic web search tool, called directly', async () => {
+    const { fetchSpy } = stubFetch({ body: ADAPTERS.anthropic.body });
+    await createProvider(ADAPTERS.anthropic.config).generate(
+      [{ role: 'user', content: 'hi' }],
+      { search: true },
+    );
+
+    const { body } = requestFrom(fetchSpy);
+    expect(body.tools).toEqual([
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        allowed_callers: ['direct'],
+      },
+    ]);
+    // The searching call runs on the model the docs demonstrate search with,
+    // not on the cheap default.
+    expect(body.model).toBe(SEARCH_MODELS.anthropic);
+    expect(body.model).not.toBe(DEFAULT_MODELS.anthropic);
+  });
+
+  it('google sends the google_search tool', async () => {
+    const { fetchSpy } = stubFetch({ body: ADAPTERS.google.body });
+    await createProvider(ADAPTERS.google.config).generate(
+      [{ role: 'user', content: 'hi' }],
+      { search: true },
+    );
+
+    const { url, body } = requestFrom(fetchSpy);
+    expect(body.tools).toEqual([{ google_search: {} }]);
+    expect(url).toContain(SEARCH_MODELS.google);
+  });
+
+  for (const name of ['anthropic', 'google'] as const) {
+    it(`${name} sends no tool and the cheap model when not searching`, async () => {
+      const { fetchSpy } = stubFetch({ body: ADAPTERS[name].body });
+      await createProvider(ADAPTERS[name].config).generate([
+        { role: 'user', content: 'hi' },
+      ]);
+
+      const { url, body } = requestFrom(fetchSpy);
+      expect(body.tools).toBeUndefined();
+      if (name === 'google') {
+        expect(url).toContain(DEFAULT_MODELS.google);
+      } else {
+        expect(body.model).toBe(DEFAULT_MODELS.anthropic);
+      }
+    });
+  }
+
+  // Asking a provider that cannot search to search is a caller bug, but it must
+  // not become a 400 from a tool the endpoint has never heard of.
+  it('openai ignores a search request rather than sending an unknown tool', async () => {
+    const { fetchSpy } = stubFetch({ body: ADAPTERS.openai.body });
+    await createProvider(ADAPTERS.openai.config).generate(
+      [{ role: 'user', content: 'hi' }],
+      { search: true },
+    );
+
+    const { body } = requestFrom(fetchSpy);
+    expect(body.tools).toBeUndefined();
+    expect(body.model).toBe(DEFAULT_MODELS.openai);
+  });
+
+  // A searching turn interleaves tool blocks with text, and citations split the
+  // answer across several text blocks. Taking the first would return the model
+  // announcing its search instead of its critique.
+  it('anthropic joins every text block of a searching response', async () => {
+    stubFetch({
+      body: {
+        content: [
+          { type: 'text', text: 'I will look them up. ' },
+          { type: 'server_tool_use', name: 'web_search' },
+          { type: 'web_search_tool_result', tool_use_id: 'x' },
+          { type: 'text', text: 'COMPANY NOTES: they sell payroll software. ' },
+          { type: 'text', text: 'VERDICT: ready after fixes.' },
+        ],
+      },
+    });
+
+    const text = await createProvider(ADAPTERS.anthropic.config).generate(
+      [{ role: 'user', content: 'hi' }],
+      { search: true },
+    );
+
+    expect(text).toBe(
+      'I will look them up. COMPANY NOTES: they sell payroll software. VERDICT: ready after fixes.',
+    );
+  });
+});
+
 describe('the custom endpoint', () => {
   const privateUrls = [
     'http://localhost:11434/v1',
@@ -303,5 +415,24 @@ describe('the mock provider', () => {
 
   it('stands in for whichever provider a test needs', () => {
     expect(createMockProvider({ id: 'google' }).id).toBe('google');
+  });
+
+  it('stands in for a search-capable provider, or one without it', () => {
+    expect(createMockProvider({ supportsSearch: true }).supportsSearch).toBe(
+      true,
+    );
+    expect(createMockProvider().supportsSearch).toBe(false);
+  });
+
+  it('answers a searching call differently, and deterministically', async () => {
+    const provider = createMockProvider({ supportsSearch: true });
+    const researched = await provider.generate(messages, { search: true });
+    const plain = await provider.generate(messages, { system: 'reviewer' });
+
+    expect(researched).toContain('COMPANY NOTES');
+    expect(plain).not.toContain('COMPANY NOTES');
+    expect(researched).toBe(
+      await provider.generate(messages, { search: true }),
+    );
   });
 });
