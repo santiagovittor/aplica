@@ -62,6 +62,35 @@ function validProfile() {
         evidence: 'strong',
       },
     ],
+    education: [
+      {
+        institution: 'Universidad de Buenos Aires',
+        qualification: 'Accounting coursework',
+        start: '2016',
+        end: '2019',
+        source: 'extracted',
+        evidence: 'strong',
+      },
+    ],
+    certifications: [
+      {
+        name: 'Google Data Analytics: Foundations',
+        issuer: 'Coursera',
+        year: '2024',
+        source: 'extracted',
+        evidence: 'strong',
+      },
+    ],
+    languages: [
+      {
+        name: 'English',
+        level: 'fluent',
+        provenBy:
+          'Cambridge First, and four years of daily use at a UK company.',
+        source: 'extracted',
+        evidence: 'strong',
+      },
+    ],
     keywordBank: [
       {
         ownTerm: 'month-end close',
@@ -102,6 +131,9 @@ describe('profileSchema accepts', () => {
       projects: [],
       skills: [],
       starStories: [],
+      education: [],
+      certifications: [],
+      languages: [],
       keywordBank: [],
       gaps: [
         {
@@ -136,6 +168,30 @@ describe('profileSchema accepts', () => {
       source: 'extracted',
       evidence: 'weak',
     });
+  });
+
+  it('education, certifications and languages', () => {
+    // Step 6 cannot render an Education section from a schema with no place for
+    // one. The first transcription of `parse.ts` had that hole.
+    const parsed = profileSchema.parse(validProfile());
+
+    expect(parsed.education[0].qualification).toBe('Accounting coursework');
+    expect(parsed.certifications[0].issuer).toBe('Coursera');
+    expect(parsed.languages[0].level).toBe('fluent');
+  });
+
+  it('an undated qualification and an undated certificate', () => {
+    const profile = validProfile();
+
+    const result = profileSchema.safeParse({
+      ...profile,
+      education: [without(profile.education[0], 'end')],
+      certifications: [without(profile.certifications[0], 'year')],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.education[0].end).toBe('');
+    expect(result.data?.certifications[0].year).toBe('');
   });
 
   it('the keyword bank whole', () => {
@@ -192,6 +248,15 @@ describe('profileSchema rejects a source other than extracted', () => {
     },
     'on a STAR story': (profile) => {
       profile.starStories[0].source = 'inferred';
+    },
+    'on a qualification': (profile) => {
+      profile.education[0].source = 'inferred';
+    },
+    'on a certificate': (profile) => {
+      profile.certifications[0].source = 'inferred';
+    },
+    'on a language': (profile) => {
+      profile.languages[0].source = 'inferred';
     },
   };
 

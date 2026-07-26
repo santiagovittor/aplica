@@ -86,6 +86,36 @@ const KeywordBankEntry = z.object({
   source: Source,
 });
 
+const Education = z.object({
+  institution: z.string(),
+  qualification: z.string(),
+  start: z.string(),
+  end: z.string().default(''),
+  source: Source,
+  evidence: Evidence,
+});
+
+const Certification = z.object({
+  name: z.string(),
+  issuer: z.string(),
+  year: z.string().default(''),
+  source: Source,
+  evidence: Evidence,
+});
+
+/**
+ * `provenBy` because a language level is a claim like any other. "English:
+ * fluent" on its own is the vague self-assessment `evidence: "weak"` exists
+ * for; "daily working language for four years at a UK company" is not.
+ */
+const Language = z.object({
+  name: z.string(),
+  level: z.string(),
+  provenBy: z.string(),
+  source: Source,
+  evidence: Evidence,
+});
+
 const Gap = z.object({
   area: z.string(),
   note: z.string(),
@@ -106,6 +136,9 @@ export const profileSchema = z.object({
   projects: z.array(Project),
   skills: z.array(Skill),
   starStories: z.array(StarStory),
+  education: z.array(Education),
+  certifications: z.array(Certification),
+  languages: z.array(Language),
   keywordBank: z.array(KeywordBankEntry),
   gaps: z.array(Gap),
 });

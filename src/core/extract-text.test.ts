@@ -1,5 +1,5 @@
 import { deflateRawSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { CvExtractionError, MAX_CV_BYTES, extractCvText } from './extract-text';
 
 // Fixtures are built here rather than checked in as binaries. A hand-assembled
@@ -229,6 +229,43 @@ describe('extractCvText reads', () => {
     const text = await extractCvText(bytes);
     expect(text).toContain('Tools:\tSQL & Python');
     expect(text).toContain('Ada Lovelace\nOperations analyst');
+  });
+});
+
+// pdf.js calls Math.sumPrecise, which V8 has not shipped. Measured out of
+// process: without the polyfill a real CV produces six warnings and the same
+// bytes of text, so the polyfill is about pdf.js's font path, not about text.
+describe('the Math.sumPrecise polyfill', () => {
+  const math = Math as { sumPrecise?: (values: Iterable<number>) => number };
+  const original = math.sumPrecise;
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete math.sumPrecise;
+    } else {
+      math.sumPrecise = original;
+    }
+  });
+
+  it('is installed by an extraction, and sums', async () => {
+    delete math.sumPrecise;
+
+    expect(await extractCvText(pdf(textStream(CV_LINES)))).toContain(
+      'Ada Lovelace',
+    );
+    const installed = Reflect.get(Math, 'sumPrecise') as
+      ((values: Iterable<number>) => number) | undefined;
+    expect(typeof installed).toBe('function');
+    expect(installed?.([0.1, 0.2, 0.3])).toBeCloseTo(0.6);
+  });
+
+  it('never replaces an implementation that already exists', async () => {
+    // The day V8 ships it, the real one has to win.
+    const native = () => 42;
+    math.sumPrecise = native;
+
+    await extractCvText(pdf(textStream(CV_LINES)));
+    expect(math.sumPrecise).toBe(native);
   });
 });
 

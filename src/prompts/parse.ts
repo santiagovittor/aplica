@@ -54,6 +54,21 @@ const OUTPUT_SHAPE = `
       "source": "extracted", "evidence": "strong"
     }
   ],
+  "education": [
+    {
+      "institution": "", "qualification": "", "start": "", "end": "",
+      "source": "extracted", "evidence": "strong"
+    }
+  ],
+  "certifications": [
+    { "name": "", "issuer": "", "year": "", "source": "extracted", "evidence": "strong" }
+  ],
+  "languages": [
+    {
+      "name": "", "level": "", "provenBy": "",
+      "source": "extracted", "evidence": "strong"
+    }
+  ],
   "keywordBank": [
     {
       "ownTerm": "what the CV calls it",
@@ -115,6 +130,18 @@ Prefer lines with a first-person verb and a real detail. These become the voice
 model for everything written as this person, so a paraphrase is worse than
 nothing. If the CV is written in third person or has no usable sentence, return
 an empty list and say so in \`gaps\`.
+
+## Education, certifications and languages
+
+Take these from the CV exactly as stated. A course is not a degree, an
+unfinished degree is not a finished one, and coursework with no qualification
+named keeps whatever the CV called it. Do not upgrade a title, do not infer an
+issuer the CV does not name, and leave \`end\` or \`year\` empty rather than
+guessing at one.
+
+A language level carries \`provenBy\` because it is a claim like any other. "I
+speak English" proven only by the CV being written in English is \`"weak"\`. A
+named certificate, or years of professional use, is \`"strong"\`.
 
 ## The keyword bank
 
