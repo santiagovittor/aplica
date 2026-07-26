@@ -45,5 +45,11 @@ next-env.d.ts
 # design skills, cloned from their own repos
 /.claude/skills/
 
+# The Claude Code originals the prompts in src/prompts/ were ported from. They
+# are written for one person and carry a real name, handle, sites and salary
+# floor; this repo is public under MIT. The port is the artefact, not the source.
+/.claude/agents/
+/.claude/commands/
+
 # playwright mcp scratch output
 /.playwright-mcp/
