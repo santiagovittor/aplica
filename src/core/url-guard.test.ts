@@ -105,37 +105,56 @@ describe('assertSafeBaseUrl accepts', () => {
   it('a public https endpoint', () => {
     expect(
       assertSafeBaseUrl('https://integrate.api.nvidia.com/v1', CLOSED),
-    ).toBe('https://integrate.api.nvidia.com/v1');
+    ).toEqual({
+      url: 'https://integrate.api.nvidia.com/v1',
+      hostname: 'integrate.api.nvidia.com',
+    });
   });
 
   it('a public address literal', () => {
-    expect(assertSafeBaseUrl('https://8.8.8.8/v1', CLOSED)).toBe(
+    expect(assertSafeBaseUrl('https://8.8.8.8/v1', CLOSED).url).toBe(
       'https://8.8.8.8/v1',
     );
   });
 
   it('a non-default port', () => {
-    expect(assertSafeBaseUrl('https://vllm.example.com:8000/v1', CLOSED)).toBe(
-      'https://vllm.example.com:8000/v1',
-    );
+    expect(
+      assertSafeBaseUrl('https://vllm.example.com:8000/v1', CLOSED).url,
+    ).toBe('https://vllm.example.com:8000/v1');
   });
 
   it('trims the trailing slash so a path can be appended', () => {
-    expect(assertSafeBaseUrl('https://openrouter.ai/api/v1/', CLOSED)).toBe(
+    expect(assertSafeBaseUrl('https://openrouter.ai/api/v1/', CLOSED).url).toBe(
       'https://openrouter.ai/api/v1',
     );
+  });
+
+  // The returned hostname is what reaches DNS, so it must be resolvable as-is.
+  // `new URL(u).hostname` keeps the brackets, and `[2606:4700::1111]` is
+  // neither an address isIP recognises nor a name that resolves.
+  it('returns a public IPv6 host without its brackets', () => {
+    expect(assertSafeBaseUrl('https://[2606:4700::1111]/v1', CLOSED)).toEqual({
+      url: 'https://[2606:4700::1111]/v1',
+      hostname: '2606:4700::1111',
+    });
+  });
+
+  it('returns a host without its trailing dot', () => {
+    expect(
+      assertSafeBaseUrl('https://openrouter.ai./v1', CLOSED).hostname,
+    ).toBe('openrouter.ai');
   });
 });
 
 describe('the allowPrivate escape hatch', () => {
   it('lets a self-hoster reach Ollama on loopback', () => {
-    expect(assertSafeBaseUrl('http://localhost:11434/v1', OPEN)).toBe(
+    expect(assertSafeBaseUrl('http://localhost:11434/v1', OPEN).url).toBe(
       'http://localhost:11434/v1',
     );
   });
 
   it('lets a self-hoster reach a private address', () => {
-    expect(assertSafeBaseUrl('http://10.0.0.5:8000/v1', OPEN)).toBe(
+    expect(assertSafeBaseUrl('http://10.0.0.5:8000/v1', OPEN).url).toBe(
       'http://10.0.0.5:8000/v1',
     );
   });

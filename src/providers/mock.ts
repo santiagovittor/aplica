@@ -56,9 +56,11 @@ export function createMockProvider({
 
   return {
     id,
-    generate(messages: Message[], opts: GenerateOptions = {}) {
-      const haystack =
-        `${opts.system ?? ''}\n${messages.map((m) => m.content).join('\n')}`.toLowerCase();
+    generate(_messages: Message[], opts: GenerateOptions = {}) {
+      // The system prompt only. A real job posting is free to contain the word
+      // "draft" or "reviewer", and matching on it would silently pick the wrong
+      // stage: the caller decides which stage a call is, not the pasted input.
+      const haystack = (opts.system ?? '').toLowerCase();
 
       const marker = Object.keys(table)
         .sort((a, b) => b.length - a.length)
