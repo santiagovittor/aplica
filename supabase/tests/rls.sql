@@ -84,6 +84,15 @@ insert into public.usage_counters (user_id, day, count) values
 insert into storage.objects (bucket_id, name, owner) values
   ('cvs', :'alice' || '/cv.pdf', :'alice'), ('cvs', :'bob' || '/cv.pdf', :'bob');
 
+-- The bucket's visibility is row data, not schema, so `supabase db diff` cannot
+-- see it and a drift check will never catch this. A public cvs bucket would
+-- serve every uploaded CV over the public route with no token.
+do $$
+begin
+  assert (select not public from storage.buckets where id = 'cvs'),
+    'the cvs bucket is public; uploaded CVs are readable without a token';
+end $$;
+
 -- Everything below runs as a signed-in user, not as the superuser.
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';
