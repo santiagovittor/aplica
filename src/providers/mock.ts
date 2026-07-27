@@ -17,8 +17,15 @@ import type { GenerateOptions, Message, Provider, ProviderId } from './types';
 
 /**
  * Marker matched against the system prompt, longest first so a more specific
- * stage wins. The markers are confirmed against `src/prompts/` when the real
- * prompt files land.
+ * stage wins.
+ *
+ * The markers are the prompts' own headings, because every plainer word is
+ * shared. `draft`, `reviewer`, `revise` and `critique` each appear in two or
+ * three of the four prompts: `reviseSystemPrompt` says "a reviewer critiqued
+ * them", so a bare `reviewer` key ties with `# revise` at eight characters,
+ * wins on insertion order, and answers the revise call with the critique. That
+ * failure surfaces as a JSON parse error three steps from its cause, so
+ * `prompts.test.ts` asserts the routing rather than trusting the lengths.
  */
 export const MOCK_RESPONSES: Record<string, string> = {
   researched: [
@@ -33,24 +40,28 @@ export const MOCK_RESPONSES: Record<string, string> = {
     '',
     'VERDICT: ready after fixes.',
   ].join('\n'),
-  reviewer: [
-    'Two gaps. The summary omits the posting term "incident response", which the',
-    'profile supports under the on-call rotation line.',
-    'The second bullet claims a team size the profile does not state. Cut it.',
+  '# reviewer': [
+    'FIXES (highest priority first):',
+    '1. [resume, summary] the posting says "incident response" and the summary',
+    '   does not. The profile supports it under the on-call rotation line.',
+    '',
+    'HARD FAILS (must fix before sending): none.',
+    '',
+    'VERDICT: ready after fixes.',
   ].join('\n'),
-  revise: [
+  '# revise': [
     'Led the on-call rotation for the payments service, including incident response.',
     'Rebuilt the billing export to run on a schedule instead of by hand.',
     'Cut the month-end close from three days to one.',
   ].join('\n'),
-  draft: [
+  '# apply': [
     'Led the on-call rotation for the payments service.',
     'Rebuilt the billing export to run on a schedule instead of by hand.',
     'Cut the month-end close from three days to one.',
   ].join('\n'),
 };
 
-const FALLBACK = MOCK_RESPONSES.draft;
+const FALLBACK = MOCK_RESPONSES['# apply'];
 
 export interface MockProviderOptions {
   /** Extra or replacement markers, for a test that needs its own fixture. */
