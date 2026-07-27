@@ -405,7 +405,51 @@ so `DEFAULT_MODELS` and `PARSE_MODELS` deliberately have no entry for this
 provider. Confirm both strings against NVIDIA's own current docs first; step 5's
 rule holds, no unverified model ID ships.
 
-What a real run catches that no test can:
+### Attempted, and what it found
+
+Run on 2026-07-27 against `https://integrate.api.nvidia.com/v1`. It found one
+real bug and then hit a wall on NVIDIA's side.
+
+**Bug found and fixed (`6a9bc48`).** `guardedLookup` called back with a string
+address. Node turns on `autoSelectFamily` by default from 20 onward, so a socket
+asks for `{ all: true }` and reads `addresses[0].address` off the answer; against
+a string that is `undefined`, and **every pinned request died before it left the
+machine** with `Invalid IP address: undefined`. The suite missed it because every
+test called the lookup the way the module expected rather than the way node does.
+This is the entire justification for the run: the adapter had unit tests and had
+never opened a socket.
+
+**Then NIM stopped answering.** Measured, same key throughout:
+
+```
+GET  /v1/models                              200, instant, 102 models
+POST /v1/chat/completions  bad key           403 in 0.6s
+POST /v1/chat/completions  max_tokens 32768  504 after 302s   (one-word prompt)
+POST /v1/chat/completions  max_tokens 512    no response at 90s
+POST /v1/chat/completions  nemotron-nano-8b  no response at 60s
+POST /v1/chat/completions  deepseek-v4-flash no response at 60s
+```
+
+A bad key is refused in under a second, so the endpoint is reachable and the
+model IDs are real (they came from `/v1/models`, which is a better authority than
+the docs). The real key is accepted and then inference queues indefinitely. That
+is capacity or credits on that account, not our code and not the cap: a 504 after
+five minutes on a one-word prompt is a timeout, not a rejection.
+
+**So `max_tokens: 32768` remains untested.** It is still the single most likely
+thing to fail, and the run did not settle it.
+
+What is proven: the adapter builds the request, the SSRF guard resolves and pins
+the address, TLS connects, the request is sent, and the host's real status comes
+back as a `ProviderError`. What is not: that a 200 body from NIM satisfies the
+Zod schema in `openai.ts`, and that a non-Gemini model can hold the enumerated
+profile shape.
+
+Retry needs a working NIM account, or any other OpenAI-shaped host: Ollama on
+this machine would prove the same path for free, and would settle the cap
+question on a small model, which is the harsher test anyway.
+
+The old checklist stands. What a real run catches that no test can:
 
 - whether NIM's `/chat/completions` response satisfies the Zod schema in
   `openai.ts`;
