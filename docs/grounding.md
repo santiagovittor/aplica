@@ -137,6 +137,12 @@ One real catch and three false positives, all three of which a resume produces
 every time. That ratio is the argument for fixing them rather than living with
 them: a gate that cries wolf on every run gets ignored on the run that matters.
 
+**Re-measured after the fixes**, same CV, same posting, same model, a fresh
+generation: zero slop findings and zero ungrounded findings on both documents.
+The resume of that run carries `500+`, `7-person`, `100%`, `3-tier`, `10+`,
+`2-tier` and `Next.js 16`, all of which trace to the profile, so the run was not
+clean for want of numbers to check.
+
 Known blind spots on this side, on top of the ones above:
 
 - **Accented headings escape their own exemption.** `entitiesIn` matches ASCII
