@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BANNED_WORDS_EN, BANNED_WORDS_ES, isSlopFree } from '../core/slop';
 
 const BANNED_WORDS = [...BANNED_WORDS_EN, ...BANNED_WORDS_ES];
-import { MOCK_RESPONSES } from '../providers/mock';
+import { createMockProvider, MOCK_RESPONSES } from '../providers/mock';
 import {
   draftSystemPrompt,
   draftUserMessage,
@@ -277,6 +277,68 @@ describe('the user messages carry what the prompt promises', () => {
     });
     expect(message).toContain('POSTING');
     expect(message).toContain('PROFILE');
+  });
+});
+
+/**
+ * The apply pipeline makes three calls whose prompts are about each other, so
+ * every plain word is shared: `draft`, `reviewer`, `revise` and `critique` all
+ * appear in two or three of these four prompts. The mock picks its answer by
+ * the longest marker in the system prompt, so a shared word routes a stage to
+ * another stage's fixture and the failure surfaces as a JSON parse error three
+ * steps away.
+ *
+ * This asserts the routing itself rather than that each heading is unique. A
+ * containment matrix passes while the mock still misroutes on a tie: `# revise`
+ * and a stale `reviewer` key are both eight characters, and the tie goes to
+ * insertion order.
+ */
+describe('every stage gets its own canned answer', () => {
+  const stages: Record<string, string> = {
+    'parse a cv': parsePrompt({ locale: 'en' }),
+    '# apply': draftSystemPrompt(OPTIONS),
+    '# revise': reviseSystemPrompt(OPTIONS),
+    '# reviewer': reviewerSystemPrompt({ voice: VOICE }),
+  };
+
+  // Each fixture is its own marker, so a misroute names the stage that answered.
+  const provider = createMockProvider({
+    responses: Object.fromEntries(
+      Object.keys(stages).map((marker) => [marker, marker]),
+    ),
+  });
+
+  for (const [marker, system] of Object.entries(stages)) {
+    it(`answers ${marker} with the ${marker} fixture`, async () => {
+      expect(await provider.generate([], { system })).toBe(marker);
+    });
+  }
+
+  // Routing alone is not enough: which of two equal-length markers wins is
+  // insertion order, so a stale `reviewer` key can sit in the table harmlessly
+  // until someone reorders it. Exactly one marker per prompt is the property
+  // that makes the routing above independent of that order.
+  it('matches exactly one marker per prompt, whatever the order', () => {
+    const markers = [
+      ...new Set([...Object.keys(stages), ...Object.keys(MOCK_RESPONSES)]),
+    ];
+
+    for (const [stage, system] of Object.entries(stages)) {
+      const matched = markers.filter((marker) =>
+        system.toLowerCase().includes(marker.toLowerCase()),
+      );
+      expect(matched, `${stage} is matched by ${matched.join(', ')}`).toEqual([
+        stage,
+      ]);
+    }
+  });
+
+  it('routes the reviewer to its research fixture when it searches', async () => {
+    const searching = await provider.generate([], {
+      system: reviewerSystemPrompt({ voice: VOICE, researchAvailable: true }),
+      search: true,
+    });
+    expect(searching).toBe(MOCK_RESPONSES.researched);
   });
 });
 
