@@ -30,10 +30,18 @@ import { findBannedWords, findEmDashes, type SlopFinding } from './slop';
  * The cheap default model, not the parse model. Parse runs once per user and
  * this runs on every posting they look at, so the money goes the other way.
  *
- * ponytail: unmeasured. `DEFAULT_MAX_TOKENS` is 4096 and a two-page resume plus
- * a cover letter inside this JSON shape will not fit, exactly as 8192 truncated
- * the profile at step 5. This is headroom, not a measurement. The first real run
- * measures the true number and it replaces this comment.
+ * Measured on the first real run, `gemini-3.1-flash-lite` against a 19,296
+ * character profile and a 3,656 character posting: the revised application came
+ * to 4,684 characters, about 1,171 output tokens, for a 2,264 character resume
+ * and a 1,087 character cover letter. So 4096 would probably have held it, and
+ * 16,384 is roughly fourteen times the measured need.
+ *
+ * ponytail: kept at 16,384 anyway. It is a cap and not a reservation, so the
+ * headroom costs nothing unless it is used, and one measurement on one posting
+ * is not the ceiling: a longer profile, a `full` tier, or a model that spends
+ * thinking tokens against this cap all push the real number up. The known
+ * ceiling is a host that rejects a cap above its model's own limit, which is a
+ * real risk for small self-hosted `openai_compatible` models.
  */
 export const APPLY_MAX_TOKENS = 16_384;
 

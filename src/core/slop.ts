@@ -186,10 +186,12 @@ const BANNED_PATTERN = new RegExp(fold(`${EN_PATTERN}|${ES_PATTERN}`), 'gi');
 
 /**
  * An em dash is always a finding. An en dash is one only when it separates
- * words: `2020–2024` is a date range in a resume, and flagging it would train
- * people to ignore the gate.
+ * words: a date range is a date range whether it is written `2020–2024` or
+ * `2024 – Present`, and the first real apply run produced three of the spaced
+ * form in one resume header. Flagging those would train people to ignore the
+ * gate, which costs more than the rare en dash it would catch.
  */
-const DASH_PATTERN = /—|(?<![0-9])–(?![0-9])|(?<=[0-9])\s–|–\s(?=[0-9])/g;
+const DASH_PATTERN = /—|(?<![0-9]\s{0,4})–(?!\s{0,4}[0-9])/g;
 
 export function findEmDashes(text: string): SlopFinding[] {
   return matches(text, DASH_PATTERN, text);
