@@ -339,6 +339,142 @@ describe('company research', () => {
   });
 });
 
+/**
+ * The product's soul as a test (CLAUDE.md section 5): zero em dashes, zero
+ * banned words, and no claim absent from the profile. It runs the whole
+ * pipeline against the MockProvider, so a failure fails the build with no key
+ * and no network.
+ */
+describe('the gate', () => {
+  it('passes clean documents', async () => {
+    const { slop, ungrounded } = await applyToPosting(pipeline(), OPTIONS);
+
+    expect(slop).toEqual([]);
+    expect(ungrounded).toEqual([]);
+  });
+
+  it('catches an em dash and a banned word the revision left in', async () => {
+    const { slop } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({
+          resume: 'Operations analyst — ran the close.',
+          coverLetter: 'I leverage the reporting stack daily.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(slop.map((finding) => finding.term)).toEqual(['—', 'leverage']);
+  });
+
+  it('catches a number the profile cannot support', async () => {
+    const { ungrounded } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({
+          resume: 'Cut the close by 80% across 12 markets.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded).toEqual([
+      { path: 'resume', numbers: ['80', '12'], entities: [] },
+    ]);
+  });
+
+  it('catches an employer the profile never names, per document', async () => {
+    const { ungrounded } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({
+          coverLetter: 'I ran the close at Pinecone before this.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded).toEqual([
+      { path: 'coverLetter', numbers: [], entities: ['Pinecone'] },
+    ]);
+  });
+
+  it('takes the hiring company from the posting, which the profile never names', async () => {
+    const { ungrounded } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({
+          coverLetter: 'Cooperativa del Norte runs the close across markets.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded).toEqual([]);
+  });
+
+  it('reports rather than throws, so a finding is visible instead of lost', async () => {
+    const { application } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({ resume: 'Cut the close by 80%.' }),
+      }),
+      OPTIONS,
+    );
+
+    expect(application.resume).toContain('80%');
+  });
+});
+
+/**
+ * The reviewer sees the posting and the drafts, not the full evidence, so it
+ * can ask for something the profile cannot support. `reviseSystemPrompt` says
+ * the no-invention rule outranks the critique and the fix belongs in `flags`.
+ *
+ * A mock cannot decide anything, so what these two pin is the consequence: a
+ * revision that refuses passes the gate and carries the refusal out, and one
+ * that complies is caught rather than shipped.
+ */
+describe('a critique that demands a fabrication', () => {
+  const CRITIQUE_DEMANDING = [
+    'FIXES (highest priority first):',
+    '1. [resume, summary] name the three markets of reporting and say how many',
+    '   years. The posting asks for five.',
+    '',
+    'HARD FAILS (must fix before sending): none.',
+    '',
+    'VERDICT: ready after fixes.',
+  ].join('\n');
+
+  it('is refused, flagged, and passes the gate', async () => {
+    const { application, ungrounded } = await applyToPosting(
+      pipeline({
+        critique: CRITIQUE_DEMANDING,
+        revised: applicationJson({
+          flags: [
+            'The reviewer asked for five years across three markets. The ' +
+              'profile shows one market, so it is not claimed here.',
+          ],
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded).toEqual([]);
+    expect(application.flags[0]).toContain('not claimed here');
+  });
+
+  it('is caught by the gate when the revision complies instead', async () => {
+    const { ungrounded } = await applyToPosting(
+      pipeline({
+        critique: CRITIQUE_DEMANDING,
+        revised: applicationJson({
+          resume: 'Five years of reporting across 3 markets.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded[0].numbers).toEqual(['3']);
+  });
+});
+
 describe('applyToPosting rejects', () => {
   it('a response that is not JSON', async () => {
     await expect(
@@ -347,10 +483,11 @@ describe('applyToPosting rejects', () => {
   });
 
   it('an application missing the resume', async () => {
-    const { resume: _dropped, ...without } = JSON.parse(applicationJson());
+    const missing: Record<string, unknown> = JSON.parse(applicationJson());
+    delete missing.resume;
 
     await expect(
-      applyToPosting(providerReturning(JSON.stringify(without)), OPTIONS),
+      applyToPosting(providerReturning(JSON.stringify(missing)), OPTIONS),
     ).rejects.toThrow(/resume is wrong/);
   });
 });

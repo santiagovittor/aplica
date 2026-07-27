@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groundProfile } from './grounding';
+import { groundDraft, groundProfile } from './grounding';
 import { profileSchema, type Profile } from './profile';
 
 // The CV every claim below is checked against.
@@ -268,5 +268,98 @@ describe('groundProfile never checks the keyword bank field terms', () => {
     expect(findings[0].entities).toEqual(
       expect.arrayContaining(['Pinecone', 'Acme']),
     );
+  });
+});
+
+// The posting the drafts are written against. It names a company the profile
+// has never heard of, and a requirement of its own with a number in it.
+const POSTING = [
+  'Nimbus Freight is hiring an AI enablement lead.',
+  'You will run training across operations. 5 years of experience required.',
+  'Familiarity with Kubernetes is a plus.',
+].join('\n');
+
+describe('groundDraft lets honest writing through', () => {
+  it('a claim reworded into the posting\u2019s vocabulary', () => {
+    // The keyword bank exists to do exactly this, so a rule that punished it
+    // would reject the mechanism the product is built on.
+    const resume = [
+      'Ran AI enablement across operations at FoodStyles.',
+      'Led a cross-functional squad of 6 to 7 people.',
+    ].join('\n');
+
+    expect(
+      groundDraft(resume, { profile: profile(), posting: POSTING }),
+    ).toEqual({ numbers: [], entities: [] });
+  });
+
+  it('the company name, which is in the posting and not the profile', () => {
+    const letter = 'Nimbus Freight runs training across operations already.';
+
+    const { entities } = groundDraft(letter, {
+      profile: profile(),
+      posting: POSTING,
+    });
+
+    expect(entities).toEqual([]);
+  });
+
+  it('the section headings and month names the drafter writes', () => {
+    const resume = [
+      '## Experience',
+      'Squad Leader, May 2024 to Present',
+      '## Skills',
+    ].join('\n');
+
+    expect(
+      groundDraft(resume, { profile: profile(), posting: POSTING }),
+    ).toEqual({ numbers: [], entities: [] });
+  });
+});
+
+describe('groundDraft catches what the profile cannot support', () => {
+  it('a fabricated metric', () => {
+    const resume = 'Cut onboarding time by 40% across 12 markets.';
+
+    const { numbers } = groundDraft(resume, {
+      profile: profile(),
+      posting: POSTING,
+    });
+
+    expect(numbers).toEqual(['40', '12']);
+  });
+
+  it('a tool the profile never lists', () => {
+    const resume = 'Ran the retrieval layer on Pinecone.';
+
+    const { entities } = groundDraft(resume, {
+      profile: profile(),
+      posting: POSTING,
+    });
+
+    expect(entities).toEqual(['Pinecone']);
+  });
+
+  it('a number the posting asked for, claimed as the applicant\u2019s own', () => {
+    // The asymmetry that matters: the posting is a permitted source for
+    // entities and never for numbers. Their requirement is not his evidence,
+    // and this is how "5 years of experience" becomes something he claims.
+    const resume = 'I have 5 years of experience running enablement.';
+
+    const { numbers } = groundDraft(resume, {
+      profile: profile(),
+      posting: POSTING,
+    });
+
+    expect(numbers).toEqual(['5']);
+  });
+
+  it('but takes a term the posting supplies, like Kubernetes', () => {
+    const { entities } = groundDraft('Comfortable with Kubernetes.', {
+      profile: profile(),
+      posting: POSTING,
+    });
+
+    expect(entities).toEqual([]);
   });
 });
