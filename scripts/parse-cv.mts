@@ -5,6 +5,12 @@
  *   APLICA_DEV_PROVIDER=anthropic APLICA_DEV_API_KEY=... \
  *     npm run parse:cv -- ./my-cv.pdf \
  *       [--locale es] [--model NAME] [--base-url URL] [--save USER_ID]
+ *       [--timeout SECONDS]
+ *
+ * `--timeout` exists because hosts differ by an order of magnitude. The 60
+ * second `DEFAULT_TIMEOUT_MS` in `providers/types.ts` is fine for a fast hosted
+ * model and nowhere near enough for a 70B model on a shared free tier emitting
+ * a 17,000 token profile. It is a dev-tool flag, not a product setting.
  *
  * The key is read from the environment for one command. It is never written to
  * a file, never added to `.env.example`, and never printed: the profile goes to
@@ -23,11 +29,23 @@ import { PROVIDER_IDS, createProvider } from '../src/providers/index';
 type ProviderId = (typeof PROVIDER_IDS)[number];
 
 const USAGE =
-  'Usage: npm run parse:cv -- <path-to-cv> [--locale es] [--model NAME] [--base-url URL] [--save USER_ID]';
+  'Usage: npm run parse:cv -- <path-to-cv> [--locale es] [--model NAME] [--base-url URL] [--save USER_ID] [--timeout SECONDS]';
 
 function flag(name: string): string | undefined {
   const at = process.argv.indexOf(`--${name}`);
   return at === -1 ? undefined : process.argv[at + 1];
+}
+
+/** Undefined leaves the provider's own default in place. */
+function timeout(seconds: string | undefined): AbortSignal | undefined {
+  if (seconds === undefined) {
+    return undefined;
+  }
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error('--timeout takes a number of seconds.');
+  }
+  return AbortSignal.timeout(value * 1000);
 }
 
 function fail(message: string): 1 {
@@ -73,7 +91,11 @@ async function main(): Promise<0 | 1> {
           : { id: provider as 'anthropic' | 'openai' | 'google', apiKey },
       ),
       text,
-      { locale: flag('locale') === 'es' ? 'es' : 'en', model: flag('model') },
+      {
+        locale: flag('locale') === 'es' ? 'es' : 'en',
+        model: flag('model'),
+        signal: timeout(flag('timeout')),
+      },
     );
 
     console.error(
