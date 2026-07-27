@@ -274,17 +274,24 @@ export function groundProfile(
  * - **Numbers** may come from the profile only. A number in the posting is
  *   their requirement, not the applicant's evidence, and letting it through is
  *   how "5 years of experience" becomes something the applicant claims.
+ * - **The applicant's name** is a third entity source, because a resume leads
+ *   with it and it is in neither of the other two: `profileSchema` has no name
+ *   field on purpose. The caller supplies it, so it is given, not invented.
  */
 export function groundDraft(
   text: string,
-  { profile, posting }: { profile: Profile; posting: string },
+  {
+    profile,
+    posting,
+    name = '',
+  }: { profile: Profile; posting: string; name?: string },
 ): { numbers: string[]; entities: string[] } {
   // The profile as the model itself received it, so `fieldTerms` counts as a
   // source: the keyword bank exists to license a posting's vocabulary, and
   // rejecting the term it maps to would reject the mechanism.
   const profileText = JSON.stringify(profile);
   const profileNumbers = new Set(numbersIn(profileText));
-  const sources = [flatten(profileText), flatten(posting)];
+  const sources = [flatten(profileText), flatten(posting), flatten(name)];
 
   return {
     numbers: numbersIn(text).filter((number) => !profileNumbers.has(number)),

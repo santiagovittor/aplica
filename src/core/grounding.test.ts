@@ -363,3 +363,32 @@ describe('groundDraft catches what the profile cannot support', () => {
     expect(entities).toEqual([]);
   });
 });
+
+describe('groundDraft takes the applicant name from the caller', () => {
+  // A resume leads with the name, and it is in neither the profile nor the
+  // posting: profileSchema has no name field on purpose. Without this the gate
+  // reports the applicant as a fabricated entity on every real run.
+  it('so a resume header is not a fabricated entity', () => {
+    const resume = 'Ada Lovelace\nSquad Leader who ran the enablement work.';
+
+    expect(
+      groundDraft(resume, {
+        profile: profile(),
+        posting: POSTING,
+        name: 'Ada Lovelace',
+      }),
+    ).toEqual({ numbers: [], entities: [] });
+  });
+
+  it('and someone else stays ungrounded', () => {
+    const resume = 'Ada Lovelace\nWorked under Charles Babbage.';
+
+    const { entities } = groundDraft(resume, {
+      profile: profile(),
+      posting: POSTING,
+      name: 'Ada Lovelace',
+    });
+
+    expect(entities).toEqual(['Charles', 'Babbage']);
+  });
+});

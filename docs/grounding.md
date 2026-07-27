@@ -97,10 +97,16 @@ reasons measured above; nothing about this input makes them work better.
 
 **The sources are not symmetric.**
 
-|          | profile   | posting           |
-| -------- | --------- | ----------------- |
-| entities | permitted | permitted         |
-| numbers  | permitted | **not permitted** |
+|          | profile   | posting           | applicant name |
+| -------- | --------- | ----------------- | -------------- |
+| entities | permitted | permitted         | permitted      |
+| numbers  | permitted | **not permitted** | not applicable |
+
+The name is the third source because a resume leads with it and `profileSchema`
+has no name field on purpose. It comes from the caller (a `--name` flag now, the
+auth session at step 7), so it is given rather than invented. Without it the
+gate reports the applicant as a fabricated entity on every real run, which is
+how a false positive teaches people to ignore a gate.
 
 The drafts name the hiring company, which is in the posting and correctly absent
 from the profile, so the posting has to be a source for entities. It must not be

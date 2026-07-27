@@ -367,6 +367,22 @@ describe('the gate', () => {
     expect(slop.map((finding) => finding.term)).toEqual(['—', 'leverage']);
   });
 
+  it('passes a resume that leads with the applicant name', async () => {
+    // Every fixture here opens on a job title, and a real resume opens on the
+    // name. The name is in neither the profile nor the posting, so without the
+    // caller supplying it the gate reports the applicant as a fabrication.
+    const { ungrounded } = await applyToPosting(
+      pipeline({
+        revised: applicationJson({
+          resume: 'Ada Lovelace\nOperations analyst who runs the close.',
+        }),
+      }),
+      OPTIONS,
+    );
+
+    expect(ungrounded).toEqual([]);
+  });
+
   it('catches a number the profile cannot support', async () => {
     const { ungrounded } = await applyToPosting(
       pipeline({

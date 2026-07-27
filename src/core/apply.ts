@@ -152,7 +152,7 @@ export async function applyToPosting(
 /** The three CI gates of CLAUDE.md section 5, run over the final documents. */
 function gate(
   { resume, coverLetter }: Application,
-  { profile, posting }: ApplyOptions,
+  { profile, posting, name }: ApplyOptions,
 ): Pick<ApplyResult, 'slop' | 'ungrounded'> {
   const documents = [
     { path: 'resume', text: resume },
@@ -169,7 +169,7 @@ function gate(
     ungrounded: documents
       .map(({ path, text }) => ({
         path,
-        ...groundDraft(text, { profile, posting }),
+        ...groundDraft(text, { profile, posting, name }),
       }))
       .filter(({ numbers, entities }) => numbers.length + entities.length > 0),
   };
