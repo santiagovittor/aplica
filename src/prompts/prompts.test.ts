@@ -248,6 +248,23 @@ describe('the no-invention contract', () => {
   });
 });
 
+// `Percentage` in `application.ts` bounds both fields at 0 to 100, so a
+// fraction and a 1-to-10 rating are both legal JSON. The prompt is the only
+// place the scale can be fixed, and the first real run got it wrong two ways.
+describe('the two numbers carry their scale', () => {
+  for (const [stage, prompt] of [
+    ['draft', draftSystemPrompt(OPTIONS)],
+    ['revise', reviseSystemPrompt(OPTIONS)],
+  ] as const) {
+    it(`tells ${stage} that 85% is 85, not 0.85`, () => {
+      expect(prompt).toContain(
+        '`score` and `keywordCoverage` are whole numbers from 0 to 100',
+      );
+      expect(prompt).toContain('85% is 85, never 0.85');
+    });
+  }
+});
+
 describe('tier', () => {
   // The voice rules carry general cover-letter guidance whatever the tier, so
   // this asserts on the Phase 4 instruction, which is what actually decides.

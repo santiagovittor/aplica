@@ -38,6 +38,12 @@ export interface DraftOptions {
   timezone?: string;
 }
 
+/**
+ * The scale is spelled out because a bare `0` does not carry one. The first
+ * real apply run returned `"score": 8` and `"keywordCoverage": 0.85` for a fit
+ * the prose called strong: two different wrong scales in one response, both
+ * inside `Percentage`'s 0 to 100 bound, so the schema passed them.
+ */
 const OUTPUT_SHAPE = `
 {
   "fit": {
@@ -56,6 +62,9 @@ const OUTPUT_SHAPE = `
   "coverLetter": "the cover letter in markdown, or null",
   "flags": ["anything the applicant should know before sending"]
 }
+
+\`score\` and \`keywordCoverage\` are whole numbers from 0 to 100. Not fractions:
+85% is 85, never 0.85, and a mediocre fit is 45, never 4.5.
 `.trim();
 
 export function draftSystemPrompt(options: DraftOptions): string {
