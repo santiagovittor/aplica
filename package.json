@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "parse:cv": "node --env-file-if-exists=.env.local --experimental-transform-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/ts-resolve.mjs scripts/parse-cv.mts",
+    "apply": "node --env-file-if-exists=.env.local --experimental-transform-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/ts-resolve.mjs scripts/apply.mts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
