@@ -1,4 +1,4 @@
-import type { LookupOptions } from 'node:dns';
+import type { LookupAddress, LookupOptions } from 'node:dns';
 import { lookup } from 'node:dns/promises';
 import { BlockList, isIP, isIPv4 } from 'node:net';
 
@@ -201,8 +201,8 @@ export type GuardedLookup = (
   options: LookupOptions,
   callback: (
     error: NodeJS.ErrnoException | null,
-    address: string,
-    family: number,
+    address: string | LookupAddress[],
+    family?: number,
   ) => void,
 ) => void;
 
@@ -249,12 +249,23 @@ export function guardedLookup(policy: HostPolicy): GuardedLookup {
             : options.family === 6 || options.family === 'IPv6'
               ? 6
               : undefined;
-        const wanted =
+        const matching =
           preferred === undefined
-            ? resolved[0]
-            : (resolved.find((entry) => entry.family === preferred) ??
-              resolved[0]);
-        callback(null, wanted.address, wanted.family);
+            ? resolved
+            : resolved.filter((entry) => entry.family === preferred);
+        const wanted = matching.length > 0 ? matching : resolved;
+
+        // `all` is not a preference, it is the answer shape node demands.
+        // `autoSelectFamily` is on by default from node 20, so a socket asks
+        // this way and then reads `addresses[0].address`; a string arrives as
+        // `undefined` and the request dies before it leaves the machine. Every
+        // address here already passed the check, so handing over all of them is
+        // both correct and what lets Happy Eyeballs race them.
+        if (options.all === true) {
+          callback(null, wanted);
+          return;
+        }
+        callback(null, wanted[0].address, wanted[0].family);
       })
       .catch((error: unknown) => {
         callback(error instanceof Error ? error : notFound(hostname), '', 0);

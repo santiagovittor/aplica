@@ -228,11 +228,71 @@ describe('guardedLookup', () => {
           hostname,
           { family },
           (error, address, resolvedFamily) => {
-            done({ error, address, family: resolvedFamily });
+            done({
+              error,
+              address: address as string,
+              family: resolvedFamily ?? 0,
+            });
           },
         );
       },
     );
+
+  /** The `{ all: true }` call, which is the one Node actually makes. */
+  const resolveAll = (hostname: string, family = 0) =>
+    new Promise<{ error: Error | null; addresses: LookupAddress[] }>((done) => {
+      guardedLookup(CLOSED)(
+        hostname,
+        { family, all: true },
+        (error, address) => {
+          done({ error, addresses: address as unknown as LookupAddress[] });
+        },
+      );
+    });
+
+  // Found by the first real run against NVIDIA NIM, not by this suite: every
+  // test here called the lookup the way the module expected instead of the way
+  // node does. `autoSelectFamily` is on by default from node 20, so a socket
+  // asks for `{ all: true }` and reads `addresses[0].address` off the answer.
+  // Handing it a string made that `undefined`, and every pinned request died
+  // with "Invalid IP address: undefined" before it left the machine.
+  it('answers with an array when the socket asks for all of them', async () => {
+    mockedLookup.mockResolvedValue([
+      { address: '203.0.113.10', family: 4 },
+      { address: '203.0.113.11', family: 4 },
+    ]);
+
+    const { error, addresses } = await resolveAll('api.example.com');
+
+    expect(error).toBeNull();
+    expect(addresses).toEqual([
+      { address: '203.0.113.10', family: 4 },
+      { address: '203.0.113.11', family: 4 },
+    ]);
+  });
+
+  it('narrows that array to the family the socket asked for', async () => {
+    mockedLookup.mockResolvedValue([
+      { address: '203.0.113.10', family: 4 },
+      { address: '2606:4700::1111', family: 6 },
+    ]);
+
+    const { addresses } = await resolveAll('api.example.com', 6);
+
+    expect(addresses).toEqual([{ address: '2606:4700::1111', family: 6 }]);
+  });
+
+  it('still refuses a private address when asked for all of them', async () => {
+    mockedLookup.mockResolvedValue([
+      { address: '8.8.8.8', family: 4 },
+      { address: '169.254.169.254', family: 4 },
+    ]);
+
+    const { error } = await resolveAll('rebind.example.com');
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toMatch(/private address/);
+  });
 
   it('refuses to hand the socket a private address', async () => {
     mockedLookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }]);
