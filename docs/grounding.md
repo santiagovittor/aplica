@@ -139,9 +139,22 @@ them: a gate that cries wolf on every run gets ignored on the run that matters.
 
 **Re-measured after the fixes**, same CV, same posting, same model, a fresh
 generation: zero slop findings and zero ungrounded findings on both documents.
-The resume of that run carries `500+`, `7-person`, `100%`, `3-tier`, `10+`,
-`2-tier` and `Next.js 16`, all of which trace to the profile, so the run was not
-clean for want of numbers to check.
+The run was not clean for want of numbers to check: the resume carries `500+`,
+`100%`, `3-tier`, `10+`, `2-tier` and `Next.js 16`, all of which are in the
+profile verbatim.
+
+It also carries **"a 7-person squad"** from a profile that says "a
+cross-functional squad of 6 to 7 people". That is the narrowing blind spot two
+sections above, firing on a real run and passing the gate exactly as predicted:
+the digit 7 is in the source, so rule 2 has nothing to say. Clean is not the
+same as true, and this is the line that proves it.
+
+The same run's cover letter says the Canvass scraper runs with "zero-downtime
+performance" where the profile says "Docker self-healing", and that a client
+website "required a firm grasp of the security and precision demands unique to
+legal practice" where the profile records only that the site was built. Both are
+inventions; both are lowercase framing with no number and no new entity, so both
+are blind spots 1 and 4 rather than gate failures.
 
 Known blind spots on this side, on top of the ones above:
 
