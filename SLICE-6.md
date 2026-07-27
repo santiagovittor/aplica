@@ -1,7 +1,243 @@
-# Slice 6 — carried over from step 5
+# Slice 6 — the apply flow
 
-Step 5 wrote this section. Everything below is a thing step 5 found and could
-not act on inside its own scope. The rest of this file is yours to write.
+## Context
+
+Step 5 closed flow 1: a CV becomes a validated, grounded, source-tagged profile
+in `profiles.data`. Nothing reads it yet. This step closes flow 2 (PROJECT.md
+section 5):
+
+**job posting + profile + tier -> draft call -> reviewer call in a fresh context
+-> revision pass -> a validated application, gated.**
+
+The three prompts already exist and are tested as strings (`draft.ts`,
+`reviewer.ts`, `prompts.test.ts`). Nothing calls them. This step is the pipeline
+that does, plus the gate that decides whether its output is allowed to exist.
+
+**The gate is the point of the slice.** CLAUDE.md section 5 names three CI gates
+as "the product's soul as a test": zero em dashes, zero banned words, and no line
+absent from the profile. `findEmDashes` and `findBannedWords` cover the first
+two and are unused. The third does not exist yet.
+
+Framework-free, like step 5: `src/core`, tested against `MockProvider`, proved by
+a script. No route handler, no SSE, no screens.
+
+## Decisions taken (say so if any is wrong)
+
+1. **Scope is flow 2 only.** Flow 3 (render to PDF/DOCX, store an application
+   row) is a separate slice. Splitting them is PROJECT.md's own reasoning:
+   generation and rendering are split so a retry can re-render without paying for
+   the model again. Building them together would fuse what the spec deliberately
+   separates.
+2. **The cheap default model, not the parse model.** Apply runs on every job;
+   parse runs once. `PARSE_MODELS` stays untouched and the apply path uses
+   `DEFAULT_MODELS`. This is the other half of the decision you already took.
+3. **The reviewer's critique is passed through opaquely.** It is text in a
+   FIXES / HARD FAILS / VERDICT block, not JSON. The pipeline checks it is
+   non-empty and hands it to the revise call verbatim. No critique parser: the
+   prompt already guarantees the format is identical with or without research,
+   and a parser would be a second thing to keep in sync with the prompt for no
+   gain.
+4. **Company research follows `provider.supportsSearch`,** defaulting on where
+   available, with an explicit override parameter. The visible toggle and its
+   cost line are step 7's, per PROJECT.md section 5.
+5. **The posting comes in as text.** The script takes a file path or stdin. No
+   URL fetching: that is the same SSRF surface as the enrichment slice, and it is
+   specced there, not here.
+
+## Blocked on you
+
+1. **The applicant's name.** `VoiceProfile` needs `name` and `profileSchema` has
+   no name field, deliberately. It cannot be derived from the profile without
+   inventing it. Proposal: a `--name` flag on the script now, from the auth
+   session in step 7. Confirm, or name another source.
+2. **How the profile reaches the prompt.** `draftUserMessage` takes a string.
+   Your profile measured 20,337 characters, and it is sent on all three calls.
+   Proposal: `JSON.stringify(profile)`, no indentation, nothing dropped. It keeps
+   every `source` and `evidence` tag, which the prompts explicitly reason about
+   ("an entry marked `evidence: weak` stays weak"). Roughly 15,000 input tokens
+   per call, about 45,000 for a full apply, which on the cheap model is cents.
+   The alternative is a trimmed markdown rendering: cheaper, and it throws away
+   the tags the no-invention rule runs on. I recommend the JSON.
+3. **A real job posting** for the proof run, as a text file. Ideally one you
+   would actually apply to, and ideally one where the honest answer is `skip`, so
+   the fit scoring gets tested on something other than a flattering case.
+4. **Tier for the proof run.** `basic` is resume only; `standard` and `full` add
+   a cover letter. I suggest `standard`, because it exercises the cover-letter
+   path and both documents then go through the gate.
+
+## The marker collision is now the first problem, not a footnote
+
+Step 5 hit this once and routed around it. Slice 6 has three system prompts
+instead of one, and they are about each other, so the collision surface is much
+worse. `createMockProvider` picks its canned answer by the **longest** response
+key found in the lowercased system prompt.
+
+Measured against the real prompt sources:
+
+| candidate marker | appears in |
+| --- | --- |
+| `draft` | draft, revise, reviewer **and** parse |
+| `reviewer` | draft, revise **and** reviewer |
+| `revise` | draft, revise **and** reviewer ("revises once") |
+| `critique` | draft, revise and reviewer |
+| `# apply` | draft only |
+| `# revise` | revise only |
+| `# reviewer` | reviewer only |
+
+`reviseSystemPrompt` contains the sentence "a **reviewer** critiqued them", so a
+fixture keyed `reviewer` (8 characters) beats one keyed `revise` (6) on the
+revise call, and the revise step silently receives the critique fixture. The
+failure surfaces as a JSON parse error three steps away from its cause.
+
+So the markers are the headings: `'# apply'`, `'# revise'`, `'# reviewer'`, next
+to step 5's `'parse a cv'`.
+
+**This gets its own commit, first, and its own test:** build all four system
+prompts, and assert every marker appears in exactly one of them. A matrix, not
+four separate assertions, because the thing that breaks is a pair. Written first
+because every other test in the slice depends on the fixtures routing correctly.
+
+Note the surface is **system prompts only**. `reviseUserMessage` contains the
+heading "## Reviewer critique", which is harmless: the mock never looks at user
+messages.
+
+## The third gate: line provenance
+
+The one CLAUDE.md requires and nothing implements.
+
+**Not `groundProfile`.** Its signature is `(Profile, sourceText)` and it corrects
+a profile against a CV. This checks generated prose against a profile. Different
+inputs, different output, same rule underneath.
+
+**Not exact substring matching.** A resume line is *supposed* to be reworded:
+that is the keyword bank's entire function. An exact test would reject the
+feature the product is built on.
+
+**Not a similarity threshold, and not an LLM judge.** Both were measured and
+rejected in step 5 with the numbers written into `docs/grounding.md`. Nothing
+about this input makes them work better here.
+
+So: the same rule that survived. **Every number and every capitalised entity in
+the drafts must appear in the profile text.** A fabricated metric, a company the
+profile never names, a tool never listed: all capitalised or numeric, all caught.
+A rewording of a real claim passes untouched.
+
+Implementation goes **in `grounding.ts`**, not a new module. `numbersIn` and
+`entitiesIn` are already there and private; a second exported function beside
+them reuses both without widening the API, and keeps one file as the place where
+"is this claim real" is answered. `docs/grounding.md` gains the second half.
+
+Two things that need deciding when the code is written, and are cheap to get
+wrong:
+
+- The drafts contain the **company's own name**, from the posting, which is
+  correctly absent from the profile. The posting text has to be a second
+  permitted source for entities. Not for numbers: a number in the posting is
+  their requirement, not the applicant's evidence, and letting it through is how
+  "5 years experience" becomes the applicant's.
+- Section headings the drafter writes ("Experience", "Skills") are capitalised
+  and are not claims. Same shape as `DOCUMENT_TERMS` in `grounding.ts`.
+
+The gate is a Vitest test running the whole pipeline against `MockProvider`, so
+a failure fails the build with no key and no network.
+
+## Files
+
+| File | What |
+| --- | --- |
+| `src/core/application.ts` | the Zod schema for the draft/revise JSON, and `ApplicationError` |
+| `src/core/application.test.ts` | schema behaviour, including a rejected `recommendation` |
+| `src/core/apply.ts` | the pipeline: draft -> review -> revise |
+| `src/core/apply.test.ts` | against `MockProvider`, including the gate |
+| `src/core/grounding.ts` | `+ groundDraft(text, { profile, posting })` |
+| `src/core/grounding.test.ts` | the reworded-claim case, and the company-name case |
+| `src/prompts/prompts.test.ts` | the marker containment matrix |
+| `scripts/apply.mts` | the proof runner |
+| `package.json` | `+ "apply"` script |
+| `docs/grounding.md` | the draft-side half of the rule |
+
+Nothing in `src/providers/`, `src/prompts/*.ts` (the prompts themselves),
+`src/ui/`, `src/app/` or `messages/*.json` is touched. No new dependency.
+
+## `src/core/apply.ts`
+
+```ts
+applyToPosting(provider, { posting, profile, name, tier, language?,
+  salaryFloor?, timezone?, research?, model?, signal? }): Promise<ApplyResult>
+```
+
+Three calls in order, each validated at its boundary:
+
+1. `draftSystemPrompt` + `draftUserMessage` -> JSON -> `applicationSchema`.
+2. `reviewerSystemPrompt` + `reviewerUserMessage` -> text. Non-empty or it
+   throws. **A fresh message array**, not a continuation: the reviewer judging
+   its own draft is the failure the second call exists to prevent.
+3. `reviseSystemPrompt` + `reviseUserMessage` -> JSON -> `applicationSchema`.
+
+Returns the revised application, the critique, and the gate findings. The
+critique is returned rather than swallowed because step 7 shows the user what
+was fixed.
+
+`ApplyResult` carries `slop: SlopFinding[]` and `ungrounded: GroundingFinding[]`
+rather than throwing on them. The pipeline reports; the gate test and, later, the
+route decide what a finding means. A finding after the revision pass is a prompt
+failure worth seeing, not an exception to swallow.
+
+**`APPLY_MAX_TOKENS` is explicit and marked unmeasured.** `DEFAULT_MAX_TOKENS` is
+4096 and a two-page resume plus a cover letter inside that JSON shape will exceed
+it, exactly as 8192 truncated the profile in step 5. I will set a number with
+headroom, and the first real run measures the true one, which then goes in the
+comment. No guessed number ships unlabelled.
+
+Errors carry paths and stage names, never the posting text, the drafts or the
+profile. Same rule as `ProfileParseError`: an error reaches logs, and all three
+are personal data.
+
+## Commits
+
+1. `test(prompts): prove each stage's mock marker is unique`
+2. `feat(core): validate an application the model returned`
+3. `feat(core): draft an application from a profile and a posting`
+4. `feat(core): critique in a fresh context, then revise`
+5. `feat(core): fail the build on slop or an unsupported claim`
+6. `chore: add the apply script`
+
+Every git command scoped with
+`-C "C:\Users\user-1\Documents\Personal Projects\aplica"`.
+
+## Verification
+
+Measured and pasted, not asserted.
+
+- `typecheck`, `lint`, `format:check`, `build`, `test`, plus the suite with every
+  provider environment variable unset.
+- A real posting run end to end on your Gemini key: fit score, recommendation,
+  keyword coverage, and both documents in full.
+- **The gate run over that real output**: em dashes, banned words, and every
+  number and entity that does not trace to the profile, listed rather than
+  summarised.
+- The three keyword-bank terms that actually reached the resume, next to the
+  posting lines that pulled them in. That is the mechanism working or not.
+- A fixture where the reviewer demands a claim the profile cannot support, and
+  proof the revise call refuses it and flags it instead.
+- Blunt verdict on whether the drafts are sendable, before the step is called
+  done.
+
+## Not built
+
+No route handler, no SSE, no streaming, no `maxDuration`. No PDF or DOCX render,
+no `applications` row, no Storage write for outputs. No screens, no copy in
+`messages/*.json`, no auth. No `usage_counters` increment: PROJECT.md section 11
+ties rate limiting to a generation request, which is a route and session concern,
+so it belongs with the route. Naming it here so it is not lost. No enrichment,
+no change to `src/providers/` or the prompts themselves.
+
+---
+
+# Carried over from step 5
+
+Step 5 wrote everything below. Each is a thing step 5 found and could not act on
+inside its own scope.
 
 ## Landmine: the MockProvider marker `draft` also matches the parse prompt
 
@@ -35,9 +271,12 @@ If step 6 wants the collision gone rather than routed around, the fix is in the
 mock's marker table, not in the prompt: renaming anything in `parse.ts` to dodge
 a test fixture would be the tail wagging the dog.
 
-## Spec: optional enrichment from GitHub and a portfolio URL
+## Spec for a later slice: enrichment from GitHub and a portfolio URL
 
-Deferred here from step 5 deliberately. It is not a small addition, and the
+**Not part of slice 6.** It is specced here because step 5 found it; it lands
+after the apply flow, and it is blocked on the GitHub token decision below.
+
+Deferred from step 5 deliberately. It is not a small addition, and the
 reason is structural rather than a matter of effort: it changes the provenance
 model that step 5's schema and grounding check are built on. Building it on top
 of them is clean; building it alongside would have meant rewriting both.
@@ -206,10 +445,15 @@ What a real run catches that no test can:
   `evidence` field, because a mapping is proven by `provenBy` rather than graded.
   `draft.ts` consumes this shape.
 - `parseCv(provider, cvText, { locale, model, signal })` in
-  `src/core/parse-cv.ts` raises `maxTokens` to `PARSE_MAX_TOKENS` (8192). The
-  4096 provider default truncates a full profile into unparseable JSON, so
-  whatever the apply pipeline sets, do not assume the default is enough.
-- `saveProfile(userId, profile, cvBytes)` in `src/lib/supabase.ts` writes over
+  `src/core/parse-cv.ts` raises `maxTokens` to `PARSE_MAX_TOKENS` (32768,
+  measured from a real 17,400-token profile). The 4096 provider default truncates
+  a full profile into unparseable JSON, so whatever the apply pipeline sets, do
+  not assume the default is enough.
+- `groundProfile(profile, sourceText)` in `src/core/grounding.ts` runs inside
+  `parseCv`, so a profile is already grounded before anything downstream sees it.
+  Its rules and its measured blind spots are in `docs/grounding.md`.
+- `saveProfile(userId, profile, cvBytes, sourceText)` in `src/lib/supabase.ts`
+  writes `profiles.source_text` alongside the profile, over
   plain `fetch` with `SUPABASE_SECRET_KEY`. No Supabase SDK exists in the repo
   yet; step 7 adds one for auth and can either keep these fifty lines or replace
   them.
