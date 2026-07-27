@@ -81,9 +81,10 @@ describe('applicationSchema rejects', () => {
   });
 
   it('a missing cover letter key, since null is the way to say there is none', () => {
-    const { coverLetter: _dropped, ...without } = application();
+    const missing: Record<string, unknown> = application();
+    delete missing.coverLetter;
 
-    expect(applicationSchema.safeParse(without).success).toBe(false);
+    expect(applicationSchema.safeParse(missing).success).toBe(false);
   });
 
   it('a resume the model returned as an object', () => {

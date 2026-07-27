@@ -14,7 +14,9 @@ import { DEFAULT_MODELS } from '../providers/defaults';
 import type { GenerateOptions, Provider } from '../providers/types';
 import { ApplicationError, applicationSchema } from './application';
 import type { Application } from './application';
+import { groundDraft, type GroundingFinding } from './grounding';
 import type { Profile } from './profile';
+import { findBannedWords, findEmDashes, type SlopFinding } from './slop';
 
 /**
  * One posting plus one profile becomes one validated application
@@ -68,6 +70,10 @@ export interface ApplyResult {
    * demanded a fabrication is the one place a prompt failure is visible.
    */
   critique: string;
+  /** Em dashes and banned words left in the revised documents. */
+  slop: SlopFinding[];
+  /** Numbers and entities in them that trace to neither profile nor posting. */
+  ungrounded: GroundingFinding[];
 }
 
 export async function applyToPosting(
@@ -137,7 +143,36 @@ export async function applyToPosting(
     }),
   );
 
-  return { application, critique };
+  // Reported, never thrown on. The gate test and, later, the route decide what
+  // a finding means; a finding surviving the revision pass is a prompt failure
+  // worth seeing rather than an exception to swallow.
+  return { application, critique, ...gate(application, options) };
+}
+
+/** The three CI gates of CLAUDE.md section 5, run over the final documents. */
+function gate(
+  { resume, coverLetter }: Application,
+  { profile, posting }: ApplyOptions,
+): Pick<ApplyResult, 'slop' | 'ungrounded'> {
+  const documents = [
+    { path: 'resume', text: resume },
+    ...(coverLetter === null
+      ? []
+      : [{ path: 'coverLetter', text: coverLetter }]),
+  ];
+
+  return {
+    slop: documents.flatMap(({ text }) => [
+      ...findEmDashes(text),
+      ...findBannedWords(text),
+    ]),
+    ungrounded: documents
+      .map(({ path, text }) => ({
+        path,
+        ...groundDraft(text, { profile, posting }),
+      }))
+      .filter(({ numbers, entities }) => numbers.length + entities.length > 0),
+  };
 }
 
 function toDraftOptions({

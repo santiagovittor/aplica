@@ -33,6 +33,85 @@ import type { Profile } from './profile';
  */
 const DOCUMENT_TERMS = new Set(['cv', 'resume', 'resumé', 'curriculum']);
 
+/**
+ * Words the drafter writes as structure or as a date, not as claims about the
+ * applicant. Section headings are capitalised and `entitiesIn` only skips the
+ * first word of a line, so "## Experience" and "**Skills**" both read as
+ * entities otherwise. Month names are the same problem from the other side: a
+ * profile storing `2022-03` and a resume writing "Mar 2022" are the same fact.
+ *
+ * Separate from `DOCUMENT_TERMS` on purpose. These are the drafter's furniture
+ * and have no business widening what a parsed profile is allowed to claim.
+ */
+const DRAFT_TERMS = new Set(
+  [
+    'summary',
+    'profile',
+    'experience',
+    'work',
+    'employment',
+    'skills',
+    'projects',
+    'education',
+    'certifications',
+    'languages',
+    'contact',
+    'references',
+    'achievements',
+    'present',
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
+    'jan',
+    'feb',
+    'mar',
+    'apr',
+    'jun',
+    'jul',
+    'aug',
+    'sep',
+    'sept',
+    'oct',
+    'nov',
+    'dec',
+    // The same furniture in Spanish, since the drafter writes in the posting's
+    // language. Only the unaccented words: `entitiesIn` stops at a non-ASCII
+    // letter, so "Educación" reaches here as "Educaci" and cannot be matched by
+    // its own name. That blind spot is recorded in `docs/grounding.md`.
+    'resumen',
+    'experiencia',
+    'habilidades',
+    'idiomas',
+    'proyectos',
+    'certificaciones',
+    'contacto',
+    'presente',
+    'actualidad',
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'setiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ].concat([...DOCUMENT_TERMS]),
+);
+
 export interface GroundingFinding {
   /** Where in the profile, as a dotted path. */
   path: string;
@@ -173,6 +252,48 @@ export function groundProfile(
   }
 
   return { profile: grounded, findings, droppedAnchors };
+}
+
+/**
+ * The draft-side half of the no-invention contract, and the third CI gate
+ * CLAUDE.md section 5 names (`docs/grounding.md`).
+ *
+ * The rule is the one that survived measurement at step 5: every number and
+ * every capitalised entity in the generated prose must appear in a permitted
+ * source. A fabricated metric, a company the profile never names and a tool
+ * never listed are all numeric or capitalised, so all three are caught, while a
+ * reworded claim passes untouched. Rewording is the keyword bank's entire
+ * function, so exact substring matching would reject the feature the product is
+ * built on; a similarity threshold and an LLM judge were both measured and
+ * rejected at step 5, with the numbers in `docs/grounding.md`.
+ *
+ * The two sources are not symmetric, and the asymmetry is the point:
+ *
+ * - **Entities** may come from the profile or the posting. The drafts name the
+ *   company, which is in the posting and correctly absent from the profile.
+ * - **Numbers** may come from the profile only. A number in the posting is
+ *   their requirement, not the applicant's evidence, and letting it through is
+ *   how "5 years of experience" becomes something the applicant claims.
+ */
+export function groundDraft(
+  text: string,
+  { profile, posting }: { profile: Profile; posting: string },
+): { numbers: string[]; entities: string[] } {
+  // The profile as the model itself received it, so `fieldTerms` counts as a
+  // source: the keyword bank exists to license a posting's vocabulary, and
+  // rejecting the term it maps to would reject the mechanism.
+  const profileText = JSON.stringify(profile);
+  const profileNumbers = new Set(numbersIn(profileText));
+  const sources = [flatten(profileText), flatten(posting)];
+
+  return {
+    numbers: numbersIn(text).filter((number) => !profileNumbers.has(number)),
+    entities: entitiesIn(text).filter(
+      (entity) =>
+        !DRAFT_TERMS.has(entity.toLowerCase()) &&
+        !sources.some((source) => source.includes(flatten(entity))),
+    ),
+  };
 }
 
 function describe({ numbers, entities }: GroundingFinding): string {

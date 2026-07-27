@@ -79,6 +79,53 @@ These are real and unfixed. Do not assume a grounded profile is a true one.
 - **A CV parsed before this existed** has no `source_text`, so nothing can be
   verified after the fact. The column is nullable and honest about it.
 
+## The draft side: `groundDraft`
+
+Same rule, other direction. `groundProfile` checks a parsed profile against the
+CV; `groundDraft(text, { profile, posting })` checks generated prose against the
+profile it was written from. It is the third CI gate named in CLAUDE.md section
+5, next to the em-dash and banned-word checks.
+
+Rules 2 and 3 above, unchanged: every number and every capitalised entity in the
+resume and the cover letter must appear in a permitted source. Rule 1 does not
+apply, because a draft quotes nothing.
+
+**Why not exact matching.** A resume line is supposed to be reworded. That is
+the keyword bank's entire function, so an exact test would reject the feature
+the product is built on. The thresholds and the LLM judge were rejected for the
+reasons measured above; nothing about this input makes them work better.
+
+**The sources are not symmetric.**
+
+|          | profile   | posting           |
+| -------- | --------- | ----------------- |
+| entities | permitted | permitted         |
+| numbers  | permitted | **not permitted** |
+
+The drafts name the hiring company, which is in the posting and correctly absent
+from the profile, so the posting has to be a source for entities. It must not be
+one for numbers: "5 years of experience required" is their requirement, and
+letting it through is how it becomes the applicant's claim.
+
+The profile is checked as `JSON.stringify(profile)`, which is what the model
+itself received. That makes `keywordBank.fieldTerms` a permitted source, which
+is correct: those terms exist to license a posting's vocabulary.
+
+**Exemptions (`DRAFT_TERMS`).** Section headings ("Experience", "Skills") and
+month names are capitalised and are not claims. A profile storing `2022-03` and
+a resume writing "Mar 2022" are the same fact. This set is separate from
+`DOCUMENT_TERMS` on purpose: the drafter's furniture has no business widening
+what a parsed profile may claim.
+
+Known blind spots on this side, on top of the ones above:
+
+- **Accented headings escape their own exemption.** `entitiesIn` matches ASCII
+  letters, so "Educación" arrives as `Educaci` and cannot be matched by name.
+  Spanish drafts will report a few heading-shaped findings. The gate reports
+  rather than throws, so this degrades to noise rather than a failure.
+- **A number the posting and the profile happen to share** is permitted, even if
+  the draft uses it to mean the posting's version.
+
 ## If you change the rules
 
 Re-measure. The numbers in this file came from real profiles, not from taste,
