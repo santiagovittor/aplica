@@ -477,8 +477,8 @@ describe('the mock provider', () => {
   it('returns the same answer for the same call', async () => {
     const provider = createMockProvider();
     const [first, second] = await Promise.all([
-      provider.generate(messages, { system: 'draft the resume' }),
-      provider.generate(messages, { system: 'draft the resume' }),
+      provider.generate(messages, { system: '# Apply' }),
+      provider.generate(messages, { system: '# Apply' }),
     ]);
     expect(first).toBe(second);
   });
@@ -486,11 +486,11 @@ describe('the mock provider', () => {
   it('returns a different answer for each stage of the pipeline', async () => {
     const provider = createMockProvider();
     const stages = await Promise.all(
-      [
-        'draft the resume',
-        'reviewer critique',
-        'revise using the critique',
-      ].map((system) => provider.generate(messages, { system })),
+      // The prompts' own headings, which is what the markers are: every plainer
+      // word appears in two or three of them (`prompts.test.ts`).
+      ['# Apply', '# Reviewer', '# Revise'].map((system) =>
+        provider.generate(messages, { system }),
+      ),
     );
 
     expect(new Set(stages).size).toBe(3);
@@ -498,7 +498,7 @@ describe('the mock provider', () => {
 
   it('never emits an em dash or the key', async () => {
     const provider = createMockProvider();
-    for (const system of ['draft', 'reviewer', 'revise']) {
+    for (const system of ['# Apply', '# Reviewer', '# Revise']) {
       const text = await provider.generate(messages, { system });
       expect(text).not.toContain('—');
       expect(text).not.toContain(KEY);
@@ -514,8 +514,8 @@ describe('the mock provider', () => {
     ];
 
     await expect(
-      provider.generate(posting, { system: 'draft the resume' }),
-    ).resolves.toBe(await provider.generate(messages, { system: 'draft' }));
+      provider.generate(posting, { system: '# Apply' }),
+    ).resolves.toBe(await provider.generate(messages, { system: '# Apply' }));
   });
 
   it('stands in for whichever provider a test needs', () => {
