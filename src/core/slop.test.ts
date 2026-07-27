@@ -243,6 +243,14 @@ describe('findEmDashes', () => {
     expect(findEmDashes('2020–2024')).toEqual([]);
   });
 
+  // Measured, not assumed: the first real apply run wrote all three of its
+  // roles this way, so the unspaced form on its own is not the rule people
+  // actually write.
+  it('leaves a spaced date range alone', () => {
+    expect(findEmDashes('FoodStyles | 2024 – Present')).toEqual([]);
+    expect(findEmDashes('FoodStyles | 2022 – 2024')).toEqual([]);
+  });
+
   it('leaves a hyphen alone', () => {
     expect(findEmDashes('month-end close, self-healing jobs')).toEqual([]);
   });

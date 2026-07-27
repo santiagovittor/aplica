@@ -150,11 +150,7 @@ export function groundProfile(
   /** Checks one claim, records a finding, and says whether it was clean. */
   const check = (path: string, text: string): boolean => {
     const numbers = numbersIn(text).filter((n) => !sourceNumbers.has(n));
-    const entities = entitiesIn(text).filter(
-      (entity) =>
-        !DOCUMENT_TERMS.has(entity.toLowerCase()) &&
-        !source.includes(flatten(entity)),
-    );
+    const entities = ungroundedEntities(text, [source], DOCUMENT_TERMS);
 
     if (numbers.length === 0 && entities.length === 0) {
       return true;
@@ -295,12 +291,37 @@ export function groundDraft(
 
   return {
     numbers: numbersIn(text).filter((number) => !profileNumbers.has(number)),
-    entities: entitiesIn(text).filter(
-      (entity) =>
-        !DRAFT_TERMS.has(entity.toLowerCase()) &&
-        !sources.some((source) => source.includes(flatten(entity))),
-    ),
+    entities: ungroundedEntities(text, sources, DRAFT_TERMS),
   };
+}
+
+/**
+ * The capitalised terms in `text` that none of `sources` contains.
+ *
+ * A hyphenated compound is checked by its parts. The first real run wrote
+ * "Docker-based self-healing" from a profile that lists Docker, and the whole
+ * compound is absent from any source while every capitalised piece of it is
+ * present. Reporting that is a false positive, and a gate people learn to
+ * ignore is worse than no gate.
+ */
+function ungroundedEntities(
+  text: string,
+  sources: string[],
+  exempt: Set<string>,
+): string[] {
+  const grounded = (term: string): boolean =>
+    sources.some((source) => source.includes(flatten(term)));
+
+  return entitiesIn(text).filter((entity) => {
+    if (exempt.has(entity.toLowerCase()) || grounded(entity)) {
+      return false;
+    }
+    if (!entity.includes('-')) {
+      return true;
+    }
+    const parts = entity.split('-').filter((part) => /^[A-Z]/.test(part));
+    return !(parts.length > 0 && parts.every(grounded));
+  });
 }
 
 function describe({ numbers, entities }: GroundingFinding): string {
@@ -332,7 +353,14 @@ function numbersIn(text: string): string[] {
  * that catches all three.
  */
 function entitiesIn(text: string): string[] {
-  return [...text.matchAll(/(?<![.!?]\s)(?<!^)\b([A-Z][A-Za-z0-9.+#-]+)\b/gm)]
+  // Markdown furniture is not a word. A resume bullet reads "* Managed support
+  // for 500 accounts", and the first real run reported "Managed" as an invented
+  // entity because the bullet marker meant it was no longer line-initial.
+  const lines = text.replace(/^[\s>#*_+-]+/gm, (run) => ' '.repeat(run.length));
+
+  return [
+    ...lines.matchAll(/(?<![.!?]\s)(?<!^\s*)\b([A-Z][A-Za-z0-9.+#-]+)\b/gm),
+  ]
     .map((match) => match[1])
     .filter((word) => !['The', 'This', 'These', 'An'].includes(word));
 }

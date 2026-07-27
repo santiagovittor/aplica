@@ -123,6 +123,20 @@ a resume writing "Mar 2022" are the same fact. This set is separate from
 `DOCUMENT_TERMS` on purpose: the drafter's furniture has no business widening
 what a parsed profile may claim.
 
+**Measured on the first real run** (a real CV, a real posting, `gemini-3.1-flash-lite`,
+research off). The gate reported four findings on the revised resume:
+
+| finding                                                      | verdict                                                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| number `20`, from "the 20-person support department"         | **real invention.** The profile says "wrote documentation adopted across the support team" and names no size.       |
+| entity `Managed`, from "* Managed support for 500+ accounts" | false positive, fixed: a bullet marker meant the word was no longer line-initial.                                   |
+| entity `Docker-based`, from "Docker-based self-healing"      | false positive, fixed: the profile lists Docker, and a hyphenated compound is now checked by its capitalised parts. |
+| three en dashes, all in "2024 – Present" style date ranges   | false positive, fixed in `slop.ts`: a range is a range spaced or not.                                               |
+
+One real catch and three false positives, all three of which a resume produces
+every time. That ratio is the argument for fixing them rather than living with
+them: a gate that cries wolf on every run gets ignored on the run that matters.
+
 Known blind spots on this side, on top of the ones above:
 
 - **Accented headings escape their own exemption.** `entitiesIn` matches ASCII
