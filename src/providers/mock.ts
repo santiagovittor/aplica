@@ -49,17 +49,49 @@ export const MOCK_RESPONSES: Record<string, string> = {
     '',
     'VERDICT: ready after fixes.',
   ].join('\n'),
-  '# revise': [
+  '# revise': application([
     'Led the on-call rotation for the payments service, including incident response.',
     'Rebuilt the billing export to run on a schedule instead of by hand.',
     'Cut the month-end close from three days to one.',
-  ].join('\n'),
-  '# apply': [
+  ]),
+  '# apply': application([
     'Led the on-call rotation for the payments service.',
     'Rebuilt the billing export to run on a schedule instead of by hand.',
     'Cut the month-end close from three days to one.',
-  ].join('\n'),
+  ]),
 };
+
+/**
+ * The draft and revise stages return JSON, not prose, so the canned answers do
+ * too: a mock that answered them with a paragraph would fail every pipeline
+ * test as unparseable JSON rather than proving anything about the sequence.
+ * The shape is `applicationSchema`, which `core` owns; duplicating it here
+ * rather than importing keeps the dependency pointing inward.
+ */
+function application(resume: string[]): string {
+  return JSON.stringify({
+    fit: {
+      score: 70,
+      skills: 'The on-call and reporting work both map.',
+      seniority: 'Same level as the current role.',
+      timezone: 'not scored: no timezone on file',
+      pay: 'not scored: no salary floor on file',
+    },
+    strengths: [
+      {
+        requirement: 'incident response',
+        evidence: 'Ran the on-call rotation.',
+      },
+    ],
+    gaps: ['One market of payroll, not three.'],
+    recommendation: 'apply',
+    reason: 'The close work maps directly.',
+    keywordCoverage: 65,
+    resume: resume.join('\n'),
+    coverLetter: 'I ran the month-end close and the on-call rotation.',
+    flags: [],
+  });
+}
 
 const FALLBACK = MOCK_RESPONSES['# apply'];
 

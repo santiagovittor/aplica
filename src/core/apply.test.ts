@@ -6,8 +6,10 @@ import { APPLY_MAX_TOKENS, applyToPosting, type ApplyOptions } from './apply';
 import { ApplicationError } from './application';
 import type { Profile } from './profile';
 
-/** The marker the mock routes the draft call by (`prompts.test.ts`). */
+/** The markers the mock routes each stage by (`prompts.test.ts`). */
 const DRAFT = '# apply';
+const REVIEW = '# reviewer';
+const REVISE = '# revise';
 
 const POSTING = [
   'Operations analyst, Cooperativa del Norte.',
@@ -94,8 +96,15 @@ function applicationJson(overrides: Record<string, unknown> = {}): string {
   });
 }
 
+/**
+ * Both JSON stages answer with the same fixture, so a test that cares about
+ * what came out of the pipeline does not have to write it twice. A test that
+ * cares which stage produced what passes its own fixtures.
+ */
 function providerReturning(response: string): Provider {
-  return createMockProvider({ responses: { [DRAFT]: response } });
+  return createMockProvider({
+    responses: { [DRAFT]: response, [REVISE]: response },
+  });
 }
 
 /** Wraps a provider to keep what it was called with. */
@@ -144,7 +153,6 @@ describe('applyToPosting drafts', () => {
     const { provider, calls } = recording(providerReturning(applicationJson()));
     await applyToPosting(provider, OPTIONS);
 
-    expect(calls).toHaveLength(1);
     expect(calls[0].opts?.system).toContain('# Apply');
     expect(calls[0].messages[0].content).toContain(POSTING);
     expect(calls[0].opts?.maxTokens).toBe(APPLY_MAX_TOKENS);
@@ -203,6 +211,131 @@ describe('applyToPosting drafts', () => {
     );
 
     expect(application.keywordCoverage).toBe(68);
+  });
+});
+
+const CRITIQUE = [
+  'FIXES (highest priority first):',
+  '1. [resume, summary] the posting says "financial reporting" and the summary',
+  '   does not. The keyword bank maps it to the month-end close.',
+  '',
+  'HARD FAILS (must fix before sending): none.',
+  '',
+  'VERDICT: ready after fixes.',
+].join('\n');
+
+/** One fixture per stage, for a test that cares which stage produced what. */
+function pipeline({
+  draft = applicationJson(),
+  critique = CRITIQUE,
+  revised = applicationJson({
+    resume: 'Operations analyst who owns the financial reporting.',
+  }),
+  supportsSearch = false,
+}: {
+  draft?: string;
+  critique?: string;
+  revised?: string;
+  supportsSearch?: boolean;
+} = {}): Provider {
+  return createMockProvider({
+    supportsSearch,
+    responses: { [DRAFT]: draft, [REVIEW]: critique, [REVISE]: revised },
+  });
+}
+
+describe('applyToPosting critiques and revises', () => {
+  it('makes the three calls in order', async () => {
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls).toHaveLength(3);
+    expect(calls[0].opts?.system).toContain('# Apply');
+    expect(calls[1].opts?.system).toContain('# Reviewer');
+    expect(calls[2].opts?.system).toContain('# Revise');
+  });
+
+  it('returns what the revision pass produced, not the draft', async () => {
+    const { application } = await applyToPosting(pipeline(), OPTIONS);
+
+    expect(application.resume).toContain('financial reporting');
+  });
+
+  it('returns the critique verbatim, since step 7 shows what was fixed', async () => {
+    const { critique } = await applyToPosting(pipeline(), OPTIONS);
+
+    expect(critique).toBe(CRITIQUE);
+  });
+
+  it('gives the reviewer the drafts in a fresh context', async () => {
+    // A model judging its own draft defends it instead of judging it, which is
+    // the whole reason the second call exists. So: a new message array, with no
+    // assistant turn from the draft call in it.
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    const review = calls[1];
+    expect(review.messages).toHaveLength(1);
+    expect(review.messages[0].role).toBe('user');
+    expect(review.messages[0].content).toContain('Operations analyst who runs');
+    expect(review.messages[0].content).toContain(
+      'I ran the month-end close at Cooperativa del Sur.',
+    );
+  });
+
+  it('hands the critique to the revise call verbatim', async () => {
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls[2].messages[0].content).toContain(CRITIQUE);
+    expect(calls[2].messages[0].content).toContain('## Reviewer critique');
+  });
+
+  it('refuses an empty critique rather than revising against nothing', async () => {
+    await expect(
+      applyToPosting(pipeline({ critique: '   \n  ' }), OPTIONS),
+    ).rejects.toThrow(/review step/);
+  });
+});
+
+describe('company research', () => {
+  it('runs when the provider can search', async () => {
+    const { provider, calls } = recording(pipeline({ supportsSearch: true }));
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls[1].opts?.search).toBe(true);
+    // The adapters pick their search-capable model only when none is named, so
+    // naming the cheap default here would silently ask a model that cannot
+    // search to search.
+    expect(calls[1].opts?.model).toBeUndefined();
+    // It is the reviewer's call and nobody else's: the other two are billed per
+    // token, and a search is billed per search on top.
+    expect(calls[0].opts?.search).toBeUndefined();
+    expect(calls[2].opts?.search).toBeUndefined();
+  });
+
+  it('does not when the provider cannot', async () => {
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls[1].opts?.search).toBeUndefined();
+    expect(calls[1].opts?.system).toContain('You have no web access.');
+    expect(calls[1].opts?.model).toBe(DEFAULT_MODELS.anthropic);
+  });
+
+  it('honours an explicit no on a provider that could', async () => {
+    const { provider, calls } = recording(pipeline({ supportsSearch: true }));
+    await applyToPosting(provider, { ...OPTIONS, research: false });
+
+    expect(calls[1].opts?.search).toBeUndefined();
+    expect(calls[1].opts?.system).toContain('You have no web access.');
+  });
+
+  it('keeps an explicit model even when it searches', async () => {
+    const { provider, calls } = recording(pipeline({ supportsSearch: true }));
+    await applyToPosting(provider, { ...OPTIONS, model: 'some/model' });
+
+    expect(calls[1].opts?.model).toBe('some/model');
   });
 });
 

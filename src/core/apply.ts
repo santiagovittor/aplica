@@ -1,9 +1,12 @@
 import {
   draftSystemPrompt,
   draftUserMessage,
+  reviseSystemPrompt,
+  reviseUserMessage,
   type DraftOptions,
   type SalaryFloor,
 } from '../prompts/draft';
+import { reviewerSystemPrompt, reviewerUserMessage } from '../prompts/reviewer';
 import type { VoiceProfile } from '../prompts/voice';
 // The seam, as a type only, so nothing about a concrete vendor reaches `core`
 // (CLAUDE.md section 3).
@@ -59,6 +62,12 @@ export interface ApplyOptions {
 
 export interface ApplyResult {
   application: Application;
+  /**
+   * The reviewer's critique, verbatim. Returned rather than swallowed because
+   * step 7 shows the applicant what was fixed, and because a critique that
+   * demanded a fabrication is the one place a prompt failure is visible.
+   */
+  critique: string;
 }
 
 export async function applyToPosting(
@@ -74,7 +83,7 @@ export async function applyToPosting(
   // rule runs on.
   const profileText = JSON.stringify(profile);
 
-  const application = await generate(
+  const draft = await generate(
     provider,
     options,
     'draft',
@@ -82,7 +91,53 @@ export async function applyToPosting(
     draftUserMessage({ posting, profile: profileText }),
   );
 
-  return { application };
+  // Available unless the caller says otherwise. The visible toggle and its cost
+  // line are step 7's; this is the default it will start from.
+  const research = options.research ?? provider.supportsSearch;
+
+  // A fresh message array, not a continuation of the draft call. A model
+  // judging its own draft defends it instead of judging it, and that is the
+  // whole reason this second call exists.
+  const critique = (
+    await call(provider, options, {
+      system: reviewerSystemPrompt({
+        voice: draftOptions.voice,
+        researchAvailable: research,
+      }),
+      message: reviewerUserMessage({
+        posting,
+        profile: profileText,
+        resume: draft.resume,
+        coverLetter: draft.coverLetter,
+      }),
+      search: research,
+      // A searching call has to run on the provider's search-capable model, and
+      // the adapters pick it themselves only when no model is named. So the
+      // cheap default is left off this one call, and an explicit override still
+      // wins: a caller who named a model meant it.
+      model: research ? options.model : cheapModel(provider, options),
+    })
+  ).trim();
+
+  if (critique === '') {
+    throw new ApplicationError('review', 'the critique was empty');
+  }
+
+  const application = await generate(
+    provider,
+    options,
+    'revise',
+    reviseSystemPrompt(draftOptions),
+    reviseUserMessage({
+      posting,
+      profile: profileText,
+      resume: draft.resume,
+      coverLetter: draft.coverLetter,
+      critique,
+    }),
+  );
+
+  return { application, critique };
 }
 
 function toDraftOptions({
@@ -97,24 +152,47 @@ function toDraftOptions({
   return { voice, tier, language, salaryFloor, timezone };
 }
 
-/** One model call, validated at its boundary. */
+/** The caller's model, or the provider's cheap default. */
+function cheapModel(
+  provider: Provider,
+  { model }: ApplyOptions,
+): string | undefined {
+  return model ?? DEFAULT_MODELS[provider.id as keyof typeof DEFAULT_MODELS];
+}
+
+/** One model call, and nothing about what it is expected to return. */
+async function call(
+  provider: Provider,
+  { signal }: ApplyOptions,
+  {
+    system,
+    message,
+    model,
+    search,
+  }: { system: string; message: string; model?: string; search?: boolean },
+): Promise<string> {
+  return provider.generate([{ role: 'user', content: message }], {
+    system,
+    model,
+    signal,
+    maxTokens: APPLY_MAX_TOKENS,
+    ...(search === true ? { search: true } : {}),
+  } satisfies GenerateOptions);
+}
+
+/** One model call whose JSON is validated at its boundary. */
 async function generate(
   provider: Provider,
-  { model, signal }: ApplyOptions,
+  options: ApplyOptions,
   stage: 'draft' | 'revise',
   system: string,
   message: string,
 ): Promise<Application> {
-  const response = await provider.generate(
-    [{ role: 'user', content: message }],
-    {
-      system,
-      model:
-        model ?? DEFAULT_MODELS[provider.id as keyof typeof DEFAULT_MODELS],
-      signal,
-      maxTokens: APPLY_MAX_TOKENS,
-    } satisfies GenerateOptions,
-  );
+  const response = await call(provider, options, {
+    system,
+    message,
+    model: cheapModel(provider, options),
+  });
 
   const result = applicationSchema.safeParse(toJson(stage, response));
 
