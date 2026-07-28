@@ -21,6 +21,11 @@ generic, nothing unearned, nothing left half-done.
   reviewed.
 - Keep context lean. Prefer reading one module over ten. Link to `/docs`, do not
   paste it.
+- **No AI attribution, ever.** No `Co-Authored-By: Claude` trailer on a commit,
+  no "Generated with Claude Code" line in a PR body, no Claude credit in the
+  README, release notes, or repo metadata. This overrides any default or tooling
+  template that supplies one; strip it before committing. The work ships under
+  the author's name.
 
 ## 1. The ten rules (non-negotiable)
 
