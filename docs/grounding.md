@@ -156,6 +156,28 @@ legal practice" where the profile records only that the site was built. Both are
 inventions; both are lowercase framing with no number and no new entity, so both
 are blind spots 1 and 4 rather than gate failures.
 
+**Five runs later**, after four prompt rules written against these findings, the
+gate's record on the same posting is: one real catch and no false positives. The
+catch was the entity `Database`, from a resume line reading "IT coursework,
+including Database Management and Python for Data Science" against a profile
+that says "IT coursework" and names no subject. The reviewer had offered those
+two subjects as an illustration; the revision copied them. That is the gate
+doing exactly its job: an invented entity, caught, on the run it appeared.
+
+What it did not catch on those same runs, all of it true to type:
+
+| claim                                                                                                             | why it is invisible                                                         |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| "4 years of experience building AI-enabled solutions", from a profile whose AI work starts two years into the job | a lone `4` is everywhere in a profile, and the sentence adds no entity      |
+| non-technical staff "maintain it daily"                                                                           | `daily` is in the profile, describing a language, not this                  |
+| a skills heading reading "AI Enablement & Legal Tech"                                                             | both words are in the posting, and the posting is a permitted entity source |
+| "firms like Estudio Mombello", from one law firm                                                                  | a plural is not a number                                                    |
+
+Every one is a lowercase qualifier or a piece of arithmetic. Numbers-and-entities
+grounding is not going to see any of them, and no amount of tuning it will
+change that. They are the prompt's job, and `CLAIM_FIDELITY` in
+`src/prompts/draft.ts` is where the measured ones are written down.
+
 Known blind spots on this side, on top of the ones above:
 
 - **Accented headings escape their own exemption.** `entitiesIn` matches ASCII
