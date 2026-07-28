@@ -143,11 +143,11 @@ before anything irreversible. You read this diff line by line.
    Adding a URI there is a change to a real Google account and it is your click,
    not mine.
 2. **Email delivery in local Supabase.** Verification and password reset are
-   in scope per non-negotiable 4, and local Supabase captures mail in Inbucket
+   in scope per non-negotiable 4, and local Supabase captures mail in Mailpit
    rather than sending it. That is fine for proving the flow and it is **not**
    proof that a real provider will deliver.
 
-   **Settled: Inbucket is acceptable proof for this slice**, on one condition —
+   **Settled: Mailpit is acceptable proof for this slice**, on one condition —
    real SMTP deliverability on the hosted project becomes **its own item on the
    step 9 launch-readiness checklist**. Verification that works locally and
    fails in production is a launch-day failure, and writing it here is what
@@ -202,7 +202,7 @@ a claim.
 - **Slice 8's CI green on the branch**, before this is called done. That was the
   entire argument for doing slice 8 first.
 - **Sign up, verify, sign out, sign in, reset the password, sign in with the new
-  one** — as a real sequence against local Supabase, with the Inbucket messages
+  one** — as a real sequence against local Supabase, with the Mailpit messages
   shown. Then the same for Google OAuth, or an explicit statement that it was
   not proved and why.
 - **The leak tests, named individually in the report rather than as a count.**

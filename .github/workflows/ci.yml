@@ -1,0 +1,69 @@
+# The checks that were already written, now run by something other than a person
+# remembering to type them. SLICE-8.md is the reasoning; the short version:
+#
+# - One job, not a matrix. `npm ci` dominates the wall clock, and five parallel
+#   jobs would install the same lockfile five times for checks that take seconds.
+# - No `env:` block and no `secrets.*` anywhere in this file, deliberately.
+#   CLAUDE.md section 5 says CI must never hold or need a model API key, and the
+#   way to prove that is for there to be nothing here to hold. Every
+#   `process.env` read in `src/` sits inside a function rather than at module
+#   scope, so nothing is read at import time; measured before this file existed.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# This job checks out public source and runs tests. It needs nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Superseded runs on a branch are wasted minutes. main keeps every run, so the
+  # trunk's history of green stays complete.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Node 24 to match local. The dev scripts depend on Node's own type
+      # stripping and on registerHooks, both version-sensitive.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `ci`, not `install`: it fails when the lockfile and package.json
+      # disagree, which is the failure worth catching.
+      - run: npm ci
+
+      # Cheapest first. Formatting fails in seconds and is the most common miss.
+      #
+      # Every step after the first carries `if: ${{ !cancelled() }}` so one
+      # failing check does not hide the others and cost a second round trip. The
+      # job still fails; it just reports everything it found.
+      - name: format
+        run: npm run format:check
+
+      - name: lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
+
+      - name: typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+      # Runs against the MockProvider. No key exists in this environment.
+      - name: test
+        if: ${{ !cancelled() }}
+        run: npm test
+
+      # Last because it is the slowest and the least likely to be what broke.
+      - name: build
+        if: ${{ !cancelled() }}
+        run: npm run build
