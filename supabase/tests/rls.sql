@@ -20,9 +20,15 @@ values
   (:'bob',   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bob@example.test',   '', now(), now(), now());
 
 -- The trigger should have made both account rows already.
+--
+-- Counted over the two seeded ids rather than over the whole table: this runs
+-- against whatever database is to hand, and a developer account already sitting
+-- in it is not a failure of the trigger.
 do $$
 begin
-  assert (select count(*) from public.users) = 2,
+  assert (select count(*) from public.users
+           where id in ('11111111-1111-1111-1111-111111111111',
+                        '22222222-2222-2222-2222-222222222222')) = 2,
     'handle_new_user did not create an account row per auth user';
 end $$;
 
@@ -223,17 +229,31 @@ reset role;
 -- What deleting an account actually removes. The four public tables cascade
 -- from auth.users; storage.objects does not, so the uploaded CV outlives the
 -- account unless the deletion path removes it from Storage explicitly. That is
--- a step 7 obligation, and this pins the behaviour so the day Supabase changes
--- it, this assertion says so instead of the doc quietly going stale.
+-- what `deleteAccount` in src/lib/account.ts does, and this pins the database
+-- half of the contract so the day Supabase changes it, this assertion says so
+-- instead of the doc quietly going stale.
+--
+-- Scoped to Alice rather than counted over the table, for the reason the
+-- trigger assertion gives.
 do $$
 begin
   delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
 
-  assert (select count(*) from public.users) = 1, 'the account row survived deletion';
-  assert (select count(*) from public.profiles) = 1, 'the profile survived deletion';
-  assert (select count(*) from public.api_keys) = 1, 'the encrypted key survived deletion';
-  assert (select count(*) from public.applications) = 1, 'the applications survived deletion';
-  assert (select count(*) from public.usage_counters) = 1, 'the usage counter survived deletion';
+  assert (select count(*) from public.users
+           where id = '11111111-1111-1111-1111-111111111111') = 0,
+    'the account row survived deletion';
+  assert (select count(*) from public.profiles
+           where user_id = '11111111-1111-1111-1111-111111111111') = 0,
+    'the profile survived deletion';
+  assert (select count(*) from public.api_keys
+           where user_id = '11111111-1111-1111-1111-111111111111') = 0,
+    'the encrypted key survived deletion';
+  assert (select count(*) from public.applications
+           where user_id = '11111111-1111-1111-1111-111111111111') = 0,
+    'the applications survived deletion';
+  assert (select count(*) from public.usage_counters
+           where user_id = '11111111-1111-1111-1111-111111111111') = 0,
+    'the usage counter survived deletion';
 
   assert (select count(*) from storage.objects where name like '11111111%') = 1,
     'storage now cascades from auth.users; docs/security.md and the account-deletion path can be simplified';
