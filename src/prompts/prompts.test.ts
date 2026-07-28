@@ -90,6 +90,16 @@ describe('the keyword bank', () => {
     );
   });
 
+  // Measured: the revision pass had the no-invention rule but not the bank
+  // rule, so it took two posting categories the bank does not map and wrote
+  // that the applicant specialises in them, on the reviewer's say-so.
+  it('binds the revision pass too, not just the drafter', () => {
+    expect(reviseSystemPrompt(OPTIONS)).toContain(
+      "**The posting's vocabulary is not evidence.**",
+    );
+    expect(reviseSystemPrompt(OPTIONS)).toContain('no\nmatter who asks for it');
+  });
+
   it('is what the reviewer checks keyword honesty against', () => {
     expect(reviewerSystemPrompt({ voice: VOICE })).toContain('keyword bank');
   });

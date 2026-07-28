@@ -91,7 +91,15 @@ passed every automatic check on a real run and were all still false:
 
 So: no adjective, adverb, frequency or superlative the profile does not itself
 use. Where you would reach for one, write the plainer sentence. It is the true
-one, and it is the one the applicant can defend out loud.`;
+one, and it is the one the applicant can defend out loud.
+
+**The posting's vocabulary is not evidence.** A term the keyword bank does not
+map to something this person has actually done stays out of both documents, no
+matter who asks for it or how central the posting makes it. Also measured: a
+reviewer asked for "workflow platforms" and "matter management systems" in the
+summary, "even if theoretical", and the next pass wrote that the applicant
+specialises in them. Naming the gap in \`flags\` is always available. Claiming the
+category is not.`;
 
 export function draftSystemPrompt(options: DraftOptions): string {
   return `${voiceRules(options.voice)}
