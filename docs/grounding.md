@@ -157,8 +157,12 @@ inventions; both are lowercase framing with no number and no new entity, so both
 are blind spots 1 and 4 rather than gate failures.
 
 **Five runs later**, after four prompt rules written against these findings, the
-gate's record on the same posting is: one real catch and no false positives. The
-catch was the entity `Database`, from a resume line reading "IT coursework,
+gate's record on the same posting is one real catch and no false positives. The
+rules cut the inventions down; they did not end them. The last run of the five
+still shipped two, both listed below, so read this section as a boundary rather
+than a clean bill.
+
+The catch was the entity `Database`, from a resume line reading "IT coursework,
 including Database Management and Python for Data Science" against a profile
 that says "IT coursework" and names no subject. The reviewer had offered those
 two subjects as an illustration; the revision copied them. That is the gate
@@ -169,8 +173,8 @@ What it did not catch on those same runs, all of it true to type:
 | claim                                                                                                             | why it is invisible                                                         |
 | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | "4 years of experience building AI-enabled solutions", from a profile whose AI work starts two years into the job | a lone `4` is everywhere in a profile, and the sentence adds no entity      |
-| non-technical staff "maintain it daily"                                                                           | `daily` is in the profile, describing a language, not this                  |
-| a skills heading reading "AI Enablement & Legal Tech"                                                             | both words are in the posting, and the posting is a permitted entity source |
+| non-technical staff "maintain it daily" (**last run**, from a prompt that names `daily` as a failure)             | `daily` is in the profile, describing a working language, not this          |
+| a skills heading reading "AI Enablement & Legal Tech" (**last run**)                                              | both words are in the posting, and the posting is a permitted entity source |
 | "firms like Estudio Mombello", from one law firm                                                                  | a plural is not a number                                                    |
 
 Every one is a lowercase qualifier or a piece of arithmetic. Numbers-and-entities
