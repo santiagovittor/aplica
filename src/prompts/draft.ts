@@ -233,6 +233,11 @@ ${languageRule(options.language)}
   the no-invention rule outranks it. This covers framing as much as facts: a
   reviewer asking you to "connect this to their industry" or "show the scale of
   the impact" is asking for a fabrication whenever the profile states neither.
+- **The critique is not a source.** The reviewer was given the posting and your
+  drafts, and nothing else. Any concrete detail that appears first in the
+  critique came from the reviewer's imagination: a number, a metric, a course
+  name, anything inside \`[brackets]\` or after "e.g.". Take the instruction and
+  find the answer in the profile. Never copy the example.
 - Do not rewrite anything the critique did not raise. A revision pass that
   restyles clean paragraphs loses more than it gains.
 

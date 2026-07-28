@@ -266,6 +266,17 @@ describe('the no-invention contract', () => {
     );
   });
 
+  // Measured: the reviewer wrote `e.g., "Database Management, Python for Data
+  // Science"` as an illustration of how to expand an education line, and the
+  // revision put Database Management on the resume. The profile says "IT
+  // coursework" and names no subject. The grounding gate caught that one.
+  it('tells revise that the critique is not a source', () => {
+    expect(reviseSystemPrompt(OPTIONS)).toContain(
+      '**The critique is not a source.**',
+    );
+    expect(reviseSystemPrompt(OPTIONS)).toContain('Never copy the example.');
+  });
+
   // The four claims that survived every automatic gate on a real run. Each kept
   // a true fact and upgraded its wording, which is the one thing lexical
   // grounding cannot see, so the prompt is the only place they are caught.
