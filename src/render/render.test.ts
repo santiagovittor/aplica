@@ -237,10 +237,32 @@ describe('renderApplication', () => {
     ).toEqual([]);
   });
 
-  it('finds a banned word that landed on a line break', async () => {
-    // react-pdf ships a hyphenation callback. If it were active here, a word
-    // split as "spearhead-\ned" would walk straight through findBannedWords: a
-    // clean gate on a slopped document. Measured as inactive; this pins it.
+  it('never breaks a word across a line', async () => {
+    // Found by a real run, not by this test's first version. react-pdf's
+    // hyphenation callback IS on by default, and it splits on syllables, not
+    // only on an existing hyphen: a skills bullet came back out of a real PDF
+    // as "agent-as-\nsisted". A banned word split that way walks straight
+    // through findBannedWords, which is a clean gate on a slopped document.
+    //
+    // The first version of this test used a long paragraph and passed for the
+    // wrong reason: hyphenation only fires when a single word has to break, and
+    // no word in it did. This one uses the line that actually broke.
+    const { files } = await renderApplication(
+      application({
+        coverLetter: null,
+        resume: `${RESUME}\n- AI & LLMs: Prompt engineering, RAG design, LLM APIs (Claude, GPT, Gemini), A/B prompt testing, agent-assisted development (Claude Code).`,
+      }),
+      { name: NAME, tier: 'basic' },
+    );
+
+    const extracted = await textOf(files[0]);
+    expect(extracted).toContain('agent-assisted');
+    // A hyphen the renderer inserted always lands at end of line, so this is
+    // the general shape rather than one word's spelling.
+    expect(extracted).not.toMatch(/\p{L}-\n\p{L}/u);
+  });
+
+  it('finds a banned word the layout could have split', async () => {
     const { files } = await renderApplication(
       application({
         coverLetter: `Dear hiring team,\n\nI ran the month-end close and ${'reconciled the ledger every single month without fail and '.repeat(3)}spearheaded nothing at all here.\n\nAda`,
@@ -250,7 +272,6 @@ describe('renderApplication', () => {
     const letter = files.find((file) => file.kind === 'cover-letter');
 
     const extracted = await textOf(letter as RenderedFile);
-    expect(extracted).not.toMatch(/-\n/);
     expect(findBannedWords(extracted).map((f) => f.term)).toEqual([
       'spearheaded',
     ]);
