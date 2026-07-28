@@ -24,16 +24,19 @@
  * Not imported by the app and not part of the test suite. `npm test` runs
  * against the MockProvider and needs no key at all.
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { applyToPosting } from '../src/core/apply';
 import { ApplicationError } from '../src/core/application';
 import { profileSchema } from '../src/core/profile';
+import { saveApplication } from '../src/lib/supabase';
 import { PROVIDER_IDS, createProvider } from '../src/providers/index';
+import { renderApplication } from '../src/render/index';
 
 type ProviderId = (typeof PROVIDER_IDS)[number];
 
 const USAGE =
-  'Usage: npm run apply -- <path-to-posting|-> --profile FILE --name NAME [--tier standard] [--language es] [--model NAME] [--base-url URL] [--timeout SECONDS] [--no-research]';
+  'Usage: npm run apply -- <path-to-posting|-> --profile FILE --name NAME [--tier standard] [--company NAME] [--role TITLE] [--out DIR] [--save USER_ID] [--language es] [--model NAME] [--base-url URL] [--timeout SECONDS] [--no-research]';
 
 const TIERS = ['basic', 'standard', 'full'] as const;
 
@@ -73,6 +76,72 @@ async function readPosting(source: string): Promise<string> {
 function fail(message: string): 1 {
   console.error(message);
   return 1;
+}
+
+interface RenderRun {
+  name: string;
+  tier: (typeof TIERS)[number];
+  company: string | undefined;
+  role: string | undefined;
+  /** Where to write the files. Undefined means do not write them. */
+  out: string | undefined;
+  /** A real Supabase user id. Undefined means do not save. */
+  userId: string | undefined;
+}
+
+/**
+ * Flow 3 (PROJECT.md section 5), which is the point of `--out` and `--save`:
+ * the file list and its byte sizes on stderr, so the tier matrix is proved by a
+ * run rather than reviewed in a table.
+ */
+async function render(
+  application: Awaited<ReturnType<typeof applyToPosting>>['application'],
+  run: RenderRun,
+) {
+  const { files, findings } = await renderApplication(application, {
+    name: run.name,
+    tier: run.tier,
+    ...(run.company === undefined ? {} : { company: run.company }),
+  });
+
+  console.error(
+    [
+      '',
+      `Rendered ${files.length} file${files.length === 1 ? '' : 's'} for the ${run.tier} tier:`,
+      ...files.map(
+        (file) => `  - ${file.filename} (${file.bytes.byteLength} bytes)`,
+      ),
+      `Render findings: ${findings.length === 0 ? 'none' : ''}`,
+      ...findings.map(
+        (finding) =>
+          `  - ${finding.document} line ${finding.line}: ${finding.construct}, "${finding.text}"`,
+      ),
+    ].join('\n'),
+  );
+
+  if (run.out !== undefined) {
+    await mkdir(run.out, { recursive: true });
+    for (const file of files) {
+      await writeFile(join(run.out, file.filename), file.bytes);
+    }
+    console.error(`Written to ${run.out}.`);
+  }
+
+  if (run.userId !== undefined) {
+    const saved = await saveApplication(run.userId, application, files, {
+      tier: run.tier,
+      ...(run.company === undefined ? {} : { company: run.company }),
+      ...(run.role === undefined ? {} : { role: run.role }),
+    });
+    console.error(
+      [
+        `Saved application ${saved.id}:`,
+        ...saved.files.map((file) => `  - ${file.path} (${file.bytes} bytes)`),
+      ].join('\n'),
+    );
+  }
+
+  return { files, findings };
 }
 
 async function main(): Promise<0 | 1> {
@@ -181,8 +250,29 @@ async function main(): Promise<0 | 1> {
       ].join('\n'),
     );
 
+    // Rendered even when the gate found something. The files are what a human
+    // needs in order to judge a finding, and refusing to produce them would
+    // make the run cost tokens and answer nothing.
+    const out = flag('out');
+    const userId = flag('save');
+    const rendered =
+      out === undefined && userId === undefined
+        ? undefined
+        : await render(application, {
+            name,
+            tier: tier as (typeof TIERS)[number],
+            company: flag('company'),
+            out,
+            userId,
+            role: flag('role'),
+          });
+
     console.log(JSON.stringify({ application, critique }, null, 2));
-    return slop.length === 0 && ungrounded.length === 0 ? 0 : 1;
+    return slop.length === 0 &&
+      ungrounded.length === 0 &&
+      (rendered?.findings.length ?? 0) === 0
+      ? 0
+      : 1;
   } catch (error) {
     // Nothing printed here can carry the key: the pipeline builds its own
     // messages, and a ProviderError carries a status, no body.
