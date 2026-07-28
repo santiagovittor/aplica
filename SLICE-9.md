@@ -1,5 +1,46 @@
 # Slice 9 — auth and the encrypted key vault
 
+## Start here (this runs in a fresh session)
+
+Nothing from the slice 8 session carries over, so everything that session
+learned the hard way is written down here. Read this section first.
+
+**Read:** this file, `PROJECT.md` sections 6, 9 and 11, `DESIGN.md` in full
+(this slice builds screens), and the modules being touched. **Do not** read
+SLICE-4 through SLICE-8, and do not load the repo wholesale.
+
+**Repo state.** `main` is at `902d8c7`. The remote is
+`github.com/santiagovittor/aplica` and it is **public** — never commit an env
+file, and assume anything pushed is permanently retrievable. CI
+(`.github/workflows/ci.yml`) runs `format:check`, `lint`, `typecheck`, `test`,
+`build` on every push and PR, and a ruleset makes the `ci` check **required** on
+`main`. It carries no secrets and must stay that way.
+
+**Local environment, all of it already working:**
+
+- Supabase runs locally: API `http://127.0.0.1:54321`, Studio `:54323`,
+  Mailpit `:54324`. `npx supabase start` if it is down.
+- **Apply migrations with `npx supabase migration up --local`.**
+  `npx supabase db push` targets the *linked remote* and silently does nothing
+  locally — that cost the slice 7 session a debugging detour, with a bucket that
+  looked applied and was not. Verify with `npx supabase migration list --local`.
+- `.env.local` holds real values for `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+  `API_KEY_ENCRYPTION_KEY`, both `SUPABASE_AUTH_EXTERNAL_GOOGLE_*`, and
+  `APLICA_DEV_API_KEY`. Never read or print their values.
+- `APLICA_DEV_API_KEY` is a **Google** key and `APLICA_DEV_PROVIDER` is not set,
+  so it defaults to `anthropic` and fails. Export `APLICA_DEV_PROVIDER=google`.
+  Plain calls work; the search model `gemini-3.5-flash-lite` returns **429** on
+  this account's free tier, so pass `--no-research`.
+- `npm run <script> > file` captures npm's banner and node's warnings into the
+  file too. Use `npm run --silent`.
+
+**Existing data.** `dev@aplica.local` (`b69b2ef7-7749-4210-849c-af8cd6c54987`)
+has a profile row, one application, and four objects in `outputs`. It was
+created by an admin API call because no sign-up path exists. It is the fixture
+the deletion path should be able to remove — and it is also the only id the
+`--save` scripts work against today, so sign up through the real flow first.
+
 ## Context
 
 Slice 7 refused to build a route handler, and gave the reason: *"without a
@@ -60,8 +101,25 @@ proves it, because "prove it with a test, not an assertion" is the instruction.
    (PROJECT.md section 11 auth hygiene), not deferred.
 5. **Decryption happens server-side only, at the moment of use, never eagerly.**
 
-Run tight, per CLAUDE.md section 7: small diffs, every line reviewable, pause
-before anything irreversible. You read this diff line by line.
+**Nobody is going to read this diff.** That was the original plan and it
+changed, so the plan has to change with it rather than quietly assume a reviewer
+who will not be there. CLAUDE.md section 7 says to run tight on anything
+touching auth and secrets, and the leash it describes is a human one. With that
+leash gone, the only reviewer this slice gets is the test suite and CI.
+
+Two consequences, and they are not optional:
+
+- **Every non-negotiable above is a failing test first.** Not a test written
+  afterwards that happens to pass. Write the test that proves the key leaks,
+  watch it fail, then close it. A test authored after the code it checks tends
+  to encode what the code does rather than what it must do, and there is no
+  second pair of eyes here to catch the difference.
+- **A claim with no command behind it does not go in the report.** Everything in
+  Verification is a pasted output. "Handled" and "should be fine" mean nothing
+  when nobody is checking behind them.
+
+Pause before anything irreversible anyway: applying a migration, deleting an
+account, pushing to `main`.
 
 ## Decisions taken (say so if any is wrong)
 
@@ -242,8 +300,11 @@ a claim.
 7. `test(security): the key never leaves the server`
 8. `docs(security): validation at save, and the deletion path closed`
 
-Eight, and they are deliberately fine-grained: you said you read this diff line
-by line, and commit 4 and commit 7 are the two you should read hardest.
+Eight, and still deliberately fine-grained even though nobody will read them.
+The reason changes rather than disappearing: commits 4, 6 and 7 are the ones
+that touch a plaintext credential and an irreversible delete, and keeping them
+separate is what makes a single `git revert` possible when one of them turns out
+to be wrong. A reviewer is not the only audience for a small commit.
 
 Every git command scoped with
 `-C "C:\Users\user-1\Documents\Personal Projects\aplica"`.
