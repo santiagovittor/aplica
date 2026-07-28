@@ -112,12 +112,30 @@ model that writes `• ` in its markdown hits the same false positive today), bu
 it is a change to the product's soul gate that nobody has authorised. It is
 recorded here rather than made.
 
-**Hyphenation is not active.** react-pdf ships a hyphenation callback, and a
-banned word split as `spearhead-\ned` would walk straight through
-`findBannedWords`: a clean gate on a slopped document. Measured on a paragraph
-long enough to wrap: no `-\n` appears and `spearheaded` is still found. A test
-pins it, so the day a version turns it on the suite says so rather than the
-gate going quiet.
+### Hyphenation is off, and the first measurement of it was wrong
+
+react-pdf hyphenates by default, and it splits on **syllables**, not only on an
+existing hyphen. The first version of this note said hyphenation was inactive.
+It was measured on a long paragraph, which passed for the wrong reason:
+hyphenation only fires when a single word has to break, and no word in that
+paragraph did.
+
+The first real run found it. A skills bullet reading `agent-assisted
+development` came out of the PDF as `agent-as-` / `sisted`, while the DOCX kept
+it whole. That is not cosmetic. The gate this step exists for reads text back
+out of the rendered file, so a banned word rendered as `spearhead-\ned` passes
+`findBannedWords` and the applicant sends the slop the product promised to
+catch. An ATS reading the same file sees two words that are not the skill it
+was looking for.
+
+`Font.registerHyphenationCallback((word) => [word])` in `pdf.ts` turns it off:
+a word that does not fit moves to the next line whole. It registers no font and
+embeds nothing, so the standard-fonts rule above still holds. A word longer
+than the column overflows rather than breaking, which no line in a measured
+document is.
+
+The test now uses the line that actually broke and asserts the general shape,
+`/\p{L}-\n\p{L}/u`, rather than one word's spelling.
 
 PDF bytes are not deterministic (react-pdf stamps a creation date), so nothing
 snapshots bytes. The assertions are about the extracted text, which is the thing
@@ -128,9 +146,12 @@ that matters anyway.
 - **Proved:** the fixture pair in `src/core/fixtures.ts`, at all three tiers,
   both formats. Every block of markdown survives into the extracted text, the
   slop gate is clean on the way back out, and `groundDraft` reports nothing.
-- **Not yet proved:** a real generation. The three measured runs above went to
-  stdout during step 6 and were never written into the repo, so the fixture
-  documents are representative of their shape rather than copies of them.
+- **Proved once against a real generation:** a Gemini run at the full tier
+  against a real posting and the profile `parse:cv` produced from a real CV,
+  saved to Supabase and read back. All four files extracted clean. That run is
+  what found the hyphenation bug above; the fixtures never would have. The
+  fixture documents stay representative of the shape of a run rather than
+  copies of one, because a run's text is personal data.
 - **Not proved by any test:** that Word opens the DOCX. `extract-text.ts` reads
   the archive with `node:zlib` and the OOXML with a regex, which proves the
   bytes are a readable zip holding the right text, not that Word accepts them.

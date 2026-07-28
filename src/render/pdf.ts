@@ -1,6 +1,7 @@
 import { createElement as h, type ReactElement } from 'react';
 import {
   Document,
+  Font,
   Link,
   Page,
   StyleSheet,
@@ -18,7 +19,8 @@ import type { Block, Span } from './markdown';
  * display font is the single most likely thing to make text unextractable.
  * DESIGN.md governs the app's own UI; it does not govern the document the
  * applicant sends, and the round-trip gate in `render.test.ts` is what proves
- * the difference.
+ * the difference. `Font.registerHyphenationCallback` below is not a font: it
+ * embeds nothing and only replaces the word-breaking function.
  *
  * **No JSX, `pdf.ts` rather than `pdf.tsx`.** `scripts/apply.mts` runs on Node's
  * own type stripping, which does not transform JSX, so a `.tsx` here would mean
@@ -30,6 +32,22 @@ import type { Block, Span } from './markdown';
  * person should look like they came from the same desk, and the only real
  * difference between them is that a letter is paragraphs.
  */
+
+/**
+ * Never break a word across a line.
+ *
+ * react-pdf hyphenates by default, and it splits on syllables rather than only
+ * on an existing hyphen: a real run produced "agent-as-\nsisted" in a skills
+ * bullet. That is not a cosmetic problem. The gate this whole step exists for
+ * reads text back out of the rendered file, so a banned word rendered as
+ * "spearhead-\ned" passes `findBannedWords` and the applicant sends the slop
+ * the product promised to catch. An ATS parsing the same file sees two words
+ * that are not the skill it was looking for.
+ *
+ * A word longer than the column overflows instead. Every alternative loses
+ * text or lies about it, and no line in a measured document is that long.
+ */
+Font.registerHyphenationCallback((word) => [word]);
 
 const PAGE_SIZE = 'LETTER';
 const MARGIN = 54; // 0.75in, what a word processor gives a resume by default.
