@@ -171,6 +171,27 @@ function documentsFor(
   ];
 }
 
+/**
+ * The bullet character `renderPdf` draws, taken back off text extracted from a
+ * rendered file. Run this before the gate, never before showing text to a human.
+ *
+ * react-pdf has no list primitive, so a bullet is a `•` we draw in a fixed-width
+ * column. `entitiesIn` in `src/core/grounding.ts` blanks leading markdown
+ * furniture (`/^[\s>#*_+-]+/gm`) so that a bullet's first word stays
+ * line-initial and is not read as a capitalised entity. `•` is not in that
+ * class, so every bullet's first word comes back through extraction as a
+ * candidate invention: a resume line reading "Rebuilt the export" is reported,
+ * and the same application rendered as DOCX is not, because the DOCX marker
+ * lives in the numbering part rather than in the text.
+ *
+ * The renderer added the mark, so the renderer takes it off. Widening the class
+ * in `core` would fix this and a latent case in step 6 as well, and it is a
+ * one-character change to the product's soul gate that nobody has authorised.
+ */
+export function withoutLayoutMarks(extracted: string): string {
+  return extracted.replace(/^[ \t]*•[ \t]*/gm, '');
+}
+
 function render(
   format: Format,
   blocks: Block[],

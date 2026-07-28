@@ -8,6 +8,7 @@ import { blockText, parseMarkdown } from './markdown';
 import {
   RenderError,
   renderApplication,
+  withoutLayoutMarks,
   type RenderedFile,
   type Tier,
 } from './index';
@@ -198,7 +199,7 @@ describe('renderApplication', () => {
         // A template printing a hard-coded "References available on request"
         // adds an ungrounded claim to a document that was clean as JSON.
         expect(
-          groundDraft(await textOf(file), {
+          groundDraft(withoutLayoutMarks(await textOf(file)), {
             profile: PROFILE,
             posting: POSTING,
             name: NAME,
@@ -207,6 +208,53 @@ describe('renderApplication', () => {
       }
     },
   );
+
+  it('does not read its own bullet character as an invention', async () => {
+    // Measured, not assumed. Without withoutLayoutMarks the PDF reports
+    // "Rebuilt" and the DOCX does not, because the DOCX marker lives in the
+    // numbering part rather than in the text. A gate whose answer depends on
+    // the file format is measuring layout, not claims.
+    const { files } = await renderApplication(
+      application({
+        coverLetter: null,
+        resume: `${RESUME}\n- Rebuilt the month-end export in SQL.`,
+      }),
+      { name: NAME, tier: 'basic' },
+    );
+    const extracted = await textOf(files[0]);
+
+    expect(extracted).toContain('• Rebuilt');
+    expect(
+      groundDraft(extracted, { profile: PROFILE, posting: POSTING, name: NAME })
+        .entities,
+    ).toEqual(['Rebuilt']);
+    expect(
+      groundDraft(withoutLayoutMarks(extracted), {
+        profile: PROFILE,
+        posting: POSTING,
+        name: NAME,
+      }).entities,
+    ).toEqual([]);
+  });
+
+  it('finds a banned word that landed on a line break', async () => {
+    // react-pdf ships a hyphenation callback. If it were active here, a word
+    // split as "spearhead-\ned" would walk straight through findBannedWords: a
+    // clean gate on a slopped document. Measured as inactive; this pins it.
+    const { files } = await renderApplication(
+      application({
+        coverLetter: `Dear hiring team,\n\nI ran the month-end close and ${'reconciled the ledger every single month without fail and '.repeat(3)}spearheaded nothing at all here.\n\nAda`,
+      }),
+      { name: NAME, tier: 'standard' },
+    );
+    const letter = files.find((file) => file.kind === 'cover-letter');
+
+    const extracted = await textOf(letter as RenderedFile);
+    expect(extracted).not.toMatch(/-\n/);
+    expect(findBannedWords(extracted).map((f) => f.term)).toEqual([
+      'spearheaded',
+    ]);
+  });
 
   it('catches an invention that only exists in the rendered file', async () => {
     // The gate passing proves nothing unless it can fail. This is the shape of

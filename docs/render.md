@@ -89,6 +89,36 @@ One test asserts the gate can **fail**, not only that it passes: a line
 supported by neither profile nor posting reaches the PDF and is reported. A gate
 that has never been seen to fire is not known to work.
 
+### The bullet character, and why `withoutLayoutMarks` exists
+
+Measured, and the reason the gate is run over normalised text.
+
+react-pdf has no list primitive, so a bullet is a `•` drawn in a fixed-width
+column. `entitiesIn` in `src/core/grounding.ts` blanks leading markdown
+furniture (`/^[\s>#*_+-]+/gm`) so a bullet's first word stays line-initial and
+is not read as a capitalised entity. **`•` is not in that class.** So a resume
+bullet reading "Rebuilt the month-end export" comes back out of the PDF with
+`Rebuilt` reported as an invention, while the same application rendered as DOCX
+reports nothing, because the DOCX marker lives in the numbering part rather
+than in the text.
+
+A gate whose answer depends on the file format is measuring layout, not claims.
+`withoutLayoutMarks` takes the mark back off before the gate runs, and a test
+pins both halves of the asymmetry so it cannot come back silently.
+
+The renderer added the mark, so the renderer takes it off. Adding `•` to that
+character class in `core` would fix this **and** a latent case in step 6 (a
+model that writes `• ` in its markdown hits the same false positive today), but
+it is a change to the product's soul gate that nobody has authorised. It is
+recorded here rather than made.
+
+**Hyphenation is not active.** react-pdf ships a hyphenation callback, and a
+banned word split as `spearhead-\ned` would walk straight through
+`findBannedWords`: a clean gate on a slopped document. Measured on a paragraph
+long enough to wrap: no `-\n` appears and `spearheaded` is still found. A test
+pins it, so the day a version turns it on the suite says so rather than the
+gate going quiet.
+
 PDF bytes are not deterministic (react-pdf stamps a creation date), so nothing
 snapshots bytes. The assertions are about the extracted text, which is the thing
 that matters anyway.
