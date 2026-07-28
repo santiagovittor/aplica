@@ -40,6 +40,37 @@ different users and as an anonymous visitor, and every attempt to read
 `api_keys` must be refused. It passes today, and a deliberately broken
 assertion was confirmed to fail it, so a green run means something.
 
+## When the key is used
+
+Twice, and only twice.
+
+**Once at save time, to check it works.** `saveApiKey` makes one cheap
+authenticated GET against the provider before it encrypts anything: Anthropic's
+`/v1/models`, OpenAI's `/v1/models`, Google's `/v1beta/models`. **This is the
+only place the key is used outside a generation.** The alternative is storing a
+key nobody has tried, which means the first thing that finds out it is dead is a
+paid generation halfway through the pipeline, reported as an opaque provider
+error. The check costs nothing and answers it on the settings screen instead.
+
+The key travels in a request header on all three, never in a query string: a
+query string ends up in access logs and proxy traces. A refusal is reported as
+"that key did not work" with the status and nothing else, because a provider's
+401 body can echo the key straight back. A 5xx or a dropped connection is
+reported as "we could not check", which is a different sentence on purpose:
+telling someone their key is wrong because a server they do not own fell over is
+worse than admitting we do not know.
+
+**Once at generation time**, by `getDecryptedKey`, which is the only function in
+the repo that produces a plaintext key. It reads with `SUPABASE_SECRET_KEY`,
+decrypts in process, and hands the value to the provider call. The result is not
+cached: a key held in memory between requests is a key that can be read out of a
+heap dump long after the request that needed it.
+
+Those are the two functions that ever hold a plaintext key. `saveApiKey`
+receives one from the form and lets it go; `getDecryptedKey` produces one and
+never returns it to anything that serialises. Nothing else in the codebase sees
+one.
+
 ## What never happens
 
 - The key is never returned to the client after it is saved. The UI shows which
@@ -58,12 +89,36 @@ assertion was confirmed to fail it, so a green run means something.
 
 One click, and the row is deleted outright rather than blanked.
 
-Deleting the whole account cascades from `auth.users` through `public.users` to
-every table here: the encrypted key, the profile, the applications, the usage
-counter. **It does not remove the uploaded CV.** Storage objects have no cascade
-from `auth.users`, so the account-deletion path has to delete the file from the
-`cvs` bucket itself. That is a step 7 obligation, and `supabase/tests/rls.sql`
-asserts the current behaviour so this paragraph cannot go quietly stale.
+## Deleting the whole account
+
+`deleteAccount` in `src/lib/account.ts`, in one documented order:
+
+1. every object under `cvs/<user_id>/`,
+2. every object under `outputs/<user_id>/`, at any depth,
+3. the `auth.users` row, which cascades to `public.users`, `profiles`,
+   `api_keys`, `applications` and `usage_counters`.
+
+The order is the design, not a preference. Storage has no foreign key to cascade
+through, so deleting the auth user first would strand the files permanently with
+no row left to find them from. If a storage delete fails, the whole thing throws
+and the account survives: a live account with its files is recoverable, and a
+deleted account with unreachable files is not.
+
+The `outputs` listing recurses. Objects there are keyed
+`<user_id>/<application_id>/<file>`, and Storage's `list` returns the objects
+directly under a prefix plus one entry per subfolder, so a single flat call
+returns folders. A delete built from that list removes nothing while looking
+like it worked.
+
+This closes both halves of what used to be an open obligation here: the `cvs`
+files, and the `outputs` files that `20260728031935_outputs_bucket.sql` created
+and named as an orphan. `supabase/tests/rls.sql` still pins the database half,
+so the day Storage starts cascading from `auth.users` on its own, that assertion
+says so rather than this page going quietly stale.
+
+Deletion is confirmed by typing the account's own email address, compared on the
+server against the session. Not a checkbox, which is one click away from
+something that cannot be undone.
 
 ## The CV
 
