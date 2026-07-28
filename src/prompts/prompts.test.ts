@@ -246,6 +246,37 @@ describe('the no-invention contract', () => {
       'the no-invention rule outranks it',
     );
   });
+
+  // Measured: a real run refused a reviewer demand for invented percentages and
+  // complied with one for invented framing in the same pass. The refusal has to
+  // name framing or it only ever fires on numbers.
+  it('extends that refusal to framing, not just facts', () => {
+    expect(reviseSystemPrompt(OPTIONS)).toContain(
+      'This covers framing as much as facts',
+    );
+  });
+
+  // The four claims that survived every automatic gate on a real run. Each kept
+  // a true fact and upgraded its wording, which is the one thing lexical
+  // grounding cannot see, so the prompt is the only place they are caught.
+  for (const [stage, prompt] of [
+    ['draft', draftSystemPrompt(OPTIONS)],
+    ['revise', reviseSystemPrompt(OPTIONS)],
+  ] as const) {
+    it(`tells ${stage} to keep the profile's own strength`, () => {
+      expect(prompt).toContain("Keep the profile's own strength");
+      expect(prompt).toContain('A range keeps both of its ends');
+      expect(prompt).toContain(
+        'no adjective, adverb, frequency or superlative the profile does not itself\nuse',
+      );
+    });
+
+    it(`makes ${stage} check strength on the way out`, () => {
+      expect(prompt).toContain(
+        "at that entry's own\n   strength and no stronger",
+      );
+    });
+  }
 });
 
 // `Percentage` in `application.ts` bounds both fields at 0 to 100, so a
