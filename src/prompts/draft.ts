@@ -67,6 +67,32 @@ const OUTPUT_SHAPE = `
 85% is 85, never 0.85, and a mediocre fit is 45, never 4.5.
 `.trim();
 
+/**
+ * Measured, not theoretical. The second real run passed all three gates and
+ * still shipped four claims the profile does not make, and every one of them
+ * kept a true fact and upgraded its wording. None carries a fabricated number
+ * or a fabricated entity, so lexical grounding is structurally blind to all
+ * four (`docs/grounding.md`). The prompt is the only place they can be caught,
+ * so the examples are the real ones rather than invented illustrations.
+ */
+const CLAIM_FIDELITY = `**Keep the profile's own strength.** A line traces to the
+profile when its wording does, not merely when its subject does. These four
+passed every automatic check on a real run and were all still false:
+
+- Profile: "a cross-functional squad of 6 to 7 people". Draft: "a 7-person
+  squad". A range keeps both of its ends.
+- Profile: "Docker self-healing". Draft: "zero-downtime performance". A
+  mechanism is not the best case it aims at.
+- Profile: a website built for a legal practice. Draft: it "required a firm
+  grasp of the security and precision demands unique to legal practice". What
+  the work was is not a claim about what the work demanded.
+- Profile: a program "adopted by 100% of operational teams". Draft: those teams
+  "use it daily". Frequency, duration and scale are each their own claim.
+
+So: no adjective, adverb, frequency or superlative the profile does not itself
+use. Where you would reach for one, write the plainer sentence. It is the true
+one, and it is the one the applicant can defend out loud.`;
+
 export function draftSystemPrompt(options: DraftOptions): string {
   return `${voiceRules(options.voice)}
 
@@ -133,6 +159,8 @@ vaguer-but-true wording, or name it in \`flags\`. You may never smooth a gap int
 specific-sounding claim. An entry marked \`"evidence": "weak"\` in the profile stays
 weak: do not sharpen it into a number or an outcome the profile does not state.
 
+${CLAIM_FIDELITY}
+
 ## Phase 4 — The cover letter
 
 ${coverLetterRule(options.tier)}
@@ -194,9 +222,13 @@ ${languageRule(options.language)}
 - **Where the reviewer asks for a claim the profile does not support, do not make
   it.** Say so in \`flags\` instead. The reviewer sees the posting and the drafts,
   not the full evidence; it can ask for something that would be a fabrication, and
-  the no-invention rule outranks it.
+  the no-invention rule outranks it. This covers framing as much as facts: a
+  reviewer asking you to "connect this to their industry" or "show the scale of
+  the impact" is asking for a fabrication whenever the profile states neither.
 - Do not rewrite anything the critique did not raise. A revision pass that
   restyles clean paragraphs loses more than it gains.
+
+${CLAIM_FIDELITY}
 
 ## Verify before returning
 
@@ -297,7 +329,8 @@ write one.`;
 function checklist(): string {
   return `1. Any em dashes? If yes, rewrite.
 2. Any banned words or banned constructions? If yes, rewrite.
-3. Does every factual claim trace to a sourced profile entry? If not, cut it.
+3. Does every factual claim trace to a sourced profile entry, at that entry's own
+   strength and no stronger? If not, cut it or plain it down.
 4. Would a human read this and think "AI wrote this"? If yes, name why and fix it.
 5. Does it sound like the voice anchors? If not, plain it up.
 6. Anything padded? Cut it.
