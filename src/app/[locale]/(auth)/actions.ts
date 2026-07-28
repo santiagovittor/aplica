@@ -1,11 +1,10 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect as externalRedirect } from 'next/navigation';
 import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
-import { serverClient } from '@/lib/session';
+import { requestOrigin, serverClient } from '@/lib/session';
 
 /**
  * The auth flows, all server-side (SLICE-9 decision 3). The browser posts a
@@ -207,18 +206,14 @@ function authError(
 /**
  * Where the provider sends the browser after it has verified the link.
  *
- * Built from the request's own host rather than an env var so a preview deploy
- * does not send everyone to production. Both forms of the dev host are on
- * `additional_redirect_urls` in supabase/config.toml; an address that is not on
- * that list bounces to `site_url` instead of failing loudly.
+ * Built from the request's own host (`requestOrigin`) so the session written by
+ * the callback lands on the origin the browser is actually using. Both forms of
+ * the dev host are on `additional_redirect_urls` in supabase/config.toml; an
+ * address that is not on that list bounces to `site_url` instead of failing
+ * loudly.
  */
 async function callbackUrl(locale: string, next: string): Promise<string> {
-  const header = await headers();
-  const host = header.get('x-forwarded-host') ?? header.get('host');
-  if (!host) {
-    throw new Error('No host header, so the callback URL cannot be built.');
-  }
-  const protocol = header.get('x-forwarded-proto') ?? 'http';
+  const origin = await requestOrigin();
 
-  return `${protocol}://${host}/${locale}/callback?next=${encodeURIComponent(next)}`;
+  return `${origin}/${locale}/callback?next=${encodeURIComponent(next)}`;
 }

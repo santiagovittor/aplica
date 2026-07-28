@@ -94,7 +94,7 @@
       },
       "errors": {
         "empty": "Paste a key first.",
-        "rejected": "That key didn’t work. Check you copied all of it, and that it is a {provider} key.",
+        "rejected": "That key didn’t work. Check you copied all of it, and that it belongs to {provider}.",
         "unreachable": "We couldn’t reach {provider} to check the key. Try again in a minute.",
         "unknown": "Something went wrong on our side. Your key was not saved."
       }
@@ -115,7 +115,8 @@
       "submit": "Delete everything",
       "deleting": "Deleting everything…",
       "cancel": "Keep my account",
-      "mismatch": "That does not match your email address."
+      "mismatch": "That does not match your email address.",
+      "failed": "Something went wrong, so your account is still here. Try again."
     }
   },
   "Styleguide": {

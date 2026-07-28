@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { serverClient } from '@/lib/session';
+import { requestOrigin, serverClient } from '@/lib/session';
 
 /**
  * Where every link and every OAuth handshake lands: the sign-up confirmation,
@@ -19,8 +19,12 @@ export async function GET(
   const code = url.searchParams.get('code');
   const next = safeNext(url.searchParams.get('next'), locale);
 
+  // The header, not `request.url`. They differ, and a redirect to the other one
+  // arrives at an origin that holds none of the cookies just written.
+  const origin = await requestOrigin();
+
   if (!code) {
-    return NextResponse.redirect(signInWithError(url.origin, locale));
+    return NextResponse.redirect(signInWithError(origin, locale));
   }
 
   const supabase = await serverClient();
@@ -29,10 +33,10 @@ export async function GET(
     // A spent link, an expired one, or one opened in a different browser from
     // the one that asked for it. The user gets one sentence and a way forward;
     // the provider's own message is not repeated.
-    return NextResponse.redirect(signInWithError(url.origin, locale));
+    return NextResponse.redirect(signInWithError(origin, locale));
   }
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  return NextResponse.redirect(new URL(next, origin));
 }
 
 /**

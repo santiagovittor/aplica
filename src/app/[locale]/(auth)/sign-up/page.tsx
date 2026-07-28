@@ -63,10 +63,12 @@ export default async function SignUpPage({
       </div>
 
       <p className={styles.links}>
-        {t('signUp.haveAccount')}{' '}
-        <Link className={styles.link} href="/sign-in">
-          {t('signUp.signIn')}
-        </Link>
+        <span>
+          {t('signUp.haveAccount')}{' '}
+          <Link className={styles.link} href="/sign-in">
+            {t('signUp.signIn')}
+          </Link>
+        </span>
       </p>
     </>
   );

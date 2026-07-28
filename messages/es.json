@@ -115,7 +115,8 @@
       "submit": "Borrar todo",
       "deleting": "Borrando todo…",
       "cancel": "Quedarme con mi cuenta",
-      "mismatch": "Eso no coincide con tu correo."
+      "mismatch": "Eso no coincide con tu correo.",
+      "failed": "Algo falló, así que tu cuenta sigue acá. Probá de nuevo."
     }
   },
   "Styleguide": {

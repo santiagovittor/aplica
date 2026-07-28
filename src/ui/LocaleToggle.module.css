@@ -1,0 +1,7 @@
+/* Two buttons side by side. The selected one is the paper-and-hairline
+   secondary; the other is quiet. No third state and no new colour: DESIGN.md §5
+   keeps --green for the one primary action on the screen. */
+.group {
+  display: flex;
+  gap: var(--space-2);
+}

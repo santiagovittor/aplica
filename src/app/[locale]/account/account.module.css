@@ -1,0 +1,137 @@
+/* DESIGN.md §3: a working screen is asymmetric, 7 columns of primary and 4 of
+   secondary on the 12-column grid, with the eighth column left as the split. */
+
+.shell {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--margin-outer) var(--space-10);
+}
+
+@media (min-width: 60rem) {
+  .shell {
+    padding-inline: var(--space-7);
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-7);
+}
+
+@media (min-width: 60rem) {
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+    align-items: start;
+  }
+
+  .primary {
+    grid-column: span 7;
+  }
+
+  .aside {
+    grid-column: 9 / span 4;
+  }
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--text-xl);
+}
+
+.asideTitle {
+  font-size: var(--text-lg);
+}
+
+.body {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+/* The key form's own rhythm: 32px between fields, 48px to the button, so the
+   groups read as groups (§3). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  margin-top: var(--space-4);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.saved {
+  font-weight: 500;
+  color: var(--green);
+}
+
+.none {
+  color: var(--ink-soft);
+}
+
+.error {
+  max-width: var(--measure);
+  color: var(--clay);
+  font-size: var(--text-xs);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Its own group, below the save action rather than beside it: one-click, per
+   PROJECT.md section 6, but not one click away from the button next to it. */
+.remove {
+  margin-top: var(--space-5);
+}
+
+/* The confirmation only exists once the disclosure is open, so its own spacing
+   lives here rather than on a hidden element. */
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}

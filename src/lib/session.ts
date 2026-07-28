@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getLocale } from 'next-intl/server';
 import { redirect } from '../i18n/navigation';
 
@@ -78,6 +78,27 @@ export async function requireUser(): Promise<User> {
   // next-intl's redirect throws, the same as Next's own. Its return type does
   // not say so, and this is cheaper than asserting one that lies.
   throw new Error('Unreachable: redirect did not throw.');
+}
+
+/**
+ * The origin the browser actually asked for, taken from the request headers.
+ *
+ * Not `request.url`, and not an env var. Next's `request.url` reports the
+ * server's own idea of its origin, which in dev is `localhost` even when the
+ * browser typed `127.0.0.1`. Those are two origins as far as cookies are
+ * concerned, so redirecting to the wrong one hands the browser a page it has no
+ * session for; the symptom is a confirmation link that "works" and lands on
+ * sign-in anyway. An env var would have the matching failure on preview
+ * deploys, sending everyone to production.
+ */
+export async function requestOrigin(): Promise<string> {
+  const header = await headers();
+  const host = header.get('x-forwarded-host') ?? header.get('host');
+  if (!host) {
+    throw new Error('No host header, so the request origin is unknown.');
+  }
+
+  return `${header.get('x-forwarded-proto') ?? 'http'}://${host}`;
 }
 
 /** The project URL. Public by design; it is in the browser bundle already. */
