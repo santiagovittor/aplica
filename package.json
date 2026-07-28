@@ -16,6 +16,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "docx": "^9.7.1",
     "motion": "^12.42.2",
     "next": "16.2.11",
     "next-intl": "^4.13.4",
