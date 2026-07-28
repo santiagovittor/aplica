@@ -51,7 +51,7 @@ Font.registerHyphenationCallback((word) => [word]);
 
 const PAGE_SIZE = 'LETTER';
 const MARGIN = 54; // 0.75in, what a word processor gives a resume by default.
-const BODY   =   10;
+const BODY = 10;
 const LINE_HEIGHT = 1.45;
 const BULLET_INDENT = 12;
 
