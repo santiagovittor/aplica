@@ -13,6 +13,113 @@
     "en": "English",
     "es": "Spanish"
   },
+  "Auth": {
+    "signIn": {
+      "title": "Sign in",
+      "lead": "Pick up where you left off.",
+      "submit": "Sign in",
+      "submitting": "Signing you in…",
+      "noAccount": "No account yet?",
+      "createOne": "Create one",
+      "forgot": "Forgot your password?"
+    },
+    "signUp": {
+      "title": "Create your account",
+      "lead": "An email and a password. Your CV and your model key come after.",
+      "submit": "Create my account",
+      "submitting": "Creating your account…",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "google": {
+      "continue": "Continue with Google",
+      "or": "or"
+    },
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New password",
+      "passwordHint": "At least 8 characters."
+    },
+    "checkEmail": {
+      "title": "Check your email",
+      "body": "If that address needs a link, it’s on its way. Open it in this browser and you’ll land back here signed in.",
+      "hint": "Nothing yet? Give it a minute, then look in spam.",
+      "back": "Back to sign in"
+    },
+    "reset": {
+      "title": "Reset your password",
+      "lead": "Type your email and we’ll send you a link to set a new one.",
+      "submit": "Send me a link",
+      "submitting": "Sending the link…",
+      "back": "Back to sign in"
+    },
+    "newPassword": {
+      "title": "Set a new password",
+      "lead": "This replaces the old one everywhere.",
+      "submit": "Save my password",
+      "submitting": "Saving your password…"
+    },
+    "errors": {
+      "invalidEmail": "That address is missing an @.",
+      "weakPassword": "Use at least 8 characters.",
+      "invalidCredentials": "That email and password don’t match an account.",
+      "emailTaken": "That address already has an account. Sign in instead.",
+      "rateLimited": "That was a lot of tries. Wait a minute and go again.",
+      "link": "That link didn’t work. It may have expired, so ask for a new one.",
+      "unknown": "Something went wrong on our side. Try again."
+    }
+  },
+  "Account": {
+    "title": "Your account",
+    "lead": "Where your key lives, what language you get, and how to leave.",
+    "loading": "Loading your account",
+    "key": {
+      "title": "Your model key",
+      "body": "Aplica runs on your own provider key, so you pay the model directly and we never mark it up. It is encrypted before it reaches the database, and it is never shown again after you save it.",
+      "provider": "Provider",
+      "label": "API key",
+      "placeholder": "Paste it here",
+      "hint": "We check it works before we store it.",
+      "save": "Save my key",
+      "saving": "Checking your key…",
+      "saved": "A {provider} key is saved.",
+      "replace": "Pasting a new one replaces it.",
+      "none": "No key yet. Paste one and you can generate an application.",
+      "delete": "Delete my key",
+      "deleting": "Deleting your key…",
+      "providers": {
+        "anthropic": "Anthropic",
+        "openai": "OpenAI",
+        "google": "Google"
+      },
+      "errors": {
+        "empty": "Paste a key first.",
+        "rejected": "That key didn’t work. Check you copied all of it, and that it belongs to {provider}.",
+        "unreachable": "We couldn’t reach {provider} to check the key. Try again in a minute.",
+        "unknown": "Something went wrong on our side. Your key was not saved."
+      }
+    },
+    "language": {
+      "title": "Language",
+      "body": "This changes the app. It does not change the language your applications are written in."
+    },
+    "session": {
+      "signOut": "Sign out"
+    },
+    "danger": {
+      "title": "Delete your account",
+      "body": "This removes your profile, your parsed CV, the file you uploaded, every application you generated, and your encrypted key. It cannot be undone.",
+      "reveal": "Delete my account",
+      "confirmLabel": "Type {email} to confirm",
+      "confirmHint": "This is the last step. There is no undo after it.",
+      "submit": "Delete everything",
+      "deleting": "Deleting everything…",
+      "cancel": "Keep my account",
+      "mismatch": "That does not match your email address.",
+      "failed": "Something went wrong, so your account is still here. Try again."
+    }
+  },
   "Styleguide": {
     "title": "The design system",
     "intro": "Every value this product is allowed to use, shown doing its real job on the real paper. If a screen needs something that is not here, the system is wrong, not the screen.",

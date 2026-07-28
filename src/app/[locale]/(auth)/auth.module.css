@@ -1,0 +1,99 @@
+/* The auth screens. DESIGN.md §3 allows a centered single column for onboarding
+   steps, capped at the measure; signing in is the first onboarding step. Every
+   value here is a token. */
+
+.shell {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 100dvh;
+  padding: var(--space-8) var(--margin-outer);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  width: 100%;
+  max-width: var(--measure);
+}
+
+/* Within a group: the title and its lead belong together. */
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+/* §3 hierarchy: 12px from a label to its control, so 32px between one field and
+   the next. A uniform gap would say nothing is related and nothing is separate. */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.error {
+  max-width: var(--measure);
+  color: var(--clay);
+  font-size: var(--text-xs);
+}
+
+.alternative {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.divider {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+  content: '';
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.link {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+
+.note {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}

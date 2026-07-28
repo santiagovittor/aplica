@@ -13,6 +13,113 @@
     "en": "Inglés",
     "es": "Español"
   },
+  "Auth": {
+    "signIn": {
+      "title": "Iniciá sesión",
+      "lead": "Seguí donde lo dejaste.",
+      "submit": "Iniciar sesión",
+      "submitting": "Entrando…",
+      "noAccount": "¿Todavía no tenés cuenta?",
+      "createOne": "Creá una",
+      "forgot": "¿Olvidaste la contraseña?"
+    },
+    "signUp": {
+      "title": "Creá tu cuenta",
+      "lead": "Un correo y una contraseña. El CV y la clave del modelo vienen después.",
+      "submit": "Crear mi cuenta",
+      "submitting": "Creando tu cuenta…",
+      "haveAccount": "¿Ya tenés cuenta?",
+      "signIn": "Iniciá sesión"
+    },
+    "google": {
+      "continue": "Continuar con Google",
+      "or": "o"
+    },
+    "fields": {
+      "email": "Correo",
+      "password": "Contraseña",
+      "newPassword": "Contraseña nueva",
+      "passwordHint": "Ocho caracteres como mínimo."
+    },
+    "checkEmail": {
+      "title": "Revisá tu correo",
+      "body": "Si esa dirección necesita un enlace, ya está en camino. Abrilo en este navegador y volvés acá con la sesión iniciada.",
+      "hint": "¿No llegó? Esperá un minuto y fijate en spam.",
+      "back": "Volver a iniciar sesión"
+    },
+    "reset": {
+      "title": "Recuperá tu contraseña",
+      "lead": "Escribí tu correo y te mandamos un enlace para poner una nueva.",
+      "submit": "Mandame el enlace",
+      "submitting": "Mandando el enlace…",
+      "back": "Volver a iniciar sesión"
+    },
+    "newPassword": {
+      "title": "Poné una contraseña nueva",
+      "lead": "Reemplaza a la anterior en todos lados.",
+      "submit": "Guardar mi contraseña",
+      "submitting": "Guardando tu contraseña…"
+    },
+    "errors": {
+      "invalidEmail": "A esa dirección le falta la @.",
+      "weakPassword": "Usá ocho caracteres como mínimo.",
+      "invalidCredentials": "Ese correo y esa contraseña no coinciden con ninguna cuenta.",
+      "emailTaken": "Esa dirección ya tiene cuenta. Iniciá sesión.",
+      "rateLimited": "Fueron muchos intentos. Esperá un minuto y probá de nuevo.",
+      "link": "Ese enlace no funcionó. Puede que haya vencido, así que pedí uno nuevo.",
+      "unknown": "Algo falló de nuestro lado. Probá de nuevo."
+    }
+  },
+  "Account": {
+    "title": "Tu cuenta",
+    "lead": "Dónde vive tu clave, en qué idioma te hablamos y cómo irte.",
+    "loading": "Cargando tu cuenta",
+    "key": {
+      "title": "Tu clave del modelo",
+      "body": "Aplica funciona con tu propia clave, así le pagás al proveedor directamente y nosotros no cobramos nada encima. Se cifra antes de llegar a la base de datos y no se vuelve a mostrar después de que la guardás.",
+      "provider": "Proveedor",
+      "label": "Clave",
+      "placeholder": "Pegala acá",
+      "hint": "Comprobamos que funcione antes de guardarla.",
+      "save": "Guardar mi clave",
+      "saving": "Comprobando tu clave…",
+      "saved": "Hay una clave de {provider} guardada.",
+      "replace": "Si pegás otra, reemplaza a esta.",
+      "none": "Todavía no hay clave. Pegá una y ya podés generar una candidatura.",
+      "delete": "Borrar mi clave",
+      "deleting": "Borrando tu clave…",
+      "providers": {
+        "anthropic": "Anthropic",
+        "openai": "OpenAI",
+        "google": "Google"
+      },
+      "errors": {
+        "empty": "Pegá una clave primero.",
+        "rejected": "Esa clave no funcionó. Fijate que la hayas copiado entera y que sea de {provider}.",
+        "unreachable": "No pudimos llegar a {provider} para comprobarla. Probá en un minuto.",
+        "unknown": "Algo falló de nuestro lado. Tu clave no se guardó."
+      }
+    },
+    "language": {
+      "title": "Idioma",
+      "body": "Cambia la app. No cambia el idioma en el que se escriben tus candidaturas."
+    },
+    "session": {
+      "signOut": "Cerrar sesión"
+    },
+    "danger": {
+      "title": "Borrar tu cuenta",
+      "body": "Esto borra tu perfil, el CV que analizamos, el archivo que subiste, todas las candidaturas que generaste y tu clave cifrada. No se puede deshacer.",
+      "reveal": "Borrar mi cuenta",
+      "confirmLabel": "Escribí {email} para confirmar",
+      "confirmHint": "Este es el último paso. Después no hay vuelta atrás.",
+      "submit": "Borrar todo",
+      "deleting": "Borrando todo…",
+      "cancel": "Quedarme con mi cuenta",
+      "mismatch": "Eso no coincide con tu correo.",
+      "failed": "Algo falló, así que tu cuenta sigue acá. Probá de nuevo."
+    }
+  },
   "Styleguide": {
     "title": "El sistema de diseño",
     "intro": "Todos los valores que este producto puede usar, mostrados haciendo su trabajo real sobre el papel real. Si una pantalla necesita algo que no está acá, el error está en el sistema y no en la pantalla.",

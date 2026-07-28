@@ -4,6 +4,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { routing, type Locale } from '@/i18n/routing';
+import { Button } from './Button';
+import styles from './LocaleToggle.module.css';
 
 export function LocaleToggle() {
   const t = useTranslations('LocaleToggle');
@@ -19,18 +21,18 @@ export function LocaleToggle() {
   }
 
   return (
-    <nav aria-label={t('label')}>
+    <nav aria-label={t('label')} className={styles.group}>
       {routing.locales.map((locale) => (
-        <button
+        <Button
           key={locale}
-          type="button"
           lang={locale}
+          variant={locale === active ? 'secondary' : 'quiet'}
           disabled={isPending}
           aria-current={locale === active ? 'true' : undefined}
           onClick={() => switchTo(locale)}
         >
           {t(locale)}
-        </button>
+        </Button>
       ))}
     </nav>
   );

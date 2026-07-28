@@ -67,3 +67,41 @@ jobs:
       - name: build
         if: ${{ !cancelled() }}
         run: npm run build
+
+  # A second job, not a step in the first: this one needs Docker and a Postgres
+  # cold start, and the checks above should still report in under a minute.
+  #
+  # supabase/tests/rls.sql is what proves the encrypted keys are unreachable
+  # from any client role. It has been run by hand since step 3; this is the slice
+  # that touches auth, api_keys and account deletion, so it earns its place here.
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # Postgres only. Everything else is excluded deliberately: the assertions
+      # talk to the database and to nothing else, auth is configured with an
+      # external Google client whose credentials this job must never hold, and
+      # the excluded containers are most of the cold start.
+      #
+      # The migrations run as part of `start`, and they insert into
+      # storage.buckets, so a start that succeeds has already proved the storage
+      # schema the assertions read is there.
+      - name: start postgres
+        run: >
+          npx supabase start
+          -x gotrue,realtime,storage-api,imgproxy,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # ON_ERROR_STOP, so a failed assertion is a failed job rather than a
+      # notice nobody reads. The whole file rolls back at the end.
+      - name: row-level security
+        run: >
+          docker exec -i supabase_db_aplica
+          psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/rls.sql
