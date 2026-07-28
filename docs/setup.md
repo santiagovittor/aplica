@@ -55,6 +55,39 @@ It seeds two users, reads every table as each of them and as an anonymous
 visitor, and asserts what each can and cannot see. It rolls itself back, so it is
 safe to run against a database you care about.
 
+## The checks
+
+`.github/workflows/ci.yml` runs these on every push to `main` and every pull
+request, in this order. Running the same five locally is the whole of it:
+
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+CI runs them with **no environment variables at all** — no Supabase URL, no
+keys, no `APLICA_DEV_API_KEY`. That is deliberate: the test suite runs against
+the MockProvider, so no real credential ever exists in CI to leak (CLAUDE.md
+section 5). If you want to reproduce exactly what CI does, unset them:
+
+```bash
+env -u NEXT_PUBLIC_SUPABASE_URL -u NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+    -u SUPABASE_SECRET_KEY -u API_KEY_ENCRYPTION_KEY \
+    -u APLICA_DEV_PROVIDER -u APLICA_DEV_API_KEY \
+    sh -c 'npm run typecheck && npm test && npm run build'
+```
+
+A step failing does not stop the ones after it, so one red run tells you
+everything that is wrong rather than the first thing.
+
+`supabase/tests/rls.sql` is **not** in CI. It needs a live Postgres, which means
+starting the whole Supabase stack in the job. Run it locally after any migration
+(above). Adding it to CI is a decision for the slice that next changes an RLS
+policy.
+
 ## Google sign-in (browser work, only you can do it)
 
 Email sign-in works out of the box. Google needs credentials that only you can
