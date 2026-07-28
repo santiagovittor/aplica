@@ -88,6 +88,10 @@ passed every automatic check on a real run and were all still false:
   the work was is not a claim about what the work demanded.
 - Profile: a program "adopted by 100% of operational teams". Draft: those teams
   "use it daily". Frequency, duration and scale are each their own claim.
+- Profile: four years at an employer, the last two of them doing AI work. Draft:
+  "4 years of experience building AI-enabled solutions". Years attach to the
+  role that states them, never to the newest thing inside it, and a total you
+  worked out by arithmetic is not a fact the profile gave you.
 
 So: no adjective, adverb, frequency or superlative the profile does not itself
 use. Where you would reach for one, write the plainer sentence. It is the true

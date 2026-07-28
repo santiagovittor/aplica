@@ -287,6 +287,11 @@ describe('the no-invention contract', () => {
     it(`tells ${stage} to keep the profile's own strength`, () => {
       expect(prompt).toContain("Keep the profile's own strength");
       expect(prompt).toContain('A range keeps both of its ends');
+      // Twice-measured: the drafter wrote "4+ years of experience in AI
+      // implementation" on one run and "4 years" on another, from a profile
+      // whose AI work starts two years in. Grounding cannot see it, because a
+      // lone 4 is everywhere in a profile.
+      expect(prompt).toContain('Years attach to the\n  role that states them');
       expect(prompt).toContain(
         'no adjective, adverb, frequency or superlative the profile does not itself\nuse',
       );
