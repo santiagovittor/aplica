@@ -206,10 +206,33 @@ async function request(
   path: string,
   init: { headers: Record<string, string>; body: BodyInit },
 ): Promise<void> {
+  await supabaseRequest(operation, path, init);
+}
+
+/**
+ * Every server-side call to PostgREST and Storage goes through here: the secret
+ * key, a timeout, no redirect, and no reading of a failed response.
+ *
+ * Exported because `api-keys.ts` and `account.ts` make the same call with a
+ * different method, and three copies of the header line is how one of them ends
+ * up without `redirect: 'error'`.
+ *
+ * Returns the response so a caller that asked for rows can read them. A failure
+ * never gets that far.
+ */
+export async function supabaseRequest(
+  operation: string,
+  path: string,
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: BodyInit;
+  } = {},
+): Promise<Response> {
   const key = secretKey();
 
   const response = await fetch(`${baseUrl()}${path}`, {
-    method: 'POST',
+    method: init.method ?? 'POST',
     headers: { apikey: key, authorization: `Bearer ${key}`, ...init.headers },
     body: init.body,
     // A redirect would carry the secret key to a second, unchecked host.
@@ -221,6 +244,8 @@ async function request(
     // The body is not read. It is the one place the key could come back.
     throw new SupabaseError(operation, response.status);
   }
+
+  return response;
 }
 
 function baseUrl(): string {
