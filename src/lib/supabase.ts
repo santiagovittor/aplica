@@ -1,10 +1,15 @@
 import { z } from 'zod';
+import type { Application } from '../core/application';
 import { cvFormat, type CvFormat } from '../core/extract-text';
 import type { Profile } from '../core/profile';
+// Types only, and erased at compile: `lib` describes what it is handed rather
+// than declaring a second copy of the render seam's unions, which is how the
+// two would drift.
+import type { RenderedFile, Tier } from '../render/index';
 
 /**
- * The two server-side writes the parse flow makes: the CV file into the private
- * `cvs` bucket, and the profile into `profiles.data`.
+ * The server-side writes the two flows make: the CV file and the parsed profile
+ * (flow 1), and the rendered files plus their `applications` row (flow 3).
  *
  * Plain `fetch` against PostgREST and the Storage API rather than the Supabase
  * SDK. Two requests with a bearer token do not earn a vendor client, and this
@@ -94,6 +99,106 @@ export async function saveProfile(
   });
 
   return path;
+}
+
+/** One rendered file as `applications.files` records it. Bytes are a length. */
+export interface StoredFile {
+  kind: RenderedFile['kind'];
+  format: RenderedFile['format'];
+  path: string;
+  bytes: number;
+}
+
+export interface ApplicationMeta {
+  tier: Tier;
+  /** Both columns are nullable, and the caller supplies both. */
+  company?: string;
+  role?: string;
+}
+
+/**
+ * `applications.fit_score` is a `smallint`, and `applicationSchema`'s
+ * `Percentage` is `z.number().min(0).max(100)`, which legally accepts `0.85`.
+ * This is where those two meet, so the integer is asserted here rather than
+ * discovered as an opaque Supabase status three layers from its cause
+ * (CLAUDE.md's Zod-at-every-boundary rule, with `core` left alone).
+ *
+ * Deliberately not `Math.round`: rounding `0.85` would store `1` for an 85%
+ * fit, which is a wrong number written confidently, and that is worse than a
+ * refused insert.
+ */
+const FitScore = z.number().int().min(0).max(100);
+
+/**
+ * Stores the rendered files and the row that indexes them.
+ *
+ * The id is minted here rather than by `gen_random_uuid()`, because the object
+ * key contains it: letting the database mint it would mean insert, read back,
+ * upload, update, and a half-written row whenever an upload fails. Files first,
+ * then the row, for the reason `saveProfile` gives.
+ */
+export async function saveApplication(
+  userId: string,
+  application: Application,
+  files: RenderedFile[],
+  meta: ApplicationMeta,
+): Promise<{ id: string; files: StoredFile[] }> {
+  // Straight into a URL path, and into the first segment the `outputs owner
+  // read` policy keys off. A segment that is not a user id would put one
+  // person's resume inside another person's folder.
+  const owner = z.uuid().parse(userId);
+  const id = crypto.randomUUID();
+
+  const score = FitScore.safeParse(application.fit.score);
+  if (!score.success) {
+    throw new Error(
+      `applications.fit_score is a smallint, so the fit score has to be a whole number from 0 to 100. This application carries ${application.fit.score}.`,
+    );
+  }
+
+  if (files.length === 0) {
+    throw new Error('An application with no rendered files is not saved.');
+  }
+
+  const stored: StoredFile[] = [];
+  for (const file of files) {
+    // `${kind}.${format}`, not the display filename: the object key should not
+    // change because somebody typed a different company name.
+    const path = `${owner}/${id}/${file.kind}.${file.format}`;
+    await request('storage upload', `/storage/v1/object/outputs/${path}`, {
+      headers: { 'content-type': CONTENT_TYPES[file.format] },
+      // `BodyInit` will not take a view over an arbitrary buffer. Copying once
+      // per file is cheaper than a cast that stops the compiler checking here.
+      body: new Uint8Array(file.bytes),
+    });
+    stored.push({
+      kind: file.kind,
+      format: file.format,
+      path,
+      bytes: file.bytes.byteLength,
+    });
+  }
+
+  await request('application insert', '/rest/v1/applications', {
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id,
+      user_id: owner,
+      company: blankToNull(meta.company),
+      role: blankToNull(meta.role),
+      tier: meta.tier,
+      fit_score: score.data,
+      files: stored,
+    }),
+  });
+
+  return { id, files: stored };
+}
+
+/** The columns are nullable, and an empty string is not a company name. */
+function blankToNull(value: string | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed === '' ? null : trimmed;
 }
 
 async function request(
