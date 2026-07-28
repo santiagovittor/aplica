@@ -4,60 +4,14 @@ import { createMockProvider } from '../providers/mock';
 import type { GenerateOptions, Message, Provider } from '../providers/types';
 import { APPLY_MAX_TOKENS, applyToPosting, type ApplyOptions } from './apply';
 import { ApplicationError } from './application';
-import type { Profile } from './profile';
+// The one posting and profile the render tests ground against too. Two fixture
+// profiles drifting apart is how a gate starts passing for the wrong reason.
+import { POSTING, PROFILE } from './fixtures';
 
 /** The markers the mock routes each stage by (`prompts.test.ts`). */
 const DRAFT = '# apply';
 const REVIEW = '# reviewer';
 const REVISE = '# revise';
-
-const POSTING = [
-  'Operations analyst, Cooperativa del Norte.',
-  'You will own the month-end close and the financial reporting for three',
-  'markets. SQL required.',
-].join('\n');
-
-const PROFILE: Profile = {
-  voiceAnchors: ['I cut the month-end close from three days to one.'],
-  experience: [
-    {
-      role: 'Operations analyst',
-      organisation: 'Cooperativa del Sur',
-      start: '2022-03',
-      end: '2025-11',
-      bullets: [
-        {
-          text: 'Cut the month-end close from three days to one.',
-          source: 'extracted',
-          evidence: 'strong',
-        },
-      ],
-    },
-  ],
-  projects: [],
-  skills: [
-    {
-      name: 'SQL',
-      group: 'Data',
-      provenBy: 'Scripted the month-end export.',
-      source: 'extracted',
-      evidence: 'strong',
-    },
-  ],
-  starStories: [],
-  education: [],
-  certifications: [],
-  languages: [],
-  keywordBank: [
-    {
-      ownTerm: 'month-end close',
-      fieldTerms: ['financial close', 'financial reporting'],
-      provenBy: 'Ran the close for three years.',
-      source: 'extracted',
-    },
-  ],
-  gaps: [],
-};
 
 const OPTIONS: ApplyOptions = {
   posting: POSTING,
