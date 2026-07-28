@@ -73,6 +73,7 @@
   "Account": {
     "title": "Your account",
     "lead": "Where your key lives, what language you get, and how to leave.",
+    "loading": "Loading your account",
     "key": {
       "title": "Your model key",
       "body": "Aplica runs on your own provider key, so you pay the model directly and we never mark it up. It is encrypted before it reaches the database, and it is never shown again after you save it.",

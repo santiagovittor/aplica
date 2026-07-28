@@ -73,6 +73,7 @@
   "Account": {
     "title": "Tu cuenta",
     "lead": "Dónde vive tu clave, en qué idioma te hablamos y cómo irte.",
+    "loading": "Cargando tu cuenta",
     "key": {
       "title": "Tu clave del modelo",
       "body": "Aplica funciona con tu propia clave, así le pagás al proveedor directamente y nosotros no cobramos nada encima. Se cifra antes de llegar a la base de datos y no se vuelve a mostrar después de que la guardás.",
