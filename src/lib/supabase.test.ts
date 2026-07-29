@@ -2,7 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Application } from '../core/application';
 import type { Profile } from '../core/profile';
 import type { RenderedFile } from '../render/index';
-import { SupabaseError, saveApplication, saveProfile } from './supabase';
+import {
+  attachFiles,
+  loadApplication,
+  loadDisplayName,
+  loadProfile,
+  saveApplication,
+  saveProfile,
+  startApplication,
+  StoredShapeError,
+  SupabaseError,
+} from './supabase';
 
 // Not a real credential: local Supabase prints its own, and nothing here talks
 // to a server. It is still treated as one, because the assertions below are
@@ -30,23 +40,44 @@ const PROFILE: Profile = {
 
 interface Captured {
   url: string;
+  method: string;
   headers: Record<string, string>;
   body: BodyInit | null | undefined;
 }
 
 let calls: Captured[] = [];
 
+function capture(url: string, init: RequestInit) {
+  calls.push({
+    url,
+    method: init.method ?? 'POST',
+    headers: init.headers as Record<string, string>,
+    body: init.body,
+  });
+}
+
 function respondWith(...statuses: number[]) {
   let index = 0;
   vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
-    calls.push({
-      url,
-      headers: init.headers as Record<string, string>,
-      body: init.body,
-    });
+    capture(url, init);
     const status = statuses[Math.min(index, statuses.length - 1)];
     index += 1;
     return Promise.resolve(new Response(null, { status }));
+  });
+}
+
+/**
+ * Queued JSON bodies, in order, for the reads. The last one repeats, so a test
+ * that only cares about the first response does not have to count the writes
+ * that follow it.
+ */
+function respondWithJson(...bodies: unknown[]) {
+  let index = 0;
+  vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+    capture(url, init);
+    const body = bodies[Math.min(index, bodies.length - 1)];
+    index += 1;
+    return Promise.resolve(Response.json(body));
   });
 }
 
@@ -399,5 +430,288 @@ describe('a failed write leaks nothing', () => {
       expect(text).not.toContain(APPLICATION.resume);
       expect(text).not.toContain(APPLICATION.coverLetter);
     }
+  });
+});
+
+describe('loadProfile', () => {
+  it('returns the stored profile', async () => {
+    respondWithJson([{ data: PROFILE }]);
+
+    expect(await loadProfile(USER)).toEqual(PROFILE);
+    expect(calls[0].url).toBe(
+      `${URL_BASE}/rest/v1/profiles?user_id=eq.${USER}&select=data&limit=1`,
+    );
+    expect(calls[0].method).toBe('GET');
+  });
+
+  it('returns null when the user has no profile yet', async () => {
+    // An ordinary state for somebody who has not uploaded a CV. Not an error,
+    // and not reported as one.
+    respondWithJson([]);
+
+    expect(await loadProfile(USER)).toBeNull();
+  });
+
+  it('refuses a stored profile that no longer matches the schema', async () => {
+    // profiles.data is jsonb and the database constrains nothing, so this is
+    // the boundary. A profile that does not validate is a refused request, not
+    // three model calls spent reasoning over garbage.
+    respondWithJson([{ data: { ...PROFILE, experience: 'not a list' } }]);
+
+    await expect(loadProfile(USER)).rejects.toThrow(StoredShapeError);
+    await expect(loadProfile(USER)).rejects.toThrow(/experience is wrong/);
+  });
+
+  it('names the path and never quotes the value', async () => {
+    // A Zod message quotes the offending value, and the offending value here
+    // is a line of somebody's CV.
+    const secret = 'Ada Lovelace, 07700 900123, ada@example.org';
+    respondWithJson([{ data: { ...PROFILE, voiceAnchors: [{ secret }] } }]);
+
+    let thrown: unknown;
+    try {
+      await loadProfile(USER);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(StoredShapeError);
+    const error = thrown as StoredShapeError;
+    for (const text of [error.message, error.stack ?? '', String(error)]) {
+      expect(text).not.toContain(secret);
+      expect(text).not.toContain(SECRET);
+    }
+  });
+
+  it('refuses a user id that is not a UUID', async () => {
+    await expect(loadProfile('../../other-user')).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('loadDisplayName', () => {
+  it('returns the stored name', async () => {
+    respondWithJson([{ display_name: 'Ada Lovelace' }]);
+
+    expect(await loadDisplayName(USER)).toBe('Ada Lovelace');
+  });
+
+  it('returns null when the column is null', async () => {
+    // An email sign-up has no name on file until somebody types one. The
+    // caller refuses with its own sentence rather than inventing one.
+    respondWithJson([{ display_name: null }]);
+
+    expect(await loadDisplayName(USER)).toBeNull();
+  });
+
+  it('returns null when the column holds only whitespace', async () => {
+    // A column holding whitespace is a column holding no answer, and a name of
+    // spaces would reach a filename and a PDF author field.
+    respondWithJson([{ display_name: '   ' }]);
+
+    expect(await loadDisplayName(USER)).toBeNull();
+  });
+
+  it('trims a name that was pasted with whitespace', async () => {
+    respondWithJson([{ display_name: '  Ada Lovelace \n' }]);
+
+    expect(await loadDisplayName(USER)).toBe('Ada Lovelace');
+  });
+
+  it('returns null when there is no account row', async () => {
+    respondWithJson([]);
+
+    expect(await loadDisplayName(USER)).toBeNull();
+  });
+});
+
+describe('startApplication', () => {
+  it('writes the generated application and no files', async () => {
+    // Decision 1: the row exists before any file does, so a render failure
+    // retries against a row that is already there. applications.files defaults
+    // to '[]'::jsonb, so a row with no files is a legal row.
+    respondWith(200);
+
+    const id = await startApplication(USER, APPLICATION, { tier: 'standard' });
+    const row = JSON.parse(String(calls[0].body));
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/applications`);
+    expect(row.id).toBe(id);
+    expect(row.user_id).toBe(USER);
+    expect(row.content).toEqual(APPLICATION);
+    expect(row.files).toBeUndefined();
+    expect(row.fit_score).toBe(85);
+  });
+
+  it('writes null rather than an empty string for either column', async () => {
+    await startApplication(USER, APPLICATION, {
+      tier: 'standard',
+      company: '   ',
+    });
+    const row = JSON.parse(String(calls[0].body));
+
+    expect(row.company).toBeNull();
+    expect(row.role).toBeNull();
+  });
+
+  it('refuses a fit score that a smallint column cannot hold', async () => {
+    await expect(
+      startApplication(
+        USER,
+        { ...APPLICATION, fit: { ...APPLICATION.fit, score: 0.85 } },
+        { tier: 'standard' },
+      ),
+    ).rejects.toThrow(/whole number from 0 to 100/);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('refuses a user id that is not a UUID', async () => {
+    await expect(
+      startApplication('../../other-user', APPLICATION, { tier: 'standard' }),
+    ).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+});
+
+const APPLICATION_ID = '0f8fad5b-d9cb-469f-a165-70867728950e';
+
+function storedRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: APPLICATION_ID,
+    tier: 'standard',
+    company: 'Cooperativa del Norte',
+    role: 'Operations analyst',
+    content: APPLICATION,
+    files: [],
+    ...overrides,
+  };
+}
+
+describe('loadApplication', () => {
+  it('returns the row and its generated application', async () => {
+    respondWithJson([storedRow()]);
+
+    const stored = await loadApplication(USER, APPLICATION_ID);
+
+    expect(stored?.application).toEqual(APPLICATION);
+    expect(stored?.tier).toBe('standard');
+    expect(stored?.company).toBe('Cooperativa del Norte');
+    expect(calls[0].method).toBe('GET');
+  });
+
+  it('scopes the read to the owner as well as the id', async () => {
+    // This reads with the secret key, which bypasses row-level security, so
+    // the user_id filter is the only thing between a guessed id and somebody
+    // else's resume.
+    respondWithJson([storedRow()]);
+
+    await loadApplication(USER, APPLICATION_ID);
+
+    expect(calls[0].url).toContain(`id=eq.${APPLICATION_ID}`);
+    expect(calls[0].url).toContain(`user_id=eq.${USER}`);
+  });
+
+  it('returns null for an application that belongs to somebody else', async () => {
+    // Null covers both "no such application" and "not yours" on purpose:
+    // telling the two apart tells a caller which ids exist.
+    respondWithJson([]);
+
+    expect(await loadApplication(USER, APPLICATION_ID)).toBeNull();
+  });
+
+  it('refuses a row written before the content column existed', async () => {
+    respondWithJson([storedRow({ content: null })]);
+
+    await expect(loadApplication(USER, APPLICATION_ID)).rejects.toThrow(
+      /nothing to render/,
+    );
+  });
+
+  it('refuses stored content that no longer matches the schema', async () => {
+    respondWithJson([
+      storedRow({ content: { ...APPLICATION, resume: { text: 'nope' } } }),
+    ]);
+
+    await expect(loadApplication(USER, APPLICATION_ID)).rejects.toThrow(
+      /resume is wrong/,
+    );
+  });
+
+  it('refuses an application id that is not a UUID', async () => {
+    await expect(loadApplication(USER, '../../other')).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('attachFiles', () => {
+  it('uploads every file before it updates the column', async () => {
+    // Same order and the same reason as saveProfile: a column written first
+    // would index objects that never arrived.
+    await attachFiles(USER, APPLICATION_ID, FILES);
+
+    expect(calls.map((call) => call.url)).toEqual([
+      `${URL_BASE}/storage/v1/object/outputs/${USER}/${APPLICATION_ID}/resume.pdf`,
+      `${URL_BASE}/storage/v1/object/outputs/${USER}/${APPLICATION_ID}/cover-letter.pdf`,
+      `${URL_BASE}/rest/v1/applications?id=eq.${APPLICATION_ID}&user_id=eq.${USER}`,
+    ]);
+    expect(calls[2].method).toBe('PATCH');
+  });
+
+  it('overwrites on a second run rather than failing on a 409', async () => {
+    // Non-negotiable 5: the render route has to be safe to run twice. The
+    // object keys are the same on every run, so without x-upsert the second
+    // run is a 409 and the cheap retry this split exists for does not work.
+    await attachFiles(USER, APPLICATION_ID, FILES);
+
+    expect(calls[0].headers['x-upsert']).toBe('true');
+    expect(calls[1].headers['x-upsert']).toBe('true');
+  });
+
+  it('replaces the files column rather than appending to it', async () => {
+    // A retry that appended would leave the row indexing each file twice.
+    await attachFiles(USER, APPLICATION_ID, FILES);
+    await attachFiles(USER, APPLICATION_ID, FILES);
+
+    const first = JSON.parse(String(calls[2].body));
+    const second = JSON.parse(String(calls[5].body));
+
+    expect(first).toEqual(second);
+    expect(second.files).toHaveLength(2);
+  });
+
+  it('returns the stored paths and byte lengths', async () => {
+    const stored = await attachFiles(USER, APPLICATION_ID, FILES);
+
+    expect(stored).toEqual([
+      {
+        kind: 'resume',
+        format: 'pdf',
+        path: `${USER}/${APPLICATION_ID}/resume.pdf`,
+        bytes: 4,
+      },
+      {
+        kind: 'cover-letter',
+        format: 'pdf',
+        path: `${USER}/${APPLICATION_ID}/cover-letter.pdf`,
+        bytes: 4,
+      },
+    ]);
+  });
+
+  it('refuses an application with no rendered files', async () => {
+    await expect(attachFiles(USER, APPLICATION_ID, [])).rejects.toThrow(
+      /no rendered files/,
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('does not update the column when an upload fails', async () => {
+    respondWith(413);
+
+    await expect(
+      attachFiles(USER, APPLICATION_ID, FILES),
+    ).rejects.toBeInstanceOf(SupabaseError);
+    expect(calls).toHaveLength(1);
   });
 });

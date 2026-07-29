@@ -490,3 +490,71 @@ describe('a failed draft leaks nothing', () => {
     });
   }
 });
+
+describe('applyToPosting reports its stages', () => {
+  /**
+   * Stages and calls on one timeline, so the assertion is about their
+   * interleaving rather than about two lists that happen to be ordered.
+   */
+  function timeline(): { log: string[]; options: ApplyOptions } {
+    const log: string[] = [];
+    return {
+      log,
+      options: { ...OPTIONS, onStage: (stage) => log.push(`stage:${stage}`) },
+    };
+  }
+
+  function counting(log: string[]): Provider {
+    const provider = createMockProvider();
+    return {
+      ...provider,
+      generate(messages: Message[], opts?: GenerateOptions) {
+        log.push('call');
+        return provider.generate(messages, opts);
+      },
+    };
+  }
+
+  it('announces each stage before the call it names', async () => {
+    // The order the three calls run in, and the fact that a stage is reported
+    // while its call is in flight rather than after it finished. A stage
+    // reported on completion would leave the slowest call showing nothing.
+    const { log, options } = timeline();
+
+    await applyToPosting(counting(log), options);
+
+    expect(log).toEqual([
+      'stage:draft',
+      'call',
+      'stage:review',
+      'call',
+      'stage:revise',
+      'call',
+    ]);
+  });
+
+  it('reports nothing that no call is doing', async () => {
+    const { log, options } = timeline();
+
+    await applyToPosting(counting(log), options);
+
+    expect(log.filter((entry) => entry.startsWith('stage:'))).toHaveLength(3);
+  });
+
+  it('produces the same result with no callback at all', async () => {
+    // The callback is an optional report, not a step. A pipeline that behaved
+    // differently when nobody was watching would make every test that omits it
+    // a test of a different function.
+    const { options } = timeline();
+
+    const watched = await applyToPosting(providerReturning(applicationJson()), {
+      ...options,
+    });
+    const unwatched = await applyToPosting(
+      providerReturning(applicationJson()),
+      OPTIONS,
+    );
+
+    expect(unwatched).toEqual(watched);
+  });
+});

@@ -120,6 +120,35 @@
       "failed": "Something went wrong, so your account is still here. Try again."
     }
   },
+  "Apply": {
+    "stages": {
+      "draft": "Writing your first draft",
+      "review": "Checking it against the posting",
+      "revise": "Applying what the review found",
+      "saving": "Saving your application"
+    },
+    "errors": {
+      "unauthorized": "Your session ran out. Sign in and try again.",
+      "bad_request": "Something in that request was off. Try again.",
+      "key_missing": "You need a model key before you can generate. Add one in your account.",
+      "name_missing": "We need your name before we write anything, because it goes on the documents. Add it in your account.",
+      "profile_missing": "Upload your CV first. Everything is drawn from it.",
+      "profile_unreadable": "Your stored profile no longer matches what we expect. Upload your CV again.",
+      "rate_limited": "That is {limit} applications today, which is the daily limit. It resets at midnight UTC.",
+      "provider_rejected_key": "Your provider turned the key down. Check it is still valid in your account.",
+      "provider_rate_limited": "Your provider is rate limiting you. Wait a minute and go again.",
+      "provider_refused": "Your provider refused the request. Try again, and check your key in your account if it keeps happening.",
+      "provider_unavailable": "Your provider is having trouble. Nothing is wrong with your key. Try again shortly.",
+      "provider_timeout": "That took too long and stopped. Try again.",
+      "generation_invalid": "The model returned something we could not use. Try again.",
+      "application_not_found": "We could not find that application.",
+      "application_unreadable": "That application was saved before we could re-create its files. Generate it again.",
+      "render_failed": "We wrote the application but could not turn it into files. Try the download again.",
+      "unexpected": "Something went wrong on our side. Try again."
+    },
+    "retry": "Try again",
+    "retryRender": "Try the download again"
+  },
   "Styleguide": {
     "title": "The design system",
     "intro": "Every value this product is allowed to use, shown doing its real job on the real paper. If a screen needs something that is not here, the system is wrong, not the screen.",

@@ -120,6 +120,35 @@
       "failed": "Algo falló, así que tu cuenta sigue acá. Probá de nuevo."
     }
   },
+  "Apply": {
+    "stages": {
+      "draft": "Escribiendo tu primer borrador",
+      "review": "Comprobándolo contra el aviso",
+      "revise": "Aplicando lo que encontró la revisión",
+      "saving": "Guardando tu candidatura"
+    },
+    "errors": {
+      "unauthorized": "Se venció tu sesión. Iniciá sesión y probá de nuevo.",
+      "bad_request": "Algo de ese pedido no estaba bien. Probá de nuevo.",
+      "key_missing": "Necesitás una clave del modelo antes de generar. Agregá una en tu cuenta.",
+      "name_missing": "Necesitamos tu nombre antes de escribir nada, porque va en los documentos. Agregalo en tu cuenta.",
+      "profile_missing": "Subí tu CV primero. Todo sale de ahí.",
+      "profile_unreadable": "Tu perfil guardado ya no tiene la forma que esperamos. Volvé a subir tu CV.",
+      "rate_limited": "Van {limit} candidaturas hoy, que es el límite diario. Se reinicia a la medianoche UTC.",
+      "provider_rejected_key": "Tu proveedor rechazó la clave. Fijate si sigue siendo válida en tu cuenta.",
+      "provider_rate_limited": "Tu proveedor te está limitando. Esperá un minuto y probá de nuevo.",
+      "provider_refused": "Tu proveedor rechazó el pedido. Probá de nuevo, y si sigue pasando fijate tu clave en tu cuenta.",
+      "provider_unavailable": "Tu proveedor está con problemas. Tu clave está bien. Probá en un rato.",
+      "provider_timeout": "Tardó demasiado y se cortó. Probá de nuevo.",
+      "generation_invalid": "El modelo devolvió algo que no pudimos usar. Probá de nuevo.",
+      "application_not_found": "No encontramos esa candidatura.",
+      "application_unreadable": "Esa candidatura se guardó antes de que pudiéramos rehacer sus archivos. Generala de nuevo.",
+      "render_failed": "Escribimos la candidatura pero no pudimos convertirla en archivos. Probá la descarga de nuevo.",
+      "unexpected": "Algo falló de nuestro lado. Probá de nuevo."
+    },
+    "retry": "Probar de nuevo",
+    "retryRender": "Probar la descarga de nuevo"
+  },
   "Styleguide": {
     "title": "El sistema de diseño",
     "intro": "Todos los valores que este producto puede usar, mostrados haciendo su trabajo real sobre el papel real. Si una pantalla necesita algo que no está acá, el error está en el sistema y no en la pantalla.",

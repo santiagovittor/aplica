@@ -45,6 +45,15 @@ import { findBannedWords, findEmDashes, type SlopFinding } from './slop';
  */
 export const APPLY_MAX_TOKENS = 16_384;
 
+/**
+ * Which model call is in flight, for a caller that wants to say so.
+ *
+ * These are the three calls this function actually makes, and nothing else. A
+ * stage that named work no call is doing would be the progress bar that
+ * pretends to think, which DESIGN.md section 2 rules out.
+ */
+export type ApplyStage = 'draft' | 'review' | 'revise';
+
 export interface ApplyOptions {
   /** The posting as text. Fetching a URL is a separate SSRF surface. */
   posting: string;
@@ -68,6 +77,21 @@ export interface ApplyOptions {
   /** Overrides the provider's cheap default. Required for `openai_compatible`. */
   model?: string;
   signal?: AbortSignal;
+  /**
+   * Called as each stage starts, so a caller can report which one is running.
+   *
+   * At the start rather than at the end: "we are drafting" is true while the
+   * draft call is in flight, and a stage reported on completion would leave the
+   * slowest call of the three with nothing to show for it.
+   *
+   * A callback taking a string union is not a framework, so `core` still
+   * imports nothing and the fence holds. The alternative, exporting the three
+   * phases for a route to sequence, would move domain ordering into `app/`.
+   *
+   * It must not throw. This runs between paid model calls, and an exception
+   * here throws away work the user has already been billed for.
+   */
+  onStage?: (stage: ApplyStage) => void;
 }
 
 export interface ApplyResult {
@@ -97,6 +121,7 @@ export async function applyToPosting(
   // rule runs on.
   const profileText = JSON.stringify(profile);
 
+  options.onStage?.('draft');
   const draft = await generate(
     provider,
     options,
@@ -112,6 +137,7 @@ export async function applyToPosting(
   // A fresh message array, not a continuation of the draft call. A model
   // judging its own draft defends it instead of judging it, and that is the
   // whole reason this second call exists.
+  options.onStage?.('review');
   const critique = (
     await call(provider, options, {
       system: reviewerSystemPrompt({
@@ -137,6 +163,7 @@ export async function applyToPosting(
     throw new ApplicationError('review', 'the critique was empty');
   }
 
+  options.onStage?.('revise');
   const application = await generate(
     provider,
     options,
