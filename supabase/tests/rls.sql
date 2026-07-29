@@ -226,6 +226,86 @@ end $$;
 
 reset role;
 
+-- The daily generation limit, against the real statement rather than a mock.
+--
+-- `spendGeneration` in src/lib/usage.ts is unit-tested against a stand-in, and
+-- a stand-in cannot prove a row lock. This runs the actual function on actual
+-- Postgres in CI: the boundary, the refusal, and the fact that a refusal writes
+-- nothing. The lock itself is proved by racing concurrent connections, which
+-- needs more than one session and so lives in the slice report rather than
+-- here.
+-- Alice is seeded above with three already spent today and Bob with seven, so
+-- these count on from there rather than from zero.
+do $$
+declare spent integer;
+begin
+  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 4,
+    'the counter did not climb from what was already spent today';
+  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 5,
+    'the counter did not climb';
+  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 6,
+    'the last slot was refused';
+
+  spent := public.spend_generation('11111111-1111-1111-1111-111111111111', 6);
+  assert spent is null,
+    'the limit did not hold: a seventh generation passed a limit of six';
+
+  -- The refusal must not move the counter. A refusal that still incremented
+  -- would push the row further past the limit on every rejected attempt, so the
+  -- day the limit was raised the user would still be locked out.
+  assert (select count from public.usage_counters
+           where user_id = '11111111-1111-1111-1111-111111111111'
+             and day = (now() at time zone 'utc')::date) = 6,
+    'a refused generation still moved the counter';
+
+  -- Bob is untouched by any of that: the allowance is per user.
+  assert (select count from public.usage_counters
+           where user_id = '22222222-2222-2222-2222-222222222222') = 7,
+    'one user spending moved another user''s counter';
+  assert public.spend_generation('22222222-2222-2222-2222-222222222222', 9) = 8,
+    'the counter is not per user';
+
+  -- A limit of none means none, including the first request of a day. The
+  -- insert half of the upsert writes 1 unconditionally, so a user with no row
+  -- yet is the one case the `where` clause cannot catch. Bob's row is cleared
+  -- to put him in exactly that state; nothing after this reads it.
+  delete from public.usage_counters
+   where user_id = '22222222-2222-2222-2222-222222222222';
+
+  spent := public.spend_generation('22222222-2222-2222-2222-222222222222', 0);
+  assert spent is null, 'a limit of zero granted a generation';
+  assert (select count(*) from public.usage_counters
+           where user_id = '22222222-2222-2222-2222-222222222222') = 0,
+    'a refused generation still created a counter row';
+end $$;
+
+-- The counter stands between a stolen session and somebody else's token bill,
+-- so no client role may move it. `usage_counters` grants only `select`, and the
+-- function is granted to `service_role` alone.
+do $$
+declare denied boolean;
+begin
+  denied := false;
+  set local role authenticated;
+  begin
+    perform public.spend_generation('11111111-1111-1111-1111-111111111111', 99);
+  exception when insufficient_privilege then denied := true;
+  end;
+  reset role;
+  assert denied, 'an authenticated user can spend generations directly';
+
+  denied := false;
+  set local role anon;
+  begin
+    perform public.spend_generation('11111111-1111-1111-1111-111111111111', 99);
+  exception when insufficient_privilege then denied := true;
+  end;
+  reset role;
+  assert denied, 'an anonymous caller can spend generations directly';
+end $$;
+
+reset role;
+
 -- What deleting an account actually removes. The four public tables cascade
 -- from auth.users; storage.objects does not, so the uploaded CV outlives the
 -- account unless the deletion path removes it from Storage explicitly. That is
