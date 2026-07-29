@@ -60,16 +60,58 @@ reported as "we could not check", which is a different sentence on purpose:
 telling someone their key is wrong because a server they do not own fell over is
 worse than admitting we do not know.
 
-**Once at generation time**, by `getDecryptedKey`, which is the only function in
+**Once per model call**, by `getDecryptedKey`, which is the only function in
 the repo that produces a plaintext key. It reads with `SUPABASE_SECRET_KEY`,
 decrypts in process, and hands the value to the provider call. The result is not
 cached: a key held in memory between requests is a key that can be read out of a
 heap dump long after the request that needed it.
 
+Its one caller is `keyedProvider` in `src/app/api/generate/route.ts`.
+
+**Once per model call, not once per generation.** The apply pipeline makes three
+calls (draft, review, revise), and `keyedProvider` fetches and decrypts the key
+for each of them, builds a throwaway adapter around it, and lets both go when
+the call returns. So the plaintext exists for the duration of one HTTP request
+to a provider and is closed over by nothing that outlives it: not the route, not
+the request object, not the pipeline. Reading it once and holding it for the
+whole pipeline would have been one decrypt instead of three and would have kept
+the key alive across the slowest part of the request. Three extra reads against
+Postgres cost nothing next to three model calls.
+
+The render route has no caller and needs none. It makes no model call, which is
+why a failed render costs the user nothing to retry.
+
 Those are the two functions that ever hold a plaintext key. `saveApiKey`
 receives one from the form and lets it go; `getDecryptedKey` produces one and
 never returns it to anything that serialises. Nothing else in the codebase sees
 one.
+
+### The key and the progress stream
+
+The generation route answers with `text/event-stream`, which is a new way for a
+credential to escape: anything written to that stream goes straight to the
+browser. Two rules hold it shut.
+
+No event ever carries an exception's message. A message is whatever the thing
+that threw decided to put in it, and one of the things that can throw inside
+this route is an HTTP client holding the key. Every failure is reported as a
+code from a fixed set, plus a status where one exists, so an exception from a
+layer nobody has audited still cannot put anything into the stream.
+
+The provider's response body is never read on a failure path, in the adapters or
+here. A provider's 4xx body can quote the key it was sent.
+
+Both are tested. `src/app/api/generate/route.test.ts` greps the whole serialised
+stream for the key rather than asserting on the fields somebody remembered,
+including the case where the thrown error is deliberately carrying it. The
+checks were confirmed to fail when the route was mutated to forward
+`error.message`.
+
+Measured against the real thing as well: a full run over HTTP with a real Google
+key produced a stream containing neither the key nor any twelve-character
+fragment of it, and a run with a deliberately wrong key produced a hundred-byte
+stream carrying one stage event and `{"error":"provider_refused","status":400}`
+and nothing else.
 
 ## What never happens
 

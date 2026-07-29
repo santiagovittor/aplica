@@ -137,7 +137,7 @@
       "rate_limited": "Van {limit} candidaturas hoy, que es el límite diario. Se reinicia a la medianoche UTC.",
       "provider_rejected_key": "Tu proveedor rechazó la clave. Fijate si sigue siendo válida en tu cuenta.",
       "provider_rate_limited": "Tu proveedor te está limitando. Esperá un minuto y probá de nuevo.",
-      "provider_refused": "Tu proveedor rechazó el pedido. Probá de nuevo.",
+      "provider_refused": "Tu proveedor rechazó el pedido. Fijate si tu clave sigue siendo válida en tu cuenta, porque algunos proveedores avisan así cuando la clave está mal.",
       "provider_unavailable": "Tu proveedor está con problemas. Tu clave está bien. Probá en un rato.",
       "provider_timeout": "Tardó demasiado y se cortó. Probá de nuevo.",
       "generation_invalid": "El modelo devolvió algo que no pudimos usar. Probá de nuevo.",

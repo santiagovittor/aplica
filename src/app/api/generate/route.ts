@@ -315,6 +315,14 @@ function stream(run: (send: Send) => Promise<void>): Response {
  *
  * Bad key, rate limit and timeout are told apart because they need different
  * things from the user: fix the key, wait, or try again.
+ *
+ * The split is by status and cannot be finer than that. Measured against a real
+ * Google key that was deliberately wrong: Google answers with **400**, not 401,
+ * so a bad key there arrives as `provider_refused` rather than
+ * `provider_rejected_key`. Telling those two 400s apart would mean reading the
+ * provider's response body, which is the one field that can echo the key back,
+ * so it is not done. The `provider_refused` sentence names a bad key as a
+ * likely cause instead of claiming to know.
  */
 function failure(error: unknown): { error: string; status?: number } {
   if (error instanceof ProviderError) {
