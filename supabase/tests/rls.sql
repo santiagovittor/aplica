@@ -14,10 +14,13 @@
 
 begin;
 
-insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+-- Alice signs in with a provider that sends a name, Bob with email and password
+-- and no metadata at all. That pairing is what `handle_new_user` has to tell
+-- apart, so it is seeded here rather than assumed.
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_user_meta_data)
 values
-  (:'alice', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'alice@example.test', '', now(), now(), now()),
-  (:'bob',   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bob@example.test',   '', now(), now(), now());
+  (:'alice', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'alice@example.test', '', now(), now(), now(), '{"full_name": "Alice Example"}'),
+  (:'bob',   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bob@example.test',   '', now(), now(), now(), '{}');
 
 -- The trigger should have made both account rows already.
 --
@@ -30,6 +33,42 @@ begin
            where id in ('11111111-1111-1111-1111-111111111111',
                         '22222222-2222-2222-2222-222222222222')) = 2,
     'handle_new_user did not create an account row per auth user';
+
+  -- The name the apply pipeline puts on the documents, taken from the OAuth
+  -- profile so a Google user never types something we were already handed.
+  assert (select display_name from public.users
+           where id = '11111111-1111-1111-1111-111111111111') = 'Alice Example',
+    'handle_new_user did not seed display_name from the OAuth metadata';
+
+  -- And left null, not blank, for a sign-up that carried no name. The route
+  -- refuses with its own sentence on null; an empty string would read as an
+  -- answer and end up on a PDF.
+  assert (select display_name from public.users
+           where id = '22222222-2222-2222-2222-222222222222') is null,
+    'handle_new_user invented a display_name for a user who has none';
+end $$;
+
+-- The two remaining branches of that expression, on a throwaway user so the
+-- fixtures above are untouched.
+do $$
+declare probe uuid;
+begin
+  -- `name` when `full_name` is absent, which is the other key Google sends.
+  probe := gen_random_uuid();
+  insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_user_meta_data)
+  values (probe, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', probe || '@example.test', '', now(), now(), now(), '{"name": "Carol Example"}');
+  assert (select display_name from public.users where id = probe) = 'Carol Example',
+    'handle_new_user ignored the name key when full_name was absent';
+  delete from auth.users where id = probe;
+
+  -- A provider that sends the key with nothing in it is saying it does not
+  -- know, so that has to land as null rather than as whitespace.
+  probe := gen_random_uuid();
+  insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_user_meta_data)
+  values (probe, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', probe || '@example.test', '', now(), now(), now(), '{"full_name": "   "}');
+  assert (select display_name from public.users where id = probe) is null,
+    'handle_new_user stored whitespace as a name';
+  delete from auth.users where id = probe;
 end $$;
 
 insert into public.profiles (user_id, data) values
@@ -84,8 +123,13 @@ end $$;
 insert into public.applications (user_id, company, role, tier, fit_score) values
   (:'alice', 'Acme', 'Engineer', 'full', 80), (:'bob', 'Globex', 'Analyst', 'basic', 40);
 
+-- The same expression `spend_generation` writes, not `current_date`. The two
+-- agree only while the server runs in UTC, and a fixture that disagreed with
+-- the function would put the seeded row on one day and the spend on another,
+-- which fails somewhere around midnight and nowhere else.
 insert into public.usage_counters (user_id, day, count) values
-  (:'alice', current_date, 3), (:'bob', current_date, 7);
+  (:'alice', (now() at time zone 'utc')::date, 3),
+  (:'bob',   (now() at time zone 'utc')::date, 7);
 
 insert into storage.objects (bucket_id, name, owner) values
   ('cvs', :'alice' || '/cv.pdf', :'alice'), ('cvs', :'bob' || '/cv.pdf', :'bob');
