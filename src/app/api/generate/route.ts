@@ -12,7 +12,11 @@ import {
 import { GenerationLimitReached, spendGeneration } from '../../../lib/usage';
 import { SEARCH_MODELS } from '../../../providers/defaults';
 import { createProvider } from '../../../providers/index';
-import { ProviderError, type Provider } from '../../../providers/types';
+import {
+  API_KEY_INVALID,
+  ProviderError,
+  type Provider,
+} from '../../../providers/types';
 
 /**
  * Flow 2 (PROJECT.md section 5): a posting becomes a stored application, with
@@ -316,17 +320,24 @@ function stream(run: (send: Send) => Promise<void>): Response {
  * Bad key, rate limit and timeout are told apart because they need different
  * things from the user: fix the key, wait, or try again.
  *
- * The split is by status and cannot be finer than that. Measured against a real
- * Google key that was deliberately wrong: Google answers with **400**, not 401,
- * so a bad key there arrives as `provider_refused` rather than
- * `provider_rejected_key`. Telling those two 400s apart would mean reading the
- * provider's response body, which is the one field that can echo the key back,
- * so it is not done. The `provider_refused` sentence names a bad key as a
- * likely cause instead of claiming to know.
+ * Status alone is not enough to do that. Measured against a real Google key
+ * that was deliberately wrong: Google answers with **400**, not 401, so a bad
+ * key and a malformed request arrive as the same status. Google publishes the
+ * difference as a machine-readable `google.rpc.ErrorInfo` reason enum, and
+ * `ProviderError.reason` carries exactly that one field and nothing else, under
+ * the rules in `failureReason`. No free text from a provider is read anywhere,
+ * because free text is where a key comes back.
  */
 function failure(error: unknown): { error: string; status?: number } {
   if (error instanceof ProviderError) {
-    if (error.status === 401 || error.status === 403) {
+    // The reason first, because it is the more specific answer. Google says a
+    // bad key with a 400, so status alone would send the user to "try again"
+    // when what they need is to fix their key.
+    if (
+      error.status === 401 ||
+      error.status === 403 ||
+      error.reason === API_KEY_INVALID
+    ) {
       return { error: 'provider_rejected_key', status: error.status };
     }
     if (error.status === 429) {

@@ -418,6 +418,41 @@ describe('a provider failure is told apart from the others', () => {
     });
   }
 
+  it('reports a bad key on a 400 that says so, not a generic refusal', async () => {
+    // Google answers a bad key with 400, not 401. Without the reason code this
+    // lands on "try again", which is the wrong instruction for a dead key: the
+    // user would retry forever. The reason is a machine-readable enum, not
+    // free text, so reading it costs nothing in leak terms.
+    createProvider.mockImplementation(() => ({
+      id: 'google',
+      supportsSearch: false,
+      generate: () =>
+        Promise.reject(new ProviderError('google', 400, 'API_KEY_INVALID')),
+    }));
+
+    const { events } = await read(await POST(post(VALID)));
+
+    expect(events.at(-1)?.data).toEqual({
+      error: 'provider_rejected_key',
+      status: 400,
+    });
+  });
+
+  it('and a 400 with no reason stays a generic refusal', async () => {
+    // A malformed request is also a 400. Without the enum there is nothing to
+    // tell them apart, and guessing would tell a user their key is fine when
+    // it is not, or the reverse.
+    createProvider.mockImplementation(() => ({
+      id: 'google',
+      supportsSearch: false,
+      generate: () => Promise.reject(new ProviderError('google', 400)),
+    }));
+
+    const { events } = await read(await POST(post(VALID)));
+
+    expect(events.at(-1)?.data).toMatchObject({ error: 'provider_refused' });
+  });
+
   it('and the row is not written when generation failed', async () => {
     createProvider.mockImplementation(() => ({
       id: 'anthropic',

@@ -137,7 +137,7 @@
       "rate_limited": "That is {limit} applications today, which is the daily limit. It resets at midnight UTC.",
       "provider_rejected_key": "Your provider turned the key down. Check it is still valid in your account.",
       "provider_rate_limited": "Your provider is rate limiting you. Wait a minute and go again.",
-      "provider_refused": "Your provider refused the request. Check your key is still valid in your account, since some providers report a bad key this way.",
+      "provider_refused": "Your provider refused the request. Try again, and check your key in your account if it keeps happening.",
       "provider_unavailable": "Your provider is having trouble. Nothing is wrong with your key. Try again shortly.",
       "provider_timeout": "That took too long and stopped. Try again.",
       "generation_invalid": "The model returned something we could not use. Try again.",

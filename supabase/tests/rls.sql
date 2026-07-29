@@ -120,8 +120,15 @@ begin
    where user_id = '11111111-1111-1111-1111-111111111111';
 end $$;
 
-insert into public.applications (user_id, company, role, tier, fit_score) values
-  (:'alice', 'Acme', 'Engineer', 'full', 80), (:'bob', 'Globex', 'Analyst', 'basic', 40);
+-- `content` holds the generated resume and cover letter, which is the most
+-- personal data in the database after the CV itself. It is seeded here so the
+-- isolation and deletion assertions below cover that column and not just the
+-- metadata around it.
+insert into public.applications (user_id, company, role, tier, fit_score, content) values
+  (:'alice', 'Acme', 'Engineer', 'full', 80,
+   '{"resume": "ALICE PRIVATE RESUME TEXT", "coverLetter": "ALICE PRIVATE LETTER"}'),
+  (:'bob', 'Globex', 'Analyst', 'basic', 40,
+   '{"resume": "BOB PRIVATE RESUME TEXT", "coverLetter": null}');
 
 -- The same expression `spend_generation` writes, not `current_date`. The two
 -- agree only while the server runs in UTC, and a fixture that disagreed with
@@ -163,6 +170,19 @@ begin
   -- applications: own history only.
   assert (select count(*) from public.applications) = 1, 'alice can see another application';
   assert (select company from public.applications) = 'Acme', 'alice sees the wrong application';
+
+  -- And that isolation covers the generated documents, not just the metadata.
+  -- Row-level security is per row rather than per column, so `content` is
+  -- covered by the same policy as `company`; this asserts it rather than
+  -- reasoning about it, because the column was added after those policies were
+  -- written and a column-level grant could have been introduced since.
+  assert (select content ->> 'resume' from public.applications)
+           = 'ALICE PRIVATE RESUME TEXT',
+    'alice cannot read her own generated resume';
+  assert not exists (
+    select 1 from public.applications
+     where content::text like '%BOB PRIVATE%'
+  ), 'alice can read another user''s generated resume text';
 
   -- usage counters: own counter only.
   assert (select count(*) from public.usage_counters) = 1, 'alice can see another usage counter';
@@ -375,6 +395,13 @@ begin
   assert (select count(*) from public.applications
            where user_id = '11111111-1111-1111-1111-111111111111') = 0,
     'the applications survived deletion';
+
+  -- The generated resume and cover letter specifically, not just the row that
+  -- indexed them. This is the sentence the privacy page will make, so it is
+  -- asserted over the column contents rather than inferred from a row count.
+  assert not exists (
+    select 1 from public.applications where content::text like '%ALICE PRIVATE%'
+  ), 'the generated resume text survived account deletion';
   assert (select count(*) from public.usage_counters
            where user_id = '11111111-1111-1111-1111-111111111111') = 0,
     'the usage counter survived deletion';

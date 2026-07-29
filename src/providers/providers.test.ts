@@ -6,9 +6,11 @@ import {
   createProvider,
   DEFAULT_MODELS,
   PROVIDER_IDS,
+  ProviderError,
   SEARCH_MODELS,
   type ProviderConfig,
 } from './index';
+import { API_KEY_INVALID } from './types';
 
 // No network and no DNS. The suite must pass with every provider environment
 // variable unset, because CI never holds a key (CLAUDE.md section 5).
@@ -539,5 +541,150 @@ describe('the mock provider', () => {
     expect(researched).toBe(
       await provider.generate(messages, { search: true }),
     );
+  });
+});
+
+/**
+ * The one field a failed response is allowed to contribute.
+ *
+ * Google answers a bad key with 400 rather than 401, so status alone tells a
+ * user with a dead key to "try again" instead of to fix their key. The reason
+ * enum closes that, and these tests are mostly about what it must NOT let
+ * through: the body that carries it is the one place a provider can echo the
+ * key back.
+ */
+describe('a failed response contributes one reason code', () => {
+  const KEY = 'AIzaSyC0ffee-NOT-A-REAL-KEY-0123456789abc';
+
+  /** The real shape, verified against the live API with a wrong key. */
+  function googleError(reason: unknown, message = 'API key not valid.') {
+    return {
+      error: {
+        code: 400,
+        message,
+        status: 'INVALID_ARGUMENT',
+        details: [
+          {
+            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+            reason,
+            domain: 'googleapis.com',
+          },
+          {
+            '@type': 'type.googleapis.com/google.rpc.LocalizedMessage',
+            locale: 'en-US',
+            message,
+          },
+        ],
+      },
+    };
+  }
+
+  function respondWith(body: unknown, status = 400, json = true) {
+    vi.stubGlobal('fetch', () =>
+      Promise.resolve(
+        new Response(json ? JSON.stringify(body) : String(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+  }
+
+  async function thrown(): Promise<ProviderError> {
+    const provider = createProvider({ id: 'google', apiKey: KEY });
+    try {
+      await provider.generate([{ role: 'user', content: 'hi' }]);
+    } catch (error) {
+      return error as ProviderError;
+    }
+    throw new Error('the request did not fail');
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('reads the ErrorInfo reason, so a bad key is not a mystery 400', async () => {
+    respondWith(googleError(API_KEY_INVALID));
+    const error = await thrown();
+
+    expect(error).toBeInstanceOf(ProviderError);
+    expect(error.status).toBe(400);
+    expect(error.reason).toBe('API_KEY_INVALID');
+  });
+
+  it('and reads nothing else from the body', async () => {
+    // The message field is free text, and free text is where a key comes back.
+    respondWith(googleError(API_KEY_INVALID, `API key ${KEY} is not valid.`));
+    const error = await thrown();
+
+    for (const text of [error.message, error.stack ?? '', String(error)]) {
+      expect(text).not.toContain(KEY);
+      expect(text).not.toContain('is not valid');
+    }
+    expect(JSON.stringify(error)).not.toContain(KEY);
+  });
+
+  it('refuses a reason that is a sentence rather than an enum', async () => {
+    // If a provider ever puts prose in that field, it does not become an error
+    // code we forward. The shape is checked, not assumed.
+    respondWith(googleError('API key AIzaSy-leak-me is not valid'));
+
+    expect((await thrown()).reason).toBeUndefined();
+  });
+
+  it('refuses a reason shaped like a key', async () => {
+    respondWith(googleError(KEY));
+
+    expect((await thrown()).reason).toBeUndefined();
+  });
+
+  it('ignores a reason on a detail that is not an ErrorInfo', async () => {
+    respondWith({
+      error: {
+        details: [
+          {
+            '@type': 'type.googleapis.com/google.rpc.LocalizedMessage',
+            reason: 'API_KEY_INVALID',
+          },
+        ],
+      },
+    });
+
+    expect((await thrown()).reason).toBeUndefined();
+  });
+
+  it('survives a body that is not JSON at all', async () => {
+    respondWith('<html>502 Bad Gateway</html>', 502, false);
+    const error = await thrown();
+
+    expect(error.status).toBe(502);
+    expect(error.reason).toBeUndefined();
+  });
+
+  it('survives a body with no error object', async () => {
+    respondWith({ nothing: 'useful' });
+
+    expect((await thrown()).reason).toBeUndefined();
+  });
+
+  it('does not read an unbounded error body', async () => {
+    // A hostile openai_compatible host is free to answer an error with a
+    // gigabyte. The read is capped, so the parse fails and nothing is reported
+    // rather than the process holding it all.
+    const huge = `{"error":{"details":[{"padding":"${'x'.repeat(50_000)}"}]}}`;
+    respondWith(huge, 400, false);
+    const error = await thrown();
+
+    expect(error.status).toBe(400);
+    expect(error.reason).toBeUndefined();
+  });
+
+  it('still reports the status when there is no reason to report', async () => {
+    respondWith(googleError(null));
+    const error = await thrown();
+
+    expect(error.message).toBe('google request failed with status 400.');
+    expect(error.reason).toBeUndefined();
   });
 });

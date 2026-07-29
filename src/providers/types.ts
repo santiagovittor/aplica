@@ -60,19 +60,96 @@ export interface Provider {
 }
 
 /**
- * Carries the provider and the status code and nothing else. The response body
- * is deliberately absent: it is the one field a provider could echo the user's
- * API key back in, and an error reaches logs and error trackers
- * (PROJECT.md section 6).
+ * Carries the provider, the status code, and at most one machine-readable
+ * reason code. The response body itself is deliberately absent: it is the one
+ * field a provider could echo the user's API key back in, and an error reaches
+ * logs and error trackers (PROJECT.md section 6).
+ *
+ * `reason` exists because status alone is not always enough. Measured against a
+ * real Google key that was deliberately wrong: Google answers a bad key with
+ * **400**, not 401, so "the key is wrong" and "the request was malformed"
+ * arrive as the same status and the user gets told the wrong thing. Google
+ * publishes the difference as a `google.rpc.ErrorInfo` `reason` enum, which is
+ * machine-readable by design.
+ *
+ * It is never free text. See `failureReason` for what is and is not read.
  */
 export class ProviderError extends Error {
   constructor(
     readonly provider: ProviderId,
     readonly status: number,
+    /** A SCREAMING_SNAKE enum token, or undefined. Never a sentence. */
+    readonly reason?: string,
   ) {
     super(`${provider} request failed with status ${status}.`);
     this.name = 'ProviderError';
   }
+}
+
+/**
+ * Google's `reason` for a key the API rejected, as its error taxonomy spells it.
+ *
+ * Verified against the live API with a deliberately wrong key: HTTP 400,
+ * `error.status` `INVALID_ARGUMENT` (which a malformed request also gets, so it
+ * cannot be the discriminator), and
+ * `error.details[0].reason` `API_KEY_INVALID`.
+ */
+export const API_KEY_INVALID = 'API_KEY_INVALID';
+
+/** An enum token and nothing that could be a sentence, a URL, or a key. */
+const REASON = /^[A-Z][A-Z0-9_]{2,63}$/;
+
+/** Reading more than this off a failed response is somebody else's problem. */
+const MAX_ERROR_BYTES = 8192;
+
+/**
+ * The one field a failed response is allowed to contribute, and the rules that
+ * keep it from becoming a leak.
+ *
+ * Only `error.details[].reason`, from a `google.rpc.ErrorInfo` entry, is read.
+ * Not `error.message`, not `error.status`, not the `LocalizedMessage` detail,
+ * not anything else in the body. Those are free text, and free text from a
+ * provider is where a key comes back.
+ *
+ * The value is then checked against `REASON` before it is kept, so this cannot
+ * forward a sentence even if a provider one day puts one in that field. A
+ * Google API key is mixed case and contains hyphens, so it cannot match.
+ *
+ * The read is capped, because a compromised or hostile `openai_compatible` host
+ * is free to answer an error with a gigabyte.
+ *
+ * `postJsonPinned` deliberately does not do this and still drains and discards.
+ * It serves only user-supplied hosts, where the error taxonomy is unknown and
+ * the host is the least trusted thing in the system.
+ */
+async function failureReason(response: Response): Promise<string | undefined> {
+  let parsed: unknown;
+  try {
+    const text = (await response.text()).slice(0, MAX_ERROR_BYTES);
+    parsed = JSON.parse(text);
+  } catch {
+    // A body that is not JSON, is truncated mid-object, or was never sent.
+    // There is nothing structured to read, so nothing is reported.
+    return undefined;
+  }
+
+  const details = (parsed as { error?: { details?: unknown } })?.error?.details;
+  if (!Array.isArray(details)) {
+    return undefined;
+  }
+
+  for (const detail of details) {
+    const entry = detail as { '@type'?: unknown; reason?: unknown };
+    if (
+      entry?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo' &&
+      typeof entry.reason === 'string' &&
+      REASON.test(entry.reason)
+    ) {
+      return entry.reason;
+    }
+  }
+
+  return undefined;
 }
 
 export const DEFAULT_MAX_TOKENS = 4096;
@@ -180,7 +257,13 @@ export async function postJson(
   });
 
   if (!response.ok) {
-    throw new ProviderError(provider, response.status);
+    // The only place a failed body is touched, and only for the one enum field
+    // `failureReason` allows through.
+    throw new ProviderError(
+      provider,
+      response.status,
+      await failureReason(response),
+    );
   }
 
   return response.json();
