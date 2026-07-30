@@ -84,7 +84,7 @@ async function main(): Promise<0 | 1> {
     const text = await extractCvText(bytes);
     console.error(`Read ${text.length} characters of text from ${file}.`);
 
-    const profile = await parseCv(
+    const { profile, findings, droppedAnchors } = await parseCv(
       createProvider(
         provider === 'openai_compatible'
           ? { id: 'openai_compatible', apiKey, baseUrl: baseUrl as string }
@@ -100,6 +100,9 @@ async function main(): Promise<0 | 1> {
 
     console.error(
       `Parsed ${profile.experience.length} roles, ${profile.keywordBank.length} keyword bank entries, ${profile.gaps.length} gaps.`,
+    );
+    console.error(
+      `Grounding: ${findings.length} claims downgraded, ${droppedAnchors.length} voice anchors dropped.`,
     );
 
     const owner = flag('save');

@@ -103,13 +103,35 @@ function recording(provider: Provider) {
 
 describe('parseCv', () => {
   it('returns a validated profile', async () => {
-    const profile = await parseCv(providerReturning(profileJson()), CV_TEXT, {
+    const result = await parseCv(providerReturning(profileJson()), CV_TEXT, {
       locale: 'en',
     });
 
-    expect(profile.experience[0].organisation).toBe('Cooperativa del Sur');
-    expect(profile.keywordBank[0].ownTerm).toBe('month-end close');
-    expect(profile.keywordBank[0].source).toBe('extracted');
+    expect(result.profile.experience[0].organisation).toBe(
+      'Cooperativa del Sur',
+    );
+    expect(result.profile.keywordBank[0].ownTerm).toBe('month-end close');
+    expect(result.profile.keywordBank[0].source).toBe('extracted');
+  });
+
+  it('reports the grounding check rather than swallowing it', async () => {
+    // Non-negotiable 5: a dropped voice anchor is the user's own words being
+    // discarded, and the caller has to be able to see it, not just receive a
+    // profile that came back quietly cleaner than it should.
+    const withUngroundedAnchor = profileJson({
+      voiceAnchors: ['I invented this line, it is not in the CV.'],
+    });
+
+    const result = await parseCv(
+      providerReturning(withUngroundedAnchor),
+      CV_TEXT,
+      { locale: 'en' },
+    );
+
+    expect(result.droppedAnchors).toEqual([
+      'I invented this line, it is not in the CV.',
+    ]);
+    expect(result.profile.voiceAnchors).toEqual([]);
   });
 
   it('sends the parse prompt as the system prompt and the CV as the message', async () => {
@@ -163,11 +185,11 @@ describe('parseCv', () => {
 
   it('accepts a response the model wrapped in a markdown fence', async () => {
     const fenced = `\`\`\`json\n${profileJson()}\n\`\`\``;
-    const profile = await parseCv(providerReturning(fenced), CV_TEXT, {
+    const result = await parseCv(providerReturning(fenced), CV_TEXT, {
       locale: 'en',
     });
 
-    expect(profile.skills[0].name).toBe('SQL');
+    expect(result.profile.skills[0].name).toBe('SQL');
   });
 
   it('keeps a thin profile thin', async () => {
@@ -187,13 +209,13 @@ describe('parseCv', () => {
       ],
     });
 
-    const profile = await parseCv(providerReturning(thin), CV_TEXT, {
+    const result = await parseCv(providerReturning(thin), CV_TEXT, {
       locale: 'en',
     });
 
-    expect(profile.voiceAnchors).toEqual([]);
-    expect(profile.experience).toEqual([]);
-    expect(profile.gaps[0].severity).toBe('high');
+    expect(result.profile.voiceAnchors).toEqual([]);
+    expect(result.profile.experience).toEqual([]);
+    expect(result.profile.gaps[0].severity).toBe('high');
   });
 });
 
