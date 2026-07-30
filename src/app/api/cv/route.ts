@@ -38,16 +38,23 @@ import {
  * Hobby-legal, on purpose (session addendum to SLICE-11, which recommended
  * Pro-only). Measured, not guessed:
  *
- *   one-page CV (71,495 bytes), gemini-3.6-flash: 55.52s total
+ *   one-page CV (71,495 bytes, real), gemini-3.6-flash:      55.52s total
  *     extract text                 0.14s
  *     parseCv (model + grounding) 55.16s
  *     saveProfile (upload + row)   0.21s
  *
- * That is an 8% margin against 60s on a *one-page* CV, and the call is
- * output-bound (~90 tokens/second of profile JSON), so a longer CV pushes past
- * the cap. See the synthetic two-page measurement recorded in README.md before
- * this route shipped, and PARSE_TIMEOUT_MS below for how a near-miss is
- * handled rather than guessed away.
+ *   synthetic two-page CV (12,113 bytes docx), same model:
+ *     run 1, 3,621 chars extracted, 16,302 char profile:     43.39s total
+ *     run 2, 7,123 chars extracted, 22,274 char profile:     51.16s total
+ *
+ * All three clear 60s, but with less margin than a one-line "it fits" implies:
+ * run 2 is a 15% margin against `maxDuration`, and the two synthetic runs
+ * disagree by 8s on comparably-sized input, which is Google's own response
+ * time varying, not this route. The call is output-bound
+ * (~90 tokens/second of profile JSON), so a denser CV than either of these
+ * pushes further. Full detail, including why the first synthetic attempt was
+ * discarded (it under-shot the one-page reference despite "looking like two
+ * pages"), is in README.md.
  *
  * Moving to Pro is exactly two changes: raise this literal to 300 (Next.js
  * requires it as a literal, not an imported constant, so it has to live here),
@@ -71,8 +78,17 @@ export const runtime = 'nodejs';
  * raising that for Pro moves this budget with it automatically, and a caller
  * whose own tab closes (`request.signal`) still aborts immediately rather
  * than waiting out the full budget.
+ *
+ * 4, not the rounder 8 an initial guess used. The measurement above is why:
+ * an 8s headroom put this route's own deadline at 52s, and the two-page
+ * synthetic CV measured at 51.16s — a real parse that would have finished
+ * inside Vercel's actual 60s cap would have been killed by this route's own
+ * "safety" margin instead, on essentially no margin of its own. Sending one
+ * SSE event and closing a stream is milliseconds of work, not seconds, so 4s
+ * still leaves real room for that while giving a legitimate slow parse most
+ * of the budget Vercel itself grants it.
  */
-const TIMEOUT_HEADROOM_S = 8;
+const TIMEOUT_HEADROOM_S = 4;
 const PARSE_TIMEOUT_MS = (maxDuration - TIMEOUT_HEADROOM_S) * 1000;
 
 /** The stages this route reports. `uploading` is client-only: the network
