@@ -6,8 +6,10 @@ import {
   attachFiles,
   loadApplication,
   loadDisplayName,
+  loadLocale,
   loadProfile,
   saveApplication,
+  saveLocale,
   saveProfile,
   startApplication,
   StoredShapeError,
@@ -522,6 +524,34 @@ describe('loadDisplayName', () => {
     respondWithJson([]);
 
     expect(await loadDisplayName(USER)).toBeNull();
+  });
+});
+
+describe('loadLocale', () => {
+  it('returns the stored locale', async () => {
+    respondWithJson([{ locale: 'es' }]);
+
+    expect(await loadLocale(USER)).toBe('es');
+  });
+
+  it('falls back to the default when there is no account row', async () => {
+    // The trigger that creates a row always sets this column, so a missing
+    // row should never happen. A locale nicety is not worth failing sign-in
+    // over if it somehow does.
+    respondWithJson([]);
+
+    expect(await loadLocale(USER)).toBe('en');
+  });
+});
+
+describe('saveLocale', () => {
+  it('patches the account row with the new locale', async () => {
+    await saveLocale(USER, 'es');
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/users?id=eq.${USER}`);
+    expect(JSON.parse(String(calls[0].body))).toEqual({ locale: 'es' });
   });
 });
 

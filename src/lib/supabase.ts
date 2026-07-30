@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { applicationSchema, type Application } from '../core/application';
 import { cvFormat, type CvFormat } from '../core/extract-text';
 import { profileSchema, type Profile } from '../core/profile';
+import { routing, type Locale } from '../i18n/routing';
 // Types only, and erased at compile: `lib` describes what it is handed rather
 // than declaring a second copy of the render seam's unions, which is how the
 // two would drift.
@@ -201,6 +202,47 @@ export async function loadDisplayName(userId: string): Promise<string | null> {
 
   // A column holding whitespace is a column holding no answer.
   return name === '' ? null : name;
+}
+
+const StoredLocale = z.object({ locale: z.enum(routing.locales) });
+
+/**
+ * The account's own language preference, `users.locale` (SLICE-11 decision 7).
+ *
+ * The trigger that creates a `public.users` row on sign-up always sets this
+ * column (it is `not null default 'en'`), so a missing row is the one case
+ * this falls back rather than fails on: a locale nicety should never be what
+ * breaks a sign-in.
+ */
+export async function loadLocale(userId: string): Promise<Locale> {
+  const owner = z.uuid().parse(userId);
+
+  const row = await readOne(
+    'locale read',
+    `/rest/v1/users?id=eq.${owner}&select=locale&limit=1`,
+  );
+
+  return row === null ? routing.defaultLocale : StoredLocale.parse(row).locale;
+}
+
+/**
+ * Writes the account's language preference.
+ *
+ * Two callers: the settings screen's language toggle, and sign-in/sign-up
+ * flows that want a signed-in user's next visit to open in their own
+ * language rather than whatever `Accept-Language` guesses.
+ */
+export async function saveLocale(
+  userId: string,
+  locale: Locale,
+): Promise<void> {
+  const owner = z.uuid().parse(userId);
+
+  await supabaseRequest('locale update', `/rest/v1/users?id=eq.${owner}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ locale }),
+  });
 }
 
 /** One rendered file as `applications.files` records it. Bytes are a length. */
