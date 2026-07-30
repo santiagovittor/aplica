@@ -1,0 +1,194 @@
+/* DESIGN.md §3: this is a focused, single-task screen with no secondary
+   content, the same exception §3 grants onboarding steps — centred rather
+   than the 7/12+4/12 working-screen split, which would invent a secondary
+   column with nothing to put in it. Centred via the grid's own columns, not
+   an invented pixel max-width. */
+
+.shell {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--margin-outer) var(--space-10);
+}
+
+@media (min-width: 60rem) {
+  .shell {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+    padding-inline: var(--space-7);
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 60rem) {
+  .heading {
+    grid-column: 3 / span 8;
+  }
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 60rem) {
+  .card {
+    grid-column: 3 / span 8;
+    padding: var(--space-7);
+  }
+}
+
+/* --- empty -------------------------------------------------------------- */
+
+.card:has(.emptyInvite) {
+  align-items: center;
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+/* A drop target invites without looking like a dashed placeholder rectangle
+   (DESIGN.md §9): the paper card itself lifts a hair on drag-over. */
+.card[data-drag-active] {
+  background: var(--surface-sunken);
+  border-color: var(--green);
+}
+
+.emptyInvite {
+  font-size: var(--text-2xl);
+}
+
+.emptyBody {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.fileName {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropHint {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+/* --- working -------------------------------------------------------------- */
+
+.notice {
+  color: var(--ink-soft);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.elapsed {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+/* --- error -------------------------------------------------------------- */
+
+.error {
+  max-width: var(--measure);
+  color: var(--clay);
+}
+
+/* --- done ----------------------------------------------------------------
+   DESIGN.md §6 peak-end: the polish budget goes here. §5: --human appears in
+   this reveal and nowhere outside the motif. */
+
+.card:has(.doneHeading) {
+  align-items: flex-start;
+}
+
+/* --human is strokes and graphics only, never text (DESIGN.md §5) — the
+   motif above this heading is where the reveal's warmth actually lives. */
+.doneHeading {
+  font-size: var(--text-2xl);
+}
+
+.doneSummary {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.doneClean {
+  color: var(--ink-soft);
+}
+
+/* Its own group, spaced well clear of the summary above it (§3 hierarchy
+   rule: between-group spacing at least two steps larger than within-group). */
+.grounding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+.groundingTitle {
+  font-size: var(--text-lg);
+}
+
+.groundingWhy {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.groundingLabel {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--ink-soft);
+}
+
+.groundingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-left: var(--space-4);
+  list-style: disc;
+  max-width: var(--measure);
+  color: var(--ink);
+}

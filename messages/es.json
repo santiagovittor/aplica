@@ -100,6 +100,13 @@
         "unknown": "Algo falló de nuestro lado. Tu clave no se guardó."
       }
     },
+    "cv": {
+      "title": "Tu CV",
+      "onFile": "Hay un CV guardado.",
+      "none": "Todavía no subiste tu CV.",
+      "replace": "Reemplazarlo",
+      "upload": "Subí tu CV"
+    },
     "language": {
       "title": "Idioma",
       "body": "Cambia la app. No cambia el idioma en el que se escriben tus candidaturas."
@@ -148,6 +155,68 @@
     },
     "retry": "Probar de nuevo",
     "retryRender": "Probar la descarga de nuevo"
+  },
+  "Cv": {
+    "title": "Tu CV",
+    "lead": "Subilo una vez. Todo lo demás se arma con lo que realmente dice ahí. Nada llega a un empleador directamente.",
+    "empty": {
+      "invite": "Subí tu CV para empezar",
+      "body": "PDF o Word, hasta 10 MB.",
+      "choose": "Elegí un archivo",
+      "upload": "Subir CV",
+      "dropHint": "Soltalo acá, o"
+    },
+    "notice": "Leer un CV como corresponde tarda cerca de un minuto. Esto es lo que pasa durante todo ese tiempo.",
+    "elapsed": "{seconds}s hasta ahora",
+    "stages": {
+      "uploading": "Enviando tu archivo",
+      "reading": "Leyendo tu CV",
+      "parsing": "Entendiendo lo que dice",
+      "checking": "Comprobando cada afirmación contra tus propias palabras",
+      "saving": "Guardando tu perfil"
+    },
+    "stageStatus": {
+      "complete": "listo",
+      "current": "en curso",
+      "incomplete": "todavía no empezó"
+    },
+    "retry": "Probá de nuevo",
+    "chooseAnother": "Elegir otro archivo",
+    "errors": {
+      "unauthorized": "Se venció tu sesión. Iniciá sesión y probá de nuevo.",
+      "bad_request": "Eso no llegó como un archivo. Elegilo de nuevo.",
+      "key_missing": "Necesitás una clave del modelo antes de analizar un CV. Agregá una en tu cuenta.",
+      "empty": "Ese archivo está vacío. Subí el CV en sí, no un acceso directo.",
+      "too_large": "Ese archivo pesa más de 10 MB. Un CV tan pesado suele ser un escaneo; exportalo como PDF desde un procesador de texto.",
+      "unsupported_type": "Ese archivo no es un PDF ni un .docx de Word, diga lo que diga su nombre. Exportá el CV como uno de esos dos y subilo de nuevo.",
+      "legacy_or_encrypted_office": "Eso parece un .doc viejo, o un archivo de Word con contraseña. Guardalo como .docx sin contraseña, o exportalo como PDF.",
+      "encrypted_pdf": "Ese PDF tiene contraseña. Abrilo, exportá una copia sin protección, y subí esa.",
+      "corrupt": "Ese archivo dice ser un PDF o un .docx pero no se puede leer. Probablemente se truncó en el camino. Probá subirlo de nuevo, o exportá una copia nueva.",
+      "no_text_layer": "No pudimos leer texto de ese archivo. Casi seguro es un escaneo o una foto, que no tiene texto para leer. Subí un PDF exportado desde un procesador de texto.",
+      "rate_limited": "Van {limit} análisis de CV hoy, que es el límite diario. Se reinicia a la medianoche UTC.",
+      "parse_invalid": "El modelo devolvió algo que no pudimos usar. Probá de nuevo.",
+      "parse_timeout": "Tardó más de lo que pudimos esperar. No se guardó nada, y no se gastó el análisis de hoy dos veces. Probá de nuevo cuando puedas.",
+      "provider_rejected_key": "Tu proveedor rechazó la clave. Fijate si sigue siendo válida en tu cuenta.",
+      "provider_rate_limited": "Tu proveedor te está limitando. Esperá un minuto y probá de nuevo.",
+      "provider_refused": "Tu proveedor rechazó el pedido. Probá de nuevo, y si sigue pasando fijate tu clave en tu cuenta.",
+      "provider_unavailable": "Tu proveedor está con problemas. Tu clave está bien. Probá en un rato.",
+      "unexpected": "Algo falló de nuestro lado. Probá de nuevo.",
+      "streamInterrupted": "Perdimos la conexión antes de tener una respuesta. Esperá un momento y probá de nuevo."
+    },
+    "done": {
+      "heading": "Tu perfil está listo",
+      "summary": "{roles} puestos, {skills} habilidades, {keywords} mapeos de palabras clave encontrados.",
+      "clean": "Cada afirmación coincidió con tus propias palabras, así que no hubo que suavizar nada.",
+      "grounding": {
+        "title": "Qué comprobamos",
+        "why": "Una afirmación se mantiene precisa solo si tu CV la respalda. Esto es lo que no la respaldaba, y qué hicimos al respecto.",
+        "softenedTitle": "Suavizado",
+        "softenedBody": "Tu CV no menciona {what}, así que esta afirmación queda marcada como menos segura en vez de descartada.",
+        "droppedTitle": "No usado, en tus propias palabras",
+        "droppedBody": "No es una cita exacta de tu CV, así que se dejó afuera en vez de parafrasearlo:"
+      },
+      "next": "Ir a tu cuenta"
+    }
   },
   "Styleguide": {
     "title": "El sistema de diseño",

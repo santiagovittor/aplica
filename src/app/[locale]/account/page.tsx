@@ -1,6 +1,8 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { KEY_PROVIDERS, describeApiKey } from '@/lib/api-keys';
 import { requireUser } from '@/lib/session';
+import { loadProfile } from '@/lib/supabase';
 import { Button } from '@/ui/Button';
 import { LocaleToggle } from '@/ui/LocaleToggle';
 import styles from './account.module.css';
@@ -22,6 +24,13 @@ export default async function AccountPage({
   // Which provider is configured, and nothing more. There is no masked key to
   // render because there is no masked key to fetch.
   const key = await describeApiKey(user.id);
+
+  // A stored profile that no longer validates still counts as "on file" here:
+  // something is there, and the honest next step either way is the same link
+  // to /cv, where re-uploading fixes it.
+  const hasProfile = await loadProfile(user.id)
+    .then((profile) => profile !== null)
+    .catch(() => true);
 
   const providers = KEY_PROVIDERS.map((provider) => ({
     value: provider,
@@ -84,6 +93,16 @@ export default async function AccountPage({
         </section>
 
         <div className={styles.aside}>
+          <section className={styles.section}>
+            <h2 className={styles.asideTitle}>{t('cv.title')}</h2>
+            <p className={styles.body}>
+              {hasProfile ? t('cv.onFile') : t('cv.none')}{' '}
+              <Link href="/cv">
+                {hasProfile ? t('cv.replace') : t('cv.upload')}
+              </Link>
+            </p>
+          </section>
+
           <section className={styles.section}>
             <h2 className={styles.asideTitle}>{t('language.title')}</h2>
             <p className={styles.body}>{t('language.body')}</p>
