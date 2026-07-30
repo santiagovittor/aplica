@@ -66,9 +66,14 @@ decrypts in process, and hands the value to the provider call. The result is not
 cached: a key held in memory between requests is a key that can be read out of a
 heap dump long after the request that needed it.
 
-Its one caller is `keyedProvider` in `src/app/api/generate/route.ts`.
+It has two callers, each a local `keyedProvider` function of the same shape:
+`src/app/api/generate/route.ts` and, since SLICE-11, `src/app/api/cv/route.ts`.
+The two are not shared as one function — two call sites is not yet CLAUDE.md's
+third-repeat threshold for an abstraction, and the two routes' provider unions
+already differ in what they might grow to accept — but the discipline below
+holds identically in both.
 
-**Once per model call, not once per generation.** The apply pipeline makes three
+**Once per model call, not once per pipeline.** The apply pipeline makes three
 calls (draft, review, revise), and `keyedProvider` fetches and decrypts the key
 for each of them, builds a throwaway adapter around it, and lets both go when
 the call returns. So the plaintext exists for the duration of one HTTP request
@@ -77,6 +82,10 @@ the request object, not the pipeline. Reading it once and holding it for the
 whole pipeline would have been one decrypt instead of three and would have kept
 the key alive across the slowest part of the request. Three extra reads against
 Postgres cost nothing next to three model calls.
+
+The CV route makes exactly one model call, so its `keyedProvider` decrypts
+exactly once per parse, at the moment `parseCv` calls `generate`. Same
+discipline, one call instead of three, because there is only one call to make.
 
 The render route has no caller and needs none. It makes no model call, which is
 why a failed render costs the user nothing to retry.
@@ -88,30 +97,41 @@ one.
 
 ### The key and the progress stream
 
-The generation route answers with `text/event-stream`, which is a new way for a
-credential to escape: anything written to that stream goes straight to the
-browser. Two rules hold it shut.
+Both `/api/generate` and `/api/cv` answer with `text/event-stream`, which is a
+new way for a credential to escape: anything written to that stream goes
+straight to the browser. The plumbing that opens and closes the stream —
+`stream()`, the `Send` type, the SSE headers, the timeout check — is shared
+in `src/lib/sse.ts`, moved there from `/api/generate` rather than duplicated
+when `/api/cv` needed the identical scaffolding, specifically so this
+discipline has one place to hold rather than two to keep in sync by hand. Two
+rules hold it shut, enforced by each route's own `failure()` (kept separate:
+the two routes have different error taxonomies, `ProviderError` and
+`ApplicationError` against `CvExtractionError` and `ParseLimitReached`, and
+one shared mapping would be the wrong abstraction).
 
 No event ever carries an exception's message. A message is whatever the thing
 that threw decided to put in it, and one of the things that can throw inside
-this route is an HTTP client holding the key. Every failure is reported as a
+either route is an HTTP client holding the key. Every failure is reported as a
 code from a fixed set, plus a status where one exists, so an exception from a
 layer nobody has audited still cannot put anything into the stream.
 
 The provider's response body is never read on a failure path, in the adapters or
 here. A provider's 4xx body can quote the key it was sent.
 
-Both are tested. `src/app/api/generate/route.test.ts` greps the whole serialised
-stream for the key rather than asserting on the fields somebody remembered,
-including the case where the thrown error is deliberately carrying it. The
-checks were confirmed to fail when the route was mutated to forward
-`error.message`.
+Both are tested, in both routes. `src/app/api/generate/route.test.ts` and
+`src/app/api/cv/route.test.ts` each grep the whole serialised stream for the
+key rather than asserting on the fields somebody remembered, including the
+case where the thrown error is deliberately carrying it. The checks were
+confirmed to fail when a route was mutated to forward `error.message` — the CV
+route's own mutation test put the key straight into the stream and the
+assertion caught it, the same result `/api/generate`'s equivalent mutation
+produced.
 
-Measured against the real thing as well: a full run over HTTP with a real Google
-key produced a stream containing neither the key nor any twelve-character
-fragment of it, and a run with a deliberately wrong key produced a hundred-byte
-stream carrying one stage event and `{"error":"provider_refused","status":400}`
-and nothing else.
+Measured against the real thing as well, for `/api/generate`: a full run over
+HTTP with a real Google key produced a stream containing neither the key nor
+any twelve-character fragment of it, and a run with a deliberately wrong key
+produced a hundred-byte stream carrying one stage event and
+`{"error":"provider_refused","status":400}` and nothing else.
 
 ## What never happens
 
@@ -167,3 +187,12 @@ something that cannot be undone.
 Uploaded CVs go to the private `cvs` storage bucket under a `<user_id>/` prefix.
 The bucket is private, so there are no public URLs; the storage policy grants a
 user access only to objects whose first path segment is their own id.
+
+The one route that writes there, `POST /api/cv`, refuses a file before it ever
+reaches a model: every one of `extractCvText`'s seven failure codes (empty,
+too large, wrong type, encrypted, corrupt, no text layer, and so on) is checked
+first, and a parse is charged against its own daily limit
+(`usage_counters`, `kind = 'parse'`) before the one model call this route
+makes, never after and never refunded on failure. Both are how a CV that is
+not actually readable, or a stolen session on a loop, costs nothing rather than
+spending real money against a key it does not own.
