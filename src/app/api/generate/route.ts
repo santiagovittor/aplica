@@ -9,6 +9,7 @@ import {
   startApplication,
   StoredShapeError,
 } from '../../../lib/supabase';
+import { isTimeout, stream } from '../../../lib/sse';
 import { GenerationLimitReached, spendGeneration } from '../../../lib/usage';
 import { SEARCH_MODELS } from '../../../providers/defaults';
 import { createProvider } from '../../../providers/index';
@@ -202,7 +203,7 @@ export async function POST(request: Request): Promise<Response> {
       slop: result.slop.length,
       ungrounded: result.ungrounded.length,
     });
-  });
+  }, failure);
 }
 
 /**
@@ -248,64 +249,6 @@ class KeyGone extends Error {
     super('The stored key was removed while the application was running.');
     this.name = 'KeyGone';
   }
-}
-
-type Send = (event: 'stage' | 'done' | 'error', data: object) => void;
-
-const SSE_HEADERS = {
-  'content-type': 'text/event-stream; charset=utf-8',
-  'cache-control': 'no-store',
-  // Proxies that buffer a stream turn honest progress into one burst at the end.
-  'x-accel-buffering': 'no',
-};
-
-/**
- * One `text/event-stream` response, an event per stage, then a terminal `done`
- * or `error`. Never both, and never neither.
- */
-function stream(run: (send: Send) => Promise<void>): Response {
-  const encoder = new TextEncoder();
-
-  return new Response(
-    new ReadableStream({
-      async start(controller) {
-        let open = true;
-
-        // `send` never throws. It is handed to `onStage`, which runs between
-        // paid model calls, and an exception there would throw away work the
-        // user has already been billed for. A closed stream means the reader
-        // left; there is nobody to tell.
-        const send: Send = (event, data) => {
-          if (!open) {
-            return;
-          }
-          try {
-            controller.enqueue(
-              encoder.encode(
-                `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
-              ),
-            );
-          } catch {
-            open = false;
-          }
-        };
-
-        try {
-          await run(send);
-        } catch (error) {
-          send('error', failure(error));
-        } finally {
-          open = false;
-          try {
-            controller.close();
-          } catch {
-            // Already closed by the reader going away.
-          }
-        }
-      },
-    }),
-    { headers: SSE_HEADERS },
-  );
 }
 
 /**
@@ -365,11 +308,6 @@ function failure(error: unknown): { error: string; status?: number } {
   }
 
   return { error: 'unexpected' };
-}
-
-/** An abort is the user's tab closing or our own timeout firing. */
-function isTimeout(error: Error): boolean {
-  return error.name === 'AbortError' || error.name === 'TimeoutError';
 }
 
 /** A body that is not JSON is a bad request, not a crash. */
