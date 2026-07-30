@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DAILY_GENERATION_LIMIT,
+  DAILY_PARSE_LIMIT,
   GenerationLimitReached,
+  ParseLimitReached,
   spendGeneration,
+  spendParse,
 } from './usage';
 
 const SECRET = 'sb_secret_pretend-this-is-real';
@@ -12,7 +15,7 @@ const USER = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 interface Captured {
   url: string;
   method: string;
-  body: unknown;
+  body: { spender: string; usage_kind: string; daily_limit: number };
 }
 
 let calls: Captured[] = [];
@@ -20,27 +23,31 @@ let calls: Captured[] = [];
 /**
  * A stand-in for the one statement the database runs.
  *
- * It holds a count and applies the same condition the SQL does, so a caller
- * that tried to read the counter and write it back would be visible as two
- * requests rather than one. It cannot prove atomicity, and nothing in
+ * It holds a count per `kind` and applies the same condition the SQL does, so
+ * a caller that tried to read the counter and write it back would be visible
+ * as two requests rather than one, and so a generation spend and a parse spend
+ * are provably two counters rather than one shared budget (the primary key is
+ * `(user_id, day, kind)`). It cannot prove atomicity, and nothing in
  * TypeScript can: the lock is a row lock in Postgres. What it proves is that
  * this module never takes the decision into its own process, which is the part
  * that could be got wrong here. The lock itself is proved against real Postgres
  * in `supabase/tests/rls.sql`.
  */
-function database({ start = 0 }: { start?: number } = {}) {
-  const state = { count: start };
+function database({
+  start = {},
+}: { start?: Partial<Record<'generation' | 'parse', number>> } = {}) {
+  const state: Record<string, number> = { generation: 0, parse: 0, ...start };
 
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
-    const body = JSON.parse(String(init.body)) as { daily_limit: number };
+    const body = JSON.parse(String(init.body)) as Captured['body'];
     calls.push({ url, method: init.method ?? 'POST', body });
 
     // The `where usage_counters.count < daily_limit` half of the upsert.
-    if (state.count >= body.daily_limit || body.daily_limit < 1) {
+    if (state[body.usage_kind] >= body.daily_limit || body.daily_limit < 1) {
       return Response.json(null);
     }
-    state.count += 1;
-    return Response.json(state.count);
+    state[body.usage_kind] += 1;
+    return Response.json(state[body.usage_kind]);
   });
 
   return state;
@@ -81,7 +88,10 @@ describe('spendGeneration', () => {
 
     await spendGeneration(USER);
 
-    expect(calls[0].body).toMatchObject({ daily_limit: 20 });
+    expect(calls[0].body).toMatchObject({
+      usage_kind: 'generation',
+      daily_limit: 20,
+    });
   });
 
   it('spends in one server-side statement, never a read then a write', async () => {
@@ -91,7 +101,7 @@ describe('spendGeneration', () => {
     await spendGeneration(USER, 20);
 
     expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/rpc/spend_generation`);
+    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/rpc/spend_usage`);
     expect(calls[0].method).toBe('POST');
   });
 
@@ -101,13 +111,17 @@ describe('spendGeneration', () => {
     // `(now() at time zone 'utc')::date` and nothing else.
     await spendGeneration(USER, 20);
 
-    expect(calls[0].body).toEqual({ spender: USER, daily_limit: 20 });
+    expect(calls[0].body).toEqual({
+      spender: USER,
+      usage_kind: 'generation',
+      daily_limit: 20,
+    });
   });
 });
 
 describe('spendGeneration refuses', () => {
   it('the request after the last slot is taken', async () => {
-    database({ start: 0 });
+    database({ start: { generation: 0 } });
 
     expect(await spendGeneration(USER, 2)).toBe(1);
     expect(await spendGeneration(USER, 2)).toBe(2);
@@ -117,7 +131,7 @@ describe('spendGeneration refuses', () => {
   });
 
   it('with the limit it was refused against', async () => {
-    database({ start: 5 });
+    database({ start: { generation: 5 } });
 
     let thrown: unknown;
     try {
@@ -134,7 +148,7 @@ describe('spendGeneration refuses', () => {
     // Non-negotiable 3. The database serialises them; what this pins is that
     // this module adds no cache and no optimistic pass of its own, so the
     // second caller sees the first caller's write.
-    database({ start: 4 });
+    database({ start: { generation: 4 } });
 
     const results = await Promise.allSettled([
       spendGeneration(USER, 5),
@@ -163,7 +177,7 @@ describe('spendGeneration refuses', () => {
 describe('a refused generation leaks nothing', () => {
   it('not the secret key', async () => {
     // This error reaches a log and an SSE error event.
-    database({ start: 20 });
+    database({ start: { generation: 20 } });
 
     let thrown: unknown;
     try {
@@ -186,5 +200,64 @@ describe('spendGeneration fails fast', () => {
     await expect(spendGeneration(USER, 20)).rejects.toThrow(
       /SUPABASE_SECRET_KEY is not set/,
     );
+  });
+});
+
+describe('spendParse', () => {
+  it('returns the new count', async () => {
+    expect(await spendParse(USER, 3)).toBe(1);
+    expect(await spendParse(USER, 3)).toBe(2);
+  });
+
+  it('defaults to the limit the product ships with', async () => {
+    expect(DAILY_PARSE_LIMIT).toBe(3);
+
+    await spendParse(USER);
+
+    expect(calls[0].body).toEqual({
+      spender: USER,
+      usage_kind: 'parse',
+      daily_limit: 3,
+    });
+  });
+
+  it('refuses the request after the last slot is taken', async () => {
+    database({ start: { parse: 0 } });
+
+    expect(await spendParse(USER, 3)).toBe(1);
+    expect(await spendParse(USER, 3)).toBe(2);
+    expect(await spendParse(USER, 3)).toBe(3);
+    await expect(spendParse(USER, 3)).rejects.toBeInstanceOf(ParseLimitReached);
+  });
+
+  it('with the limit it was refused against', async () => {
+    database({ start: { parse: 3 } });
+
+    let thrown: unknown;
+    try {
+      await spendParse(USER, 3);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(ParseLimitReached);
+    expect((thrown as ParseLimitReached).limit).toBe(3);
+  });
+});
+
+describe('the two counters do not share a budget', () => {
+  it('spending every parse slot leaves generation untouched', async () => {
+    database({ start: { generation: 0, parse: 0 } });
+
+    await spendParse(USER, DAILY_PARSE_LIMIT);
+    await spendParse(USER, DAILY_PARSE_LIMIT);
+    await spendParse(USER, DAILY_PARSE_LIMIT);
+    await expect(spendParse(USER, DAILY_PARSE_LIMIT)).rejects.toBeInstanceOf(
+      ParseLimitReached,
+    );
+
+    // The generation counter is a separate row (user_id, day, kind), so it
+    // still has its full allowance.
+    expect(await spendGeneration(USER, DAILY_GENERATION_LIMIT)).toBe(1);
   });
 });
