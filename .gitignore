@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# playwright's own run artifacts (e2e/apply.spec.ts)
+/test-results/
+/playwright-report/
+/blob-report/
+
 # next.js
 /.next/
 /out/

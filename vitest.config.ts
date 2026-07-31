@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 /**
  * Resolves the `@/*` -> `src/*` alias tsconfig.json declares (and Next's own
@@ -13,5 +13,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  test: {
+    // `e2e/*.spec.ts` is Playwright's, not vitest's (SLICE-13 decision 8):
+    // both tools default to matching `*.spec.ts`, and vitest picking it up
+    // fails on Playwright's own `test.skip`, which needs Playwright's context.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
