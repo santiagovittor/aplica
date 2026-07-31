@@ -113,10 +113,23 @@
   padding: var(--space-4);
   border-top: 1px solid var(--hairline);
   cursor: pointer;
+  transition: border-color var(--dur-micro) var(--ease-soft);
+}
+
+.tierCard:hover {
+  border-top-color: var(--ink-soft);
 }
 
 .tierCard[data-selected] {
   border-top: 2px solid var(--ink);
+}
+
+/* The radio itself is visually-hidden (clipped to 1x1px), so the global
+   :focus-visible ring in globals.css would land on a box too small to see.
+   :has() moves the same ring onto the card a keyboard user actually reads. */
+.tierCard:has(input:focus-visible) {
+  outline: var(--focus-width) solid var(--green);
+  outline-offset: var(--focus-offset);
 }
 
 .tierTitle {
