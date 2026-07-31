@@ -610,6 +610,24 @@ export async function attachFiles(
   return stored;
 }
 
+/**
+ * The bytes at a path already recorded on an owned `applications` row
+ * (SLICE-13: the download route).
+ *
+ * Takes a path rather than `(kind, format)`, deliberately: the only legal
+ * caller reads it off `StoredApplication.files`, which `loadApplication`
+ * already scoped to the requesting owner, so this function never builds an
+ * object key out of anything a client sent.
+ */
+export async function downloadOutputFile(path: string): Promise<ArrayBuffer> {
+  const response = await supabaseRequest(
+    'output download',
+    `/storage/v1/object/outputs/${path}`,
+    { method: 'GET' },
+  );
+  return response.arrayBuffer();
+}
+
 /** The columns are nullable, and an empty string is not a company name. */
 function blankToNull(value: string | undefined): string | null {
   const trimmed = value?.trim() ?? '';

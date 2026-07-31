@@ -69,6 +69,13 @@ export default async function AccountPage({
 
       <div className={styles.grid}>
         <section className={`${styles.section} ${styles.primary}`}>
+          <h2 className={styles.sectionTitle}>{t('apply.title')}</h2>
+          <p className={styles.body}>
+            {t('apply.body')} <Link href="/apply">{t('apply.link')}</Link>
+          </p>
+        </section>
+
+        <section className={`${styles.section} ${styles.primary}`}>
           <h2 className={styles.sectionTitle}>{t('key.title')}</h2>
           <p className={styles.body}>{t('key.body')}</p>
 
