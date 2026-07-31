@@ -76,6 +76,16 @@
   font-size: var(--text-xs);
 }
 
+/* DESIGN.md §5: --green on --paper is the legal pair for a link. */
+.body a {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.body a:hover {
+  color: var(--green-soft);
+}
+
 /* The key form's own rhythm: 32px between fields, 48px to the button, so the
    groups read as groups (§3). */
 .form {

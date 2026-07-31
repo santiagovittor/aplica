@@ -42,6 +42,33 @@ section 6.
 
 Key storage arrives with the Supabase step; this scaffold stores nothing yet.
 
+## Uploading a CV, and Vercel's Hobby plan
+
+Parsing a CV is one long model call: 55.52s measured on a real one-page CV,
+and 43-51s across two synthetic two-page runs against denser input, all under
+Vercel's 60-second Hobby cap but without much room to spare. `POST /api/cv`
+ships on Hobby anyway (`maxDuration = 60` in `src/app/api/cv/route.ts`), and
+races the model call against its own deadline so a near-timeout ends in a
+calm, specific message instead of Vercel silently killing the connection.
+
+**If your CV is denser than that** (a long two-page CV, a lot of roles), the
+parse can still run past what Hobby allows. Two ways around it if you hit
+that:
+
+- **The CLI fallback**, which has no time limit at all:
+  ```bash
+  APLICA_DEV_PROVIDER=google APLICA_DEV_API_KEY=your-key \
+    npm run parse:cv -- ./your-cv.pdf --save your-user-id
+  ```
+  Prints the parsed profile to stdout and, with `--save`, writes it straight
+  into your account the same way the web upload does. See
+  `scripts/parse-cv.mts` for every flag.
+- **Move to Pro.** Two changes, nothing else about the route: raise
+  `maxDuration` in `src/app/api/cv/route.ts` from `60` to `300`, and upgrade
+  the Vercel project's plan. The prompt (`src/prompts/parse.ts`) does not
+  change; a two-call split that would fit Hobby with real margin is scoped
+  in `SLICE-11.md` and deliberately not built.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).

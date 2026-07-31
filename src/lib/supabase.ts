@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { applicationSchema, type Application } from '../core/application';
 import { cvFormat, type CvFormat } from '../core/extract-text';
 import { profileSchema, type Profile } from '../core/profile';
+import { routing, type Locale } from '../i18n/routing';
 // Types only, and erased at compile: `lib` describes what it is handed rather
 // than declaring a second copy of the render seam's unions, which is how the
 // two would drift.
@@ -201,6 +202,123 @@ export async function loadDisplayName(userId: string): Promise<string | null> {
 
   // A column holding whitespace is a column holding no answer.
   return name === '' ? null : name;
+}
+
+/**
+ * Writes the applicant's own name, as it goes on the documents (SLICE-12
+ * decision, folding `display_name` into the onboarding language step).
+ *
+ * Mirrors `saveLocale`'s shape: one column, one caller-supplied value, no
+ * read-back. An empty or whitespace-only name is not written at all, the same
+ * way `loadDisplayName` treats one as "no answer" rather than as one -- a
+ * blank string in the column would read as a real answer to a caller that only
+ * checks for null.
+ */
+export async function saveDisplayName(
+  userId: string,
+  name: string,
+): Promise<void> {
+  const owner = z.uuid().parse(userId);
+  const trimmed = name.trim();
+  if (trimmed === '') {
+    return;
+  }
+
+  await supabaseRequest(
+    'display name update',
+    `/rest/v1/users?id=eq.${owner}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ display_name: trimmed }),
+    },
+  );
+}
+
+const StoredOnboarding = z.object({ onboarding_dismissed: z.boolean() });
+
+/**
+ * Whether the post-auth redirect should still send this account into
+ * onboarding (SLICE-12 decision 5 and the migration's own comment). False for
+ * a genuinely fresh account; true the moment it has reached the end of the
+ * flow, finished or skipped through.
+ *
+ * A missing row falls back to `true` for the reason `loadLocale` falls back
+ * rather than fails: an onboarding nicety should never be what breaks a
+ * sign-in, and the safer failure here is "do not redirect" rather than
+ * "redirect a user we know nothing about."
+ */
+export async function loadOnboardingDismissed(
+  userId: string,
+): Promise<boolean> {
+  const owner = z.uuid().parse(userId);
+
+  const row = await readOne(
+    'onboarding read',
+    `/rest/v1/users?id=eq.${owner}&select=onboarding_dismissed&limit=1`,
+  );
+
+  return row === null ? true : StoredOnboarding.parse(row).onboarding_dismissed;
+}
+
+/**
+ * Marks onboarding as shown all the way through. Called once, from the `cv`
+ * step's own page (SLICE-12): by the time an account reaches the last step it
+ * has been offered every door, whether it walked through each one or skipped
+ * it, and the redirect has no more business sending it back.
+ *
+ * Idempotent, so a repeat visit to the same step is a harmless no-op PATCH
+ * rather than something a caller has to guard against.
+ */
+export async function dismissOnboarding(userId: string): Promise<void> {
+  const owner = z.uuid().parse(userId);
+
+  await supabaseRequest('onboarding dismiss', `/rest/v1/users?id=eq.${owner}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ onboarding_dismissed: true }),
+  });
+}
+
+const StoredLocale = z.object({ locale: z.enum(routing.locales) });
+
+/**
+ * The account's own language preference, `users.locale` (SLICE-11 decision 7).
+ *
+ * The trigger that creates a `public.users` row on sign-up always sets this
+ * column (it is `not null default 'en'`), so a missing row is the one case
+ * this falls back rather than fails on: a locale nicety should never be what
+ * breaks a sign-in.
+ */
+export async function loadLocale(userId: string): Promise<Locale> {
+  const owner = z.uuid().parse(userId);
+
+  const row = await readOne(
+    'locale read',
+    `/rest/v1/users?id=eq.${owner}&select=locale&limit=1`,
+  );
+
+  return row === null ? routing.defaultLocale : StoredLocale.parse(row).locale;
+}
+
+/**
+ * Writes the account's language preference.
+ *
+ * Two callers: the settings screen's language toggle, and sign-in/sign-up
+ * flows that want a signed-in user's next visit to open in their own
+ * language rather than whatever `Accept-Language` guesses.
+ */
+export async function saveLocale(
+  userId: string,
+  locale: Locale,
+): Promise<void> {
+  const owner = z.uuid().parse(userId);
+
+  await supabaseRequest('locale update', `/rest/v1/users?id=eq.${owner}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ locale }),
+  });
 }
 
 /** One rendered file as `applications.files` records it. Bytes are a length. */

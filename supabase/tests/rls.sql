@@ -46,6 +46,13 @@ begin
   assert (select display_name from public.users
            where id = '22222222-2222-2222-2222-222222222222') is null,
     'handle_new_user invented a display_name for a user who has none';
+
+  -- A brand-new account has not been shown onboarding yet, so the post-auth
+  -- redirect (SLICE-12) has to find it here as false, not fall back to it.
+  assert (select bool_and(onboarding_dismissed = false) from public.users
+           where id in ('11111111-1111-1111-1111-111111111111',
+                        '22222222-2222-2222-2222-222222222222')),
+    'a freshly created account row did not default onboarding_dismissed to false';
 end $$;
 
 -- The two remaining branches of that expression, on a throwaway user so the
@@ -290,27 +297,27 @@ end $$;
 
 reset role;
 
--- The daily generation limit, against the real statement rather than a mock.
+-- The daily limits, against the real statement rather than a mock.
 --
--- `spendGeneration` in src/lib/usage.ts is unit-tested against a stand-in, and
--- a stand-in cannot prove a row lock. This runs the actual function on actual
--- Postgres in CI: the boundary, the refusal, and the fact that a refusal writes
--- nothing. The lock itself is proved by racing concurrent connections, which
--- needs more than one session and so lives in the slice report rather than
--- here.
+-- `spendGeneration`/`spendParse` in src/lib/usage.ts are unit-tested against a
+-- stand-in, and a stand-in cannot prove a row lock. This runs the actual
+-- function on actual Postgres in CI: the boundary, the refusal, and the fact
+-- that a refusal writes nothing. The lock itself is proved by racing
+-- concurrent connections, which needs more than one session and so lives in
+-- the slice report rather than here.
 -- Alice is seeded above with three already spent today and Bob with seven, so
 -- these count on from there rather than from zero.
 do $$
 declare spent integer;
 begin
-  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 4,
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 6) = 4,
     'the counter did not climb from what was already spent today';
-  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 5,
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 6) = 5,
     'the counter did not climb';
-  assert public.spend_generation('11111111-1111-1111-1111-111111111111', 6) = 6,
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 6) = 6,
     'the last slot was refused';
 
-  spent := public.spend_generation('11111111-1111-1111-1111-111111111111', 6);
+  spent := public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 6);
   assert spent is null,
     'the limit did not hold: a seventh generation passed a limit of six';
 
@@ -319,14 +326,15 @@ begin
   -- day the limit was raised the user would still be locked out.
   assert (select count from public.usage_counters
            where user_id = '11111111-1111-1111-1111-111111111111'
-             and day = (now() at time zone 'utc')::date) = 6,
+             and day = (now() at time zone 'utc')::date
+             and kind = 'generation') = 6,
     'a refused generation still moved the counter';
 
   -- Bob is untouched by any of that: the allowance is per user.
   assert (select count from public.usage_counters
            where user_id = '22222222-2222-2222-2222-222222222222') = 7,
     'one user spending moved another user''s counter';
-  assert public.spend_generation('22222222-2222-2222-2222-222222222222', 9) = 8,
+  assert public.spend_usage('22222222-2222-2222-2222-222222222222', 'generation', 9) = 8,
     'the counter is not per user';
 
   -- A limit of none means none, including the first request of a day. The
@@ -336,11 +344,41 @@ begin
   delete from public.usage_counters
    where user_id = '22222222-2222-2222-2222-222222222222';
 
-  spent := public.spend_generation('22222222-2222-2222-2222-222222222222', 0);
+  spent := public.spend_usage('22222222-2222-2222-2222-222222222222', 'generation', 0);
   assert spent is null, 'a limit of zero granted a generation';
   assert (select count(*) from public.usage_counters
            where user_id = '22222222-2222-2222-2222-222222222222') = 0,
     'a refused generation still created a counter row';
+end $$;
+
+-- The parse counter is its own row, per user and per kind, not a share of the
+-- generation counter (SLICE-11 decision 4: the primary key is
+-- (user_id, day, kind)). Alice already has a generation counter at 6 from the
+-- block above; a parse spend must neither read nor move it.
+do $$
+declare spent integer;
+begin
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'parse', 3) = 1,
+    'the parse counter did not start from zero';
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'parse', 3) = 2,
+    'the parse counter did not climb';
+  assert public.spend_usage('11111111-1111-1111-1111-111111111111', 'parse', 3) = 3,
+    'the last parse slot was refused';
+
+  spent := public.spend_usage('11111111-1111-1111-1111-111111111111', 'parse', 3);
+  assert spent is null, 'a fourth parse passed a limit of three';
+
+  -- Two rows for the same user on the same day: the generation counter from
+  -- the block above is untouched by any of this.
+  assert (select count from public.usage_counters
+           where user_id = '11111111-1111-1111-1111-111111111111'
+             and day = (now() at time zone 'utc')::date
+             and kind = 'generation') = 6,
+    'spending parses moved the generation counter';
+  assert (select count(*) from public.usage_counters
+           where user_id = '11111111-1111-1111-1111-111111111111'
+             and day = (now() at time zone 'utc')::date) = 2,
+    'the generation and parse counters are not two separate rows';
 end $$;
 
 -- The counter stands between a stolen session and somebody else's token bill,
@@ -352,7 +390,7 @@ begin
   denied := false;
   set local role authenticated;
   begin
-    perform public.spend_generation('11111111-1111-1111-1111-111111111111', 99);
+    perform public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 99);
   exception when insufficient_privilege then denied := true;
   end;
   reset role;
@@ -361,7 +399,7 @@ begin
   denied := false;
   set local role anon;
   begin
-    perform public.spend_generation('11111111-1111-1111-1111-111111111111', 99);
+    perform public.spend_usage('11111111-1111-1111-1111-111111111111', 'generation', 99);
   exception when insufficient_privilege then denied := true;
   end;
   reset role;

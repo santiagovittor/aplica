@@ -3,8 +3,8 @@ import { parsePrompt } from '../prompts/parse';
 // and the import disappears at compile time (CLAUDE.md section 3).
 import { PARSE_MODELS } from '../providers/defaults';
 import type { GenerateOptions, Provider } from '../providers/types';
-import { groundProfile } from './grounding';
-import { profileSchema, type Profile } from './profile';
+import { groundProfile, type GroundingResult } from './grounding';
+import { profileSchema } from './profile';
 
 /**
  * One CV, one model call, one validated profile (PROJECT.md section 5, flow 1).
@@ -53,7 +53,7 @@ export async function parseCv(
   provider: Provider,
   cvText: string,
   { locale, model, signal }: ParseCvOptions,
-): Promise<Profile> {
+): Promise<GroundingResult> {
   const response = await provider.generate(
     [{ role: 'user', content: cvText }],
     {
@@ -80,8 +80,11 @@ export async function parseCv(
   }
 
   // The schema checked that every entry claims to come from the CV. This checks
-  // whether the prose does (PROJECT.md section 5b).
-  return groundProfile(result.data, cvText).profile;
+  // whether the prose does (PROJECT.md section 5b), and the caller gets the
+  // whole result rather than just the corrected profile: a dropped voice
+  // anchor is the user's own words being discarded, and they have to be told,
+  // not just have the profile quietly come back cleaner than it should.
+  return groundProfile(result.data, cvText);
 }
 
 function toJson(response: string): unknown {

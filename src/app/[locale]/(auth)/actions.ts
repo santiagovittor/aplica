@@ -1,10 +1,16 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect as externalRedirect } from 'next/navigation';
 import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { requestOrigin, serverClient } from '@/lib/session';
+import {
+  loadLocale,
+  loadOnboardingDismissed,
+  saveLocale,
+} from '@/lib/supabase';
 
 /**
  * The auth flows, all server-side (SLICE-9 decision 3). The browser posts a
@@ -47,12 +53,36 @@ export async function signIn(
   const { email, password, locale } = parsed.data;
 
   const supabase = await serverClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
   if (error) {
     return { error: authError(error.code, error.status) };
   }
 
-  redirect({ href: '/account', locale });
+  // The account's own stored preference wins over whatever locale the
+  // sign-in page happened to be on (SLICE-11 decision 7's other half): a
+  // returning Spanish user should land on /es, not wherever a stale link or
+  // Accept-Language detection put the sign-in form. Detection for an
+  // anonymous visitor is untouched; this only runs once a session exists.
+  const preferred = await loadLocale(data.user.id);
+  if (preferred !== locale) {
+    (await cookies()).set('NEXT_LOCALE', preferred, {
+      path: '/',
+      sameSite: 'lax',
+    });
+  }
+
+  // SLICE-12 decision 5: an account that has never been shown onboarding
+  // lands there instead of /account. `loadOnboardingDismissed` is the only
+  // check needed -- it is set the moment an account reaches the end of the
+  // flow, so a returning, already-onboarded user is unaffected.
+  const destination = (await loadOnboardingDismissed(data.user.id))
+    ? '/account'
+    : '/onboarding/language';
+
+  redirect({ href: destination, locale: preferred });
   throw new Error('Unreachable: redirect did not throw.');
 }
 
@@ -67,7 +97,7 @@ export async function signUp(
   const { email, password, locale } = parsed.data;
 
   const supabase = await serverClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -76,6 +106,18 @@ export async function signUp(
   });
   if (error) {
     return { error: authError(error.code, error.status) };
+  }
+
+  // The trigger that creates the public.users row runs synchronously on the
+  // auth.users insert, ahead of email confirmation, so the row already exists
+  // here. Guarded by `identities`, not just `data.user`: Supabase's own
+  // enumeration-masking for an already-registered address still returns a
+  // `user` object, with an empty `identities` array as the one documented
+  // signal that nothing new was created. Without this check, resubmitting the
+  // sign-up form for someone else's address would silently overwrite their
+  // stored language preference with no authentication at all.
+  if (data.user && data.user.identities && data.user.identities.length > 0) {
+    await saveLocale(data.user.id, locale);
   }
 
   // Deliberately the same destination whether or not that address already had

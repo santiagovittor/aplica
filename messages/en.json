@@ -74,6 +74,9 @@
     "title": "Your account",
     "lead": "Where your key lives, what language you get, and how to leave.",
     "loading": "Loading your account",
+    "onboarding": {
+      "finish": "Finish setting up your account"
+    },
     "key": {
       "title": "Your model key",
       "body": "Aplica runs on your own provider key, so you pay the model directly and we never mark it up. It is encrypted before it reaches the database, and it is never shown again after you save it.",
@@ -100,6 +103,13 @@
         "unknown": "Something went wrong on our side. Your key was not saved."
       }
     },
+    "cv": {
+      "title": "Your CV",
+      "onFile": "CV on file.",
+      "none": "No CV on file yet.",
+      "replace": "Replace it",
+      "upload": "Upload your CV"
+    },
     "language": {
       "title": "Language",
       "body": "This changes the app. It does not change the language your applications are written in."
@@ -118,6 +128,36 @@
       "cancel": "Keep my account",
       "mismatch": "That does not match your email address.",
       "failed": "Something went wrong, so your account is still here. Try again."
+    }
+  },
+  "Onboarding": {
+    "progressLabel": "Onboarding progress",
+    "steps": {
+      "language": "Language",
+      "key": "Model key",
+      "cv": "CV"
+    },
+    "stepStatus": {
+      "complete": "done",
+      "current": "in progress",
+      "incomplete": "not started yet"
+    },
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "language": {
+      "title": "Let’s set a few things up",
+      "lead": "Three short steps, and you can skip any of them. None of this is required just to look around.",
+      "localeLabel": "Language",
+      "name": {
+        "label": "Your name",
+        "placeholder": "As it should appear on your documents",
+        "hint": "This goes on your resume and cover letter. Add it now, or skip it and paste it in later."
+      },
+      "error": "Something went wrong on our side. Your name was not saved."
+    },
+    "key": {
+      "title": "Add your model key",
+      "lead": "This is what writes your applications, at your own provider’s rates. You keep the key; we only check that it works before we store it."
     }
   },
   "Apply": {
@@ -148,6 +188,68 @@
     },
     "retry": "Try again",
     "retryRender": "Try the download again"
+  },
+  "Cv": {
+    "title": "Your CV",
+    "lead": "Upload it once. Everything else is built from what is actually in it. Nothing goes to an employer directly.",
+    "empty": {
+      "invite": "Upload your CV to begin",
+      "body": "PDF or Word, up to 10 MB.",
+      "choose": "Choose a file",
+      "upload": "Upload CV",
+      "dropHint": "Drop it here, or"
+    },
+    "notice": "Reading a CV properly takes about a minute. Here is what is happening the whole way.",
+    "elapsed": "{seconds}s so far",
+    "stages": {
+      "uploading": "Sending your file",
+      "reading": "Reading your CV",
+      "parsing": "Understanding what is in it",
+      "checking": "Checking every claim against your own words",
+      "saving": "Saving your profile"
+    },
+    "stageStatus": {
+      "complete": "done",
+      "current": "in progress",
+      "incomplete": "not started yet"
+    },
+    "retry": "Try again",
+    "chooseAnother": "Choose a different file",
+    "errors": {
+      "unauthorized": "Your session ran out. Sign in and try again.",
+      "bad_request": "That did not come through as a file. Choose it again.",
+      "key_missing": "You need a model key before you can parse a CV. Add one in your account.",
+      "empty": "That file is empty. Upload the CV itself, not a shortcut to it.",
+      "too_large": "That file is larger than 10 MB. A CV that big is usually a scan; export it from a word processor as a PDF instead.",
+      "unsupported_type": "That file is not a PDF or a Word .docx, whatever its name says. Export the CV as one of those and upload it again.",
+      "legacy_or_encrypted_office": "That looks like an old .doc file, or a Word file with a password on it. Save it as .docx without a password, or export it as a PDF.",
+      "encrypted_pdf": "That PDF has a password on it. Open it, export an unprotected copy, and upload that.",
+      "corrupt": "That file claims to be a PDF or a .docx but cannot be read. It was probably truncated on the way here. Try uploading it again, or export a fresh copy.",
+      "no_text_layer": "No text could be read from that file. It is almost certainly a scan or a photo, which has no text layer for us to read. Upload a PDF exported from a word processor.",
+      "rate_limited": "That is {limit} CV parses today, which is the daily limit. It resets at midnight UTC.",
+      "parse_invalid": "The model returned something we could not use. Try again.",
+      "parse_timeout": "That took longer than we could wait for. Nothing was saved, and today's parse count was not spent twice. Try again when you can.",
+      "provider_rejected_key": "Your provider turned the key down. Check it is still valid in your account.",
+      "provider_rate_limited": "Your provider is rate limiting you. Wait a minute and go again.",
+      "provider_refused": "Your provider refused the request. Try again, and check your key in your account if it keeps happening.",
+      "provider_unavailable": "Your provider is having trouble. Nothing is wrong with your key. Try again shortly.",
+      "unexpected": "Something went wrong on our side. Try again.",
+      "streamInterrupted": "We lost the connection before hearing back. Wait a moment, then try again."
+    },
+    "done": {
+      "heading": "Your profile is ready",
+      "summary": "{roles} roles, {skills} skills, {keywords} keyword mappings found.",
+      "clean": "Every claim matched your own words, so nothing needed softening.",
+      "grounding": {
+        "title": "What we checked",
+        "why": "A claim only stays sharp if your CV backs it up. This is what did not, and what we did about it.",
+        "softenedTitle": "Softened",
+        "softenedBody": "The CV does not contain {what}, so this claim is marked as less certain rather than dropped.",
+        "droppedTitle": "Not used, in your own words",
+        "droppedBody": "Not an exact quote from your CV, so it was left out rather than paraphrased:"
+      },
+      "next": "Go to your account"
+    }
   },
   "Styleguide": {
     "title": "The design system",
