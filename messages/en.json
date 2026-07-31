@@ -74,6 +74,9 @@
     "title": "Your account",
     "lead": "Where your key lives, what language you get, and how to leave.",
     "loading": "Loading your account",
+    "onboarding": {
+      "finish": "Finish setting up your account"
+    },
     "key": {
       "title": "Your model key",
       "body": "Aplica runs on your own provider key, so you pay the model directly and we never mark it up. It is encrypted before it reaches the database, and it is never shown again after you save it.",
@@ -125,6 +128,36 @@
       "cancel": "Keep my account",
       "mismatch": "That does not match your email address.",
       "failed": "Something went wrong, so your account is still here. Try again."
+    }
+  },
+  "Onboarding": {
+    "progressLabel": "Onboarding progress",
+    "steps": {
+      "language": "Language",
+      "key": "Model key",
+      "cv": "CV"
+    },
+    "stepStatus": {
+      "complete": "done",
+      "current": "in progress",
+      "incomplete": "not started yet"
+    },
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "language": {
+      "title": "Let’s set a few things up",
+      "lead": "Three short steps, and you can skip any of them. None of this is required just to look around.",
+      "localeLabel": "Language",
+      "name": {
+        "label": "Your name",
+        "placeholder": "As it should appear on your documents",
+        "hint": "This goes on your resume and cover letter. Add it now, or skip it and paste it in later."
+      },
+      "error": "Something went wrong on our side. Your name was not saved."
+    },
+    "key": {
+      "title": "Add your model key",
+      "lead": "This is what writes your applications, at your own provider’s rates. You keep the key; we only check that it works before we store it."
     }
   },
   "Apply": {

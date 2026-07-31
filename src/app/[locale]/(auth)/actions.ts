@@ -6,7 +6,11 @@ import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { requestOrigin, serverClient } from '@/lib/session';
-import { loadLocale, saveLocale } from '@/lib/supabase';
+import {
+  loadLocale,
+  loadOnboardingDismissed,
+  saveLocale,
+} from '@/lib/supabase';
 
 /**
  * The auth flows, all server-side (SLICE-9 decision 3). The browser posts a
@@ -70,7 +74,15 @@ export async function signIn(
     });
   }
 
-  redirect({ href: '/account', locale: preferred });
+  // SLICE-12 decision 5: an account that has never been shown onboarding
+  // lands there instead of /account. `loadOnboardingDismissed` is the only
+  // check needed -- it is set the moment an account reaches the end of the
+  // flow, so a returning, already-onboarded user is unaffected.
+  const destination = (await loadOnboardingDismissed(data.user.id))
+    ? '/account'
+    : '/onboarding/language';
+
+  redirect({ href: destination, locale: preferred });
   throw new Error('Unreachable: redirect did not throw.');
 }
 

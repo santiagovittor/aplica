@@ -39,10 +39,26 @@ export interface DeleteState {
 
 const Locale = z.enum(routing.locales);
 
+/**
+ * `KeyCard` also renders inside the onboarding `key` step (SLICE-12), on a
+ * different path than `/account`. `revalidatePath` needs the path that is
+ * actually mounted, so the form names which screen it is on rather than
+ * trusting a raw path from the client -- `screen` is a closed enum, so there
+ * is nothing here for a tampered field to redirect a revalidation to.
+ */
+const Screen = z.enum(['account', 'onboardingKey']);
+
+function screenPath(locale: string, screen: z.infer<typeof Screen>): string {
+  return screen === 'account'
+    ? `/${locale}/account`
+    : `/${locale}/onboarding/key`;
+}
+
 const KeyForm = z.object({
   provider: z.enum(KEY_PROVIDERS),
   key: z.string(),
   locale: Locale,
+  screen: Screen,
 });
 
 export async function saveKey(
@@ -55,11 +71,12 @@ export async function saveKey(
     provider: form.get('provider') ?? undefined,
     key: form.get('key') ?? undefined,
     locale: form.get('locale') ?? undefined,
+    screen: form.get('screen') ?? undefined,
   });
   if (!parsed.success) {
     return { error: 'unknown' };
   }
-  const { provider, key, locale } = parsed.data;
+  const { provider, key, locale, screen } = parsed.data;
 
   if (key.trim() === '') {
     return { error: 'empty', provider };
@@ -77,7 +94,7 @@ export async function saveKey(
     return { error: 'unknown', provider };
   }
 
-  revalidatePath(`/${locale}/account`);
+  revalidatePath(screenPath(locale, screen));
   return {};
 }
 
@@ -87,7 +104,8 @@ export async function removeKey(
 ): Promise<KeyState> {
   const user = await requireUser();
   const locale = Locale.safeParse(form.get('locale'));
-  if (!locale.success) {
+  const screen = Screen.safeParse(form.get('screen'));
+  if (!locale.success || !screen.success) {
     return { error: 'unknown' };
   }
 
@@ -97,7 +115,7 @@ export async function removeKey(
     return { error: 'unknown' };
   }
 
-  revalidatePath(`/${locale.data}/account`);
+  revalidatePath(screenPath(locale.data, screen.data));
   return {};
 }
 

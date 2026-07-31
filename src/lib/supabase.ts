@@ -204,6 +204,82 @@ export async function loadDisplayName(userId: string): Promise<string | null> {
   return name === '' ? null : name;
 }
 
+/**
+ * Writes the applicant's own name, as it goes on the documents (SLICE-12
+ * decision, folding `display_name` into the onboarding language step).
+ *
+ * Mirrors `saveLocale`'s shape: one column, one caller-supplied value, no
+ * read-back. An empty or whitespace-only name is not written at all, the same
+ * way `loadDisplayName` treats one as "no answer" rather than as one -- a
+ * blank string in the column would read as a real answer to a caller that only
+ * checks for null.
+ */
+export async function saveDisplayName(
+  userId: string,
+  name: string,
+): Promise<void> {
+  const owner = z.uuid().parse(userId);
+  const trimmed = name.trim();
+  if (trimmed === '') {
+    return;
+  }
+
+  await supabaseRequest(
+    'display name update',
+    `/rest/v1/users?id=eq.${owner}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ display_name: trimmed }),
+    },
+  );
+}
+
+const StoredOnboarding = z.object({ onboarding_dismissed: z.boolean() });
+
+/**
+ * Whether the post-auth redirect should still send this account into
+ * onboarding (SLICE-12 decision 5 and the migration's own comment). False for
+ * a genuinely fresh account; true the moment it has reached the end of the
+ * flow, finished or skipped through.
+ *
+ * A missing row falls back to `true` for the reason `loadLocale` falls back
+ * rather than fails: an onboarding nicety should never be what breaks a
+ * sign-in, and the safer failure here is "do not redirect" rather than
+ * "redirect a user we know nothing about."
+ */
+export async function loadOnboardingDismissed(
+  userId: string,
+): Promise<boolean> {
+  const owner = z.uuid().parse(userId);
+
+  const row = await readOne(
+    'onboarding read',
+    `/rest/v1/users?id=eq.${owner}&select=onboarding_dismissed&limit=1`,
+  );
+
+  return row === null ? true : StoredOnboarding.parse(row).onboarding_dismissed;
+}
+
+/**
+ * Marks onboarding as shown all the way through. Called once, from the `cv`
+ * step's own page (SLICE-12): by the time an account reaches the last step it
+ * has been offered every door, whether it walked through each one or skipped
+ * it, and the redirect has no more business sending it back.
+ *
+ * Idempotent, so a repeat visit to the same step is a harmless no-op PATCH
+ * rather than something a caller has to guard against.
+ */
+export async function dismissOnboarding(userId: string): Promise<void> {
+  const owner = z.uuid().parse(userId);
+
+  await supabaseRequest('onboarding dismiss', `/rest/v1/users?id=eq.${owner}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ onboarding_dismissed: true }),
+  });
+}
+
 const StoredLocale = z.object({ locale: z.enum(routing.locales) });
 
 /**

@@ -46,6 +46,13 @@ begin
   assert (select display_name from public.users
            where id = '22222222-2222-2222-2222-222222222222') is null,
     'handle_new_user invented a display_name for a user who has none';
+
+  -- A brand-new account has not been shown onboarding yet, so the post-auth
+  -- redirect (SLICE-12) has to find it here as false, not fall back to it.
+  assert (select bool_and(onboarding_dismissed = false) from public.users
+           where id in ('11111111-1111-1111-1111-111111111111',
+                        '22222222-2222-2222-2222-222222222222')),
+    'a freshly created account row did not default onboarding_dismissed to false';
 end $$;
 
 -- The two remaining branches of that expression, on a throwaway user so the

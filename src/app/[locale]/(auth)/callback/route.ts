@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { withLocale } from '@/lib/locale-path';
 import { requestOrigin, serverClient } from '@/lib/session';
-import { loadLocale } from '@/lib/supabase';
+import { loadLocale, loadOnboardingDismissed } from '@/lib/supabase';
 
 /**
  * Where every link and every OAuth handshake lands: the sign-up confirmation,
@@ -43,8 +43,22 @@ export async function GET(
   // links both land here rather than in `signIn`, so this is the other place
   // a returning user's language has to be corrected before they see a page.
   const preferred = await loadLocale(data.user.id);
+
+  // SLICE-12 decision 5, the other call site `signIn` shares this branch
+  // with. Only substituted when `next` is the plain post-auth default: a
+  // password-reset link's `next` is `/new-password`, and hijacking that into
+  // onboarding would break password reset for anyone who has not finished it.
+  const target =
+    next === `/${locale}/account` &&
+    !(await loadOnboardingDismissed(data.user.id))
+      ? `/${locale}/onboarding/language`
+      : next;
+
   const destination = NextResponse.redirect(
-    new URL(preferred === locale ? next : withLocale(next, preferred), origin),
+    new URL(
+      preferred === locale ? target : withLocale(target, preferred),
+      origin,
+    ),
   );
   if (preferred !== locale) {
     destination.cookies.set('NEXT_LOCALE', preferred, {

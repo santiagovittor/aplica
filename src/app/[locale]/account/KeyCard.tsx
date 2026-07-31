@@ -17,12 +17,17 @@ import styles from './account.module.css';
  */
 export function KeyCard({
   locale,
+  screen = 'account',
   providers,
   saved,
   labels,
   errors,
 }: {
   locale: string;
+  /** Which screen this is mounted on, so `saveKey`/`removeKey` revalidate
+   *  the page that is actually showing it (SLICE-12: also used by the
+   *  onboarding `key` step). */
+  screen?: 'account' | 'onboardingKey';
   providers: { value: string; label: string }[];
   saved: string | null;
   labels: Record<string, string>;
@@ -48,6 +53,7 @@ export function KeyCard({
 
       <form action={save} className={styles.form}>
         <input type="hidden" name="locale" value={locale} />
+        <input type="hidden" name="screen" value={screen} />
         <div className={styles.fields}>
           <Select
             id="provider"
@@ -92,6 +98,7 @@ export function KeyCard({
       {saved ? (
         <form action={remove} className={styles.remove}>
           <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="screen" value={screen} />
           <Button
             type="submit"
             variant="quiet"

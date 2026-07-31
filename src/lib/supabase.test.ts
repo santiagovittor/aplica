@@ -4,11 +4,14 @@ import type { Profile } from '../core/profile';
 import type { RenderedFile } from '../render/index';
 import {
   attachFiles,
+  dismissOnboarding,
   loadApplication,
   loadDisplayName,
   loadLocale,
+  loadOnboardingDismissed,
   loadProfile,
   saveApplication,
+  saveDisplayName,
   saveLocale,
   saveProfile,
   startApplication,
@@ -527,6 +530,25 @@ describe('loadDisplayName', () => {
   });
 });
 
+describe('saveDisplayName', () => {
+  it('patches the account row with the trimmed name', async () => {
+    await saveDisplayName(USER, '  Ada Lovelace  ');
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/users?id=eq.${USER}`);
+    expect(JSON.parse(String(calls[0].body))).toEqual({
+      display_name: 'Ada Lovelace',
+    });
+  });
+
+  it('does not write a blank name', async () => {
+    await saveDisplayName(USER, '   ');
+
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('loadLocale', () => {
   it('returns the stored locale', async () => {
     respondWithJson([{ locale: 'es' }]);
@@ -552,6 +574,41 @@ describe('saveLocale', () => {
     expect(calls[0].method).toBe('PATCH');
     expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/users?id=eq.${USER}`);
     expect(JSON.parse(String(calls[0].body))).toEqual({ locale: 'es' });
+  });
+});
+
+describe('loadOnboardingDismissed', () => {
+  it('returns the stored value', async () => {
+    respondWithJson([{ onboarding_dismissed: true }]);
+
+    expect(await loadOnboardingDismissed(USER)).toBe(true);
+  });
+
+  it('returns false for a fresh account that has not dismissed it', async () => {
+    respondWithJson([{ onboarding_dismissed: false }]);
+
+    expect(await loadOnboardingDismissed(USER)).toBe(false);
+  });
+
+  it('falls back to true when there is no account row', async () => {
+    // An onboarding nicety should never be what breaks a sign-in, and the
+    // safer failure here is "do not redirect a user we know nothing about."
+    respondWithJson([]);
+
+    expect(await loadOnboardingDismissed(USER)).toBe(true);
+  });
+});
+
+describe('dismissOnboarding', () => {
+  it('patches the account row to true', async () => {
+    await dismissOnboarding(USER);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe(`${URL_BASE}/rest/v1/users?id=eq.${USER}`);
+    expect(JSON.parse(String(calls[0].body))).toEqual({
+      onboarding_dismissed: true,
+    });
   });
 });
 
