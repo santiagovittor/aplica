@@ -1,0 +1,76 @@
+/* DESIGN.md §7 (Tufte): a large tabular number, one thin hairline bar, one
+   line verdict. Nothing here is a gauge, a ring, or a gradient meter. */
+
+.score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.headline {
+  line-height: 1;
+}
+
+.number {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.bar {
+  height: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--ink);
+}
+
+.verdict {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+/* Its own group, spaced clear of the verdict above it (§3 hierarchy rule). */
+.flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.flagsLabel {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--ink-soft);
+}
+
+.flagsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.flag {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  max-width: var(--measure);
+  color: var(--ink);
+}
+
+/* A drawn mark, never a text glyph: keeps this file, not UI copy, in charge
+   of what character-shaped thing appears, and there is no em dash risk. */
+.marker {
+  flex: none;
+  width: var(--space-2);
+  height: 1px;
+  margin-top: 0.7em;
+  background: var(--ink-soft);
+}

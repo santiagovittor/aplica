@@ -5,6 +5,8 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { MotionConfig } from 'motion/react';
 import { routing } from '@/i18n/routing';
+import { currentUser } from '@/lib/session';
+import { Header } from '@/ui/Header';
 import '../globals.css';
 
 const display = Fraunces({
@@ -47,11 +49,20 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  // Read here rather than left to each page, so the header (SLICE-13
+  // decision 7) can decide its own visibility without every route wiring it
+  // in separately. `currentUser` reads the session and swallows the error
+  // itself, so a signed-out visitor is just `null`, never a redirect.
+  const user = await currentUser();
+
   return (
     <html lang={locale} className={`${display.variable} ${body.variable}`}>
       <body>
         <NextIntlClientProvider>
-          <MotionConfig reducedMotion="user">{children}</MotionConfig>
+          <MotionConfig reducedMotion="user">
+            <Header authenticated={user !== null} />
+            {children}
+          </MotionConfig>
         </NextIntlClientProvider>
       </body>
     </html>

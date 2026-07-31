@@ -1,0 +1,565 @@
+'use client';
+
+import { AnimatePresence, motion } from 'motion/react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from '@/i18n/navigation';
+import { detectPostingLanguage } from '@/lib/detect-language';
+import { Button } from '@/ui/Button';
+import buttonStyles from '@/ui/Button.module.css';
+import { FitScore } from '@/ui/FitScore';
+import { Motif } from '@/ui/Motif';
+import { Steps, type Step } from '@/ui/Steps';
+import { Textarea } from '@/ui/Textarea';
+import styles from './apply.module.css';
+
+/**
+ * SLICE-13's phase machine, the same discipline `CvUpload` proved out
+ * (decision 1), driving `/api/generate`'s SSE stream and, on a favourable
+ * verdict, `/api/render` after it (decision 3).
+ *
+ * One deliberate departure from `CvUpload`'s shape: a generation-level error
+ * renders in the *same* branch as the empty state rather than replacing the
+ * whole card, so the posting the user pasted survives a transient failure.
+ * Re-picking a file costs nothing; re-typing a job posting does, so the two
+ * screens' error states earn different treatments even though the rest of
+ * the machine matches.
+ */
+
+type Tier = 'basic' | 'standard' | 'full';
+type Language = 'en' | 'es';
+type GenStage = 'starting' | 'draft' | 'review' | 'revise' | 'saving';
+type Phase = 'empty' | GenStage | 'done' | 'error';
+type RenderStatus = 'idle' | 'pending' | 'ready' | 'error';
+
+const TIERS: readonly Tier[] = ['basic', 'standard', 'full'];
+const STAGE_ORDER: readonly GenStage[] = [
+  'starting',
+  'draft',
+  'review',
+  'revise',
+  'saving',
+];
+
+const ERROR_CODES = [
+  'unauthorized',
+  'bad_request',
+  'key_missing',
+  'name_missing',
+  'profile_missing',
+  'profile_unreadable',
+  'rate_limited',
+  'provider_rejected_key',
+  'provider_rate_limited',
+  'provider_refused',
+  'provider_unavailable',
+  'provider_timeout',
+  'generation_invalid',
+  'application_not_found',
+  'application_unreadable',
+  'render_failed',
+  'unexpected',
+  'streamInterrupted',
+] as const;
+
+interface DoneResult {
+  applicationId: string;
+  fit: { score: number };
+  recommendation: 'apply' | 'skip';
+  reason: string;
+  keywordCoverage: number;
+  flags: string[];
+}
+
+interface StoredFile {
+  kind: 'resume' | 'cover-letter';
+  format: 'pdf' | 'docx';
+}
+
+const EASE_SOFT = [0.22, 0.75, 0.24, 1] as const;
+
+/** DESIGN.md §6 peak-end: the result reveal gets the motion budget, the same
+ *  staggered entrance `CvUpload`'s own `done` state uses. */
+const DONE_CONTAINER = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+};
+
+const DONE_ITEM = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: EASE_SOFT },
+  },
+};
+
+export function ApplyForm({
+  cvOnFile,
+  researchAvailable,
+  researchCostLine,
+}: {
+  cvOnFile: boolean;
+  researchAvailable: boolean;
+  researchCostLine: string | null;
+}) {
+  const t = useTranslations('Apply');
+  const uiLocale = useLocale() as Language;
+
+  const [posting, setPosting] = useState('');
+  const [tier, setTier] = useState<Tier>('standard');
+  const [research, setResearch] = useState(researchAvailable);
+
+  // Decision from SLICE-13: preset to the *posting's* detected language, not
+  // the reader's UI locale, and never a model call. `manualLanguage` is null
+  // until the user flips the toggle themselves; until then, the language is
+  // derived fresh on every render rather than synced via an effect, so there
+  // is no separate "auto" state that can drift from what is on screen.
+  // Clearing the box back to empty forgets the override in `updatePosting`
+  // below, which is what "re-arms" detection for a fresh paste.
+  const [manualLanguage, setManualLanguage] = useState<Language | null>(null);
+  const language = manualLanguage ?? detectPostingLanguage(posting, uiLocale);
+
+  const [phase, setPhase] = useState<Phase>('empty');
+  const [elapsed, setElapsed] = useState(0);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorLimit, setErrorLimit] = useState<number | undefined>(undefined);
+
+  const [result, setResult] = useState<DoneResult | null>(null);
+  const [renderStatus, setRenderStatus] = useState<RenderStatus>('idle');
+  const [renderErrorCode, setRenderErrorCode] = useState<string | null>(null);
+  const [files, setFiles] = useState<StoredFile[] | null>(null);
+
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!STAGE_ORDER.includes(phase as GenStage)) {
+      return;
+    }
+    const start = Date.now();
+    const tick = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => window.clearInterval(tick);
+  }, [phase]);
+
+  function chooseLanguage(next: Language) {
+    setManualLanguage(next);
+  }
+
+  /** Clearing the box forgets a manual override, so a fresh paste is detected
+   *  again rather than staying pinned to whatever the last posting was. */
+  function updatePosting(next: string) {
+    setPosting(next);
+    if (next.trim() === '') {
+      setManualLanguage(null);
+    }
+  }
+
+  function fail(code: string, limit?: number) {
+    setErrorCode(code);
+    setErrorLimit(limit);
+    setPhase('error');
+  }
+
+  function startOver() {
+    setPosting('');
+    setManualLanguage(null);
+    setResult(null);
+    setFiles(null);
+    setRenderStatus('idle');
+    setRenderErrorCode(null);
+    setErrorCode(null);
+    setPhase('empty');
+  }
+
+  async function startRender(applicationId: string) {
+    setRenderStatus('pending');
+    setRenderErrorCode(null);
+
+    let response: Response;
+    try {
+      response = await fetch('/api/render', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+      });
+    } catch {
+      if (mounted.current) {
+        setRenderStatus('error');
+        setRenderErrorCode('unexpected');
+      }
+      return;
+    }
+
+    const body = (await response.json().catch(() => null)) as {
+      files?: StoredFile[];
+      error?: string;
+    } | null;
+
+    if (!mounted.current) {
+      return;
+    }
+    if (!response.ok || body === null || body.files === undefined) {
+      setRenderStatus('error');
+      setRenderErrorCode(body?.error ?? 'unexpected');
+      return;
+    }
+
+    setFiles(body.files);
+    setRenderStatus('ready');
+  }
+
+  async function submit() {
+    if (posting.trim() === '') {
+      return;
+    }
+    setPhase('starting');
+    setElapsed(0);
+    setErrorCode(null);
+
+    let response: Response;
+    try {
+      response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          posting,
+          tier,
+          language,
+          ...(researchAvailable ? { research } : {}),
+        }),
+      });
+    } catch {
+      if (mounted.current) fail('unexpected');
+      return;
+    }
+
+    if (
+      !(response.headers.get('content-type') ?? '').includes(
+        'text/event-stream',
+      )
+    ) {
+      const body = (await response
+        .json()
+        .catch(() => ({ error: 'unexpected' }))) as {
+        error: string;
+        limit?: number;
+      };
+      if (mounted.current) fail(body.error, body.limit);
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      if (mounted.current) fail('unexpected');
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let sawTerminal = false;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+
+      let boundary = buffer.indexOf('\n\n');
+      while (boundary !== -1) {
+        const block = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        boundary = buffer.indexOf('\n\n');
+
+        const [eventLine, dataLine] = block.split('\n');
+        const event = eventLine.replace(/^event: /, '');
+        const data = JSON.parse(dataLine.replace(/^data: /, '')) as Record<
+          string,
+          unknown
+        >;
+
+        if (!mounted.current) {
+          continue;
+        }
+        if (event === 'stage') {
+          setPhase(data.stage as GenStage);
+        } else if (event === 'done') {
+          sawTerminal = true;
+          const done = data as unknown as DoneResult;
+          setResult(done);
+          setPhase('done');
+          if (done.recommendation === 'apply') {
+            void startRender(done.applicationId);
+          }
+        } else if (event === 'error') {
+          sawTerminal = true;
+          fail(data.error as string, data.limit as number | undefined);
+        }
+      }
+    }
+
+    if (!sawTerminal && mounted.current) {
+      fail('streamInterrupted');
+    }
+  }
+
+  function errorMessage(code: string | null, limit?: number): string {
+    const known = (ERROR_CODES as readonly string[]).includes(code ?? '')
+      ? (code as (typeof ERROR_CODES)[number])
+      : 'unexpected';
+    return known === 'rate_limited' && limit !== undefined
+      ? t('errors.rate_limited', { limit })
+      : t(`errors.${known}`);
+  }
+
+  const showForm = phase === 'empty' || phase === 'error';
+
+  const currentIndex = STAGE_ORDER.indexOf(phase as GenStage);
+  const steps: Step[] = STAGE_ORDER.map((stage, index) => {
+    const status =
+      currentIndex === -1
+        ? 'incomplete'
+        : index < currentIndex
+          ? 'complete'
+          : index === currentIndex
+            ? 'current'
+            : 'incomplete';
+    return {
+      label: t(`stages.${stage}`),
+      status,
+      statusLabel: t(`stageStatus.${status}`),
+    };
+  });
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {showForm && (
+        <motion.div
+          key="form"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: EASE_SOFT }}
+          className={styles.card}
+        >
+          <p className={styles.chip}>
+            {cvOnFile ? t('chip.onFile') : t('chip.none')}{' '}
+            <Link href="/cv">
+              {cvOnFile ? t('chip.replace') : t('chip.upload')}
+            </Link>
+          </p>
+
+          <div className={styles.languageGroup}>
+            <span className={styles.groupLabel}>{t('language.label')}</span>
+            <div
+              className={styles.toggle}
+              role="group"
+              aria-label={t('language.label')}
+            >
+              {(['en', 'es'] as const).map((option) => (
+                <Button
+                  key={option}
+                  type="button"
+                  variant={language === option ? 'secondary' : 'quiet'}
+                  aria-pressed={language === option}
+                  onClick={() => chooseLanguage(option)}
+                >
+                  {t(`language.${option}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <Textarea
+            id="posting"
+            label={t('posting.label')}
+            placeholder={t('posting.placeholder')}
+            hint={t('posting.hint')}
+            value={posting}
+            onChange={(event) => updatePosting(event.target.value)}
+            rows={12}
+          />
+
+          <fieldset className={styles.tiers}>
+            <legend className={styles.groupLabel}>{t('tier.label')}</legend>
+            {TIERS.map((option) => (
+              <label
+                key={option}
+                className={styles.tierCard}
+                data-selected={tier === option || undefined}
+              >
+                <input
+                  type="radio"
+                  name="tier"
+                  value={option}
+                  checked={tier === option}
+                  onChange={() => setTier(option)}
+                  className="visually-hidden"
+                />
+                <span className={styles.tierTitle}>
+                  {t(`tier.${option}.title`)}
+                </span>
+                <span className={styles.tierDescription}>
+                  {t(`tier.${option}.description`)}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+
+          {researchAvailable && (
+            <label className={styles.research}>
+              <input
+                type="checkbox"
+                checked={research}
+                onChange={(event) => setResearch(event.target.checked)}
+              />
+              <span>
+                <span className={styles.researchTitle}>
+                  {t('research.label')}
+                </span>
+                <span className={styles.researchCost}>{researchCostLine}</span>
+              </span>
+            </label>
+          )}
+
+          {phase === 'error' && (
+            <p className={styles.error} role="alert">
+              {errorMessage(errorCode, errorLimit)}
+            </p>
+          )}
+
+          <div className={styles.row}>
+            <Button
+              variant="primary"
+              onClick={submit}
+              disabled={posting.trim() === ''}
+            >
+              {t('generate')}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {STAGE_ORDER.includes(phase as GenStage) && (
+        <motion.div
+          key="working"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: EASE_SOFT }}
+          className={styles.card}
+          role="status"
+          aria-live="polite"
+        >
+          <p className={styles.notice}>{t('notice')}</p>
+          <Steps steps={steps} label={t('notice')} />
+          <p className={styles.elapsed}>{t('elapsed', { seconds: elapsed })}</p>
+        </motion.div>
+      )}
+
+      {phase === 'done' && result && (
+        <motion.div
+          key="done"
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0 }}
+          variants={DONE_CONTAINER}
+          className={styles.card}
+        >
+          <motion.div variants={DONE_ITEM}>
+            <Motif label={t('done.heading')} />
+          </motion.div>
+          <motion.h2 variants={DONE_ITEM} className={styles.doneHeading}>
+            {result.recommendation === 'apply'
+              ? t('done.applyHeading')
+              : t('done.skipHeading')}
+          </motion.h2>
+
+          <motion.div variants={DONE_ITEM}>
+            <FitScore
+              score={result.fit.score}
+              verdict={result.reason}
+              flags={result.flags}
+              label={t('result.fitLabel')}
+              flagsLabel={t('result.flagsLabel')}
+            />
+          </motion.div>
+
+          <motion.p variants={DONE_ITEM} className={styles.keywordCoverage}>
+            {t('result.keywordCoverage', {
+              percent: Math.round(result.keywordCoverage),
+            })}
+          </motion.p>
+
+          {result.recommendation === 'skip' && renderStatus === 'idle' && (
+            <motion.div variants={DONE_ITEM} className={styles.skipAction}>
+              <p className={styles.skipNote}>{t('done.skipNote')}</p>
+              <Button
+                variant="primary"
+                onClick={() => startRender(result.applicationId)}
+              >
+                {t('done.downloadAnyway')}
+              </Button>
+            </motion.div>
+          )}
+
+          {renderStatus === 'pending' && (
+            <motion.p variants={DONE_ITEM} className={styles.notice}>
+              {t('done.rendering')}
+            </motion.p>
+          )}
+
+          {renderStatus === 'error' && (
+            <motion.div variants={DONE_ITEM} className={styles.row}>
+              <p className={styles.error} role="alert">
+                {errorMessage(renderErrorCode)}
+              </p>
+              <Button
+                variant="primary"
+                onClick={() => startRender(result.applicationId)}
+              >
+                {t('retryRender')}
+              </Button>
+            </motion.div>
+          )}
+
+          {renderStatus === 'ready' && files && (
+            <motion.div variants={DONE_ITEM} className={styles.results}>
+              <iframe
+                title={t('done.previewTitle')}
+                src={`/api/files/${result.applicationId}/resume/pdf`}
+                className={styles.preview}
+              />
+              <div className={styles.downloads}>
+                {files.map((file) => (
+                  <a
+                    key={`${file.kind}.${file.format}`}
+                    href={`/api/files/${result.applicationId}/${file.kind}/${file.format}`}
+                    className={`${buttonStyles.button} ${buttonStyles.secondary}`}
+                  >
+                    {t(`result.download.${file.kind}`)} (
+                    {file.format.toUpperCase()})
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          <motion.div variants={DONE_ITEM} className={styles.row}>
+            <Button variant="quiet" onClick={startOver}>
+              {t('done.another')}
+            </Button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

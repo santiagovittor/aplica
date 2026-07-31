@@ -91,8 +91,13 @@ export const DEFAULT_BASE_URLS: Record<NamedProviderId, string> = {
  *   default.
  *
  * Cost: search is billed per search on top of tokens. Anthropic publishes $10
- * per 1,000 searches. Whatever surfaces this to the user has to say it in
- * money, not tokens.
+ * per 1,000 searches (platform.claude.com/docs/en/agents-and-tools/tool-use/
+ * web-search-tool, checked 2026-07-31). Google publishes $14 per 1,000
+ * requests for `gemini-3.5-flash-lite`, with 5,000 free requests per month
+ * shared across the whole Gemini 3.x family (ai.google.dev/gemini-api/docs/
+ * pricing, checked 2026-07-31). Whatever surfaces this to the user has to say
+ * it in money, not tokens, and re-verify both before trusting the numbers
+ * printed here; prices move.
  */
 export const SEARCH_MODELS: Partial<Record<NamedProviderId, string>> = {
   anthropic: 'claude-opus-5',

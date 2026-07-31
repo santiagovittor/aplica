@@ -13,6 +13,11 @@
     "en": "Inglés",
     "es": "Español"
   },
+  "Header": {
+    "label": "Principal",
+    "apply": "Postular",
+    "account": "Cuenta"
+  },
   "Auth": {
     "signIn": {
       "title": "Iniciá sesión",
@@ -110,6 +115,11 @@
       "replace": "Reemplazarlo",
       "upload": "Subí tu CV"
     },
+    "apply": {
+      "title": "Postularte a un trabajo",
+      "body": "Pegá un aviso, elegí un plan y conseguí un currículum a medida en una sola sentada.",
+      "link": "Empezar una postulación"
+    },
     "language": {
       "title": "Idioma",
       "body": "Cambia la app. No cambia el idioma en el que se escriben tus candidaturas."
@@ -161,11 +171,79 @@
     }
   },
   "Apply": {
+    "title": "Postulate a un trabajo",
+    "lead": "Pegá el aviso. Vamos a adaptar tu currículum, decirte con sinceridad si vale la pena mandarlo, y dejarte descargarlo de cualquier manera.",
+    "chip": {
+      "onFile": "Tu CV está guardado.",
+      "none": "Todavía no subiste tu CV.",
+      "upload": "Subí uno",
+      "replace": "Reemplazarlo"
+    },
+    "language": {
+      "label": "Escribilo en",
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "posting": {
+      "label": "El aviso de trabajo",
+      "placeholder": "Pegá el aviso completo acá.",
+      "hint": "El texto del aviso, no un enlace a él."
+    },
+    "tier": {
+      "label": "Elegí un plan",
+      "basic": {
+        "title": "Básico",
+        "description": "Currículum, en PDF."
+      },
+      "standard": {
+        "title": "Estándar",
+        "description": "Currículum y carta de presentación, en PDF."
+      },
+      "full": {
+        "title": "Completo",
+        "description": "Currículum y carta de presentación, en PDF y Word."
+      }
+    },
+    "research": {
+      "label": "Investigar la empresa",
+      "cost": {
+        "anthropic": "Anthropic cobra $10 cada 1000 búsquedas por esto, aparte de los tokens.",
+        "google": "Google cobra $14 cada 1000 pedidos por esto, aparte de los tokens. Las primeras 5000 de cada mes son gratis."
+      }
+    },
+    "generate": "Adaptar mi postulación",
+    "notice": "Escribir algo que valga la pena mandar tarda alrededor de un minuto. Esto es lo que está pasando mientras tanto.",
+    "elapsed": "{seconds}s hasta ahora",
     "stages": {
+      "starting": "Preparando todo",
       "draft": "Escribiendo tu primer borrador",
       "review": "Comprobándolo contra el aviso",
       "revise": "Aplicando lo que encontró la revisión",
       "saving": "Guardando tu candidatura"
+    },
+    "stageStatus": {
+      "complete": "listo",
+      "current": "en curso",
+      "incomplete": "todavía no empezó"
+    },
+    "result": {
+      "fitLabel": "Puntaje de encaje",
+      "flagsLabel": "Vale la pena saberlo",
+      "keywordCoverage": "El {percent}% de las palabras propias del aviso aparecen en el tuyo.",
+      "download": {
+        "resume": "Currículum",
+        "cover-letter": "Carta de presentación"
+      }
+    },
+    "done": {
+      "heading": "Tu candidatura está lista",
+      "applyHeading": "Vale la pena mandarla",
+      "skipHeading": "Mejor pensarlo dos veces",
+      "skipNote": "No la mandaríamos tal como está, pero es tuya. No se genera nada hasta que lo pidas.",
+      "downloadAnyway": "Descargarla igual",
+      "rendering": "Convirtiéndola en archivos",
+      "previewTitle": "Tu currículum",
+      "another": "Empezar otra postulación"
     },
     "errors": {
       "unauthorized": "Se venció tu sesión. Iniciá sesión y probá de nuevo.",
@@ -184,7 +262,8 @@
       "application_not_found": "No encontramos esa candidatura.",
       "application_unreadable": "Esa candidatura se guardó antes de que pudiéramos rehacer sus archivos. Generala de nuevo.",
       "render_failed": "Escribimos la candidatura pero no pudimos convertirla en archivos. Probá la descarga de nuevo.",
-      "unexpected": "Algo falló de nuestro lado. Probá de nuevo."
+      "unexpected": "Algo falló de nuestro lado. Probá de nuevo.",
+      "streamInterrupted": "Perdimos la conexión antes de tener noticias. Esperá un momento y probá de nuevo."
     },
     "retry": "Probar de nuevo",
     "retryRender": "Probar la descarga de nuevo"

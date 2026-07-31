@@ -1,0 +1,234 @@
+/* DESIGN.md §3: same centred, single-task treatment as /cv -- one linear
+   task carried through a phase machine, not a working screen with a
+   secondary column. */
+
+.shell {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--margin-outer) var(--space-10);
+}
+
+@media (min-width: 60rem) {
+  .shell {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+    padding-inline: var(--space-7);
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 60rem) {
+  .heading {
+    grid-column: 2 / span 10;
+  }
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 60rem) {
+  .card {
+    grid-column: 2 / span 10;
+    padding: var(--space-7);
+  }
+}
+
+/* --- form (empty / error) ------------------------------------------------ */
+
+.chip {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.chip a {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.chip a:hover {
+  color: var(--green-soft);
+}
+
+.groupLabel {
+  display: block;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.languageGroup {
+  padding: 0;
+  border: none;
+}
+
+.toggle {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tiers {
+  display: grid;
+  gap: var(--space-4);
+  padding: 0;
+  border: none;
+  margin: 0;
+}
+
+@media (min-width: 40rem) {
+  .tiers {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Selection reads by weight and a rule, never a second green control
+   (DESIGN.md §5 one-accent discipline) -- the same technique Steps uses for
+   current/complete. */
+.tierCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+.tierCard[data-selected] {
+  border-top: 2px solid var(--ink);
+}
+
+.tierTitle {
+  color: var(--ink-soft);
+}
+
+.tierCard[data-selected] .tierTitle {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.tierDescription {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.research {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.research input {
+  margin-top: 0.35em;
+  accent-color: var(--ink);
+}
+
+.researchTitle {
+  display: block;
+  font-weight: 500;
+}
+
+.researchCost {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.error {
+  max-width: var(--measure);
+  color: var(--clay);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* --- working -------------------------------------------------------------- */
+
+.notice {
+  color: var(--ink-soft);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.elapsed {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+/* --- done ------------------------------------------------------------------
+   DESIGN.md §6 peak-end: the polish budget goes here. */
+
+.doneHeading {
+  font-size: var(--text-2xl);
+}
+
+.keywordCoverage {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.skipAction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+.skipNote {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+.preview {
+  width: 100%;
+  height: 32rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--base);
+}
+
+.downloads {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}

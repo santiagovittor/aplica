@@ -1,0 +1,42 @@
+/* SLICE-13 decision 7: no chrome beyond a hairline. No second accent, so
+   links use --ink, never --green (DESIGN.md §5's one-accent discipline). */
+
+.header {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-6);
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--margin-outer);
+}
+
+@media (min-width: 60rem) {
+  .nav {
+    padding-inline: var(--space-7);
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--ink-soft);
+}
+
+/* Current screen: weight and a rule, the same discipline Steps uses for
+   current/complete -- never a colour change. */
+.link[aria-current='page'] {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}

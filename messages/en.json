@@ -13,6 +13,11 @@
     "en": "English",
     "es": "Spanish"
   },
+  "Header": {
+    "label": "Main",
+    "apply": "Apply",
+    "account": "Account"
+  },
   "Auth": {
     "signIn": {
       "title": "Sign in",
@@ -110,6 +115,11 @@
       "replace": "Replace it",
       "upload": "Upload your CV"
     },
+    "apply": {
+      "title": "Apply to a job",
+      "body": "Paste a posting, pick a tier, and get a tailored resume in one sitting.",
+      "link": "Start an application"
+    },
     "language": {
       "title": "Language",
       "body": "This changes the app. It does not change the language your applications are written in."
@@ -161,11 +171,79 @@
     }
   },
   "Apply": {
+    "title": "Apply to a job",
+    "lead": "Paste the posting. We will tailor your resume to it, tell you honestly whether it is worth sending, and let you download it either way.",
+    "chip": {
+      "onFile": "Your CV is on file.",
+      "none": "No CV on file yet.",
+      "upload": "Upload one",
+      "replace": "Replace it"
+    },
+    "language": {
+      "label": "Write it in",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "posting": {
+      "label": "The job posting",
+      "placeholder": "Paste the full posting here.",
+      "hint": "The text of the posting, not a link to it."
+    },
+    "tier": {
+      "label": "Choose a tier",
+      "basic": {
+        "title": "Basic",
+        "description": "Resume, as a PDF."
+      },
+      "standard": {
+        "title": "Standard",
+        "description": "Resume and cover letter, as PDFs."
+      },
+      "full": {
+        "title": "Full",
+        "description": "Resume and cover letter, as PDF and Word."
+      }
+    },
+    "research": {
+      "label": "Research the company",
+      "cost": {
+        "anthropic": "Anthropic charges $10 per 1,000 searches for this, on top of tokens.",
+        "google": "Google charges $14 per 1,000 requests for this, on top of tokens. The first 5,000 each month are free."
+      }
+    },
+    "generate": "Tailor my application",
+    "notice": "Writing something worth sending takes about a minute. Here is what is happening the whole way.",
+    "elapsed": "{seconds}s so far",
     "stages": {
+      "starting": "Getting ready",
       "draft": "Writing your first draft",
       "review": "Checking it against the posting",
       "revise": "Applying what the review found",
       "saving": "Saving your application"
+    },
+    "stageStatus": {
+      "complete": "done",
+      "current": "in progress",
+      "incomplete": "not started yet"
+    },
+    "result": {
+      "fitLabel": "Fit score",
+      "flagsLabel": "Worth knowing",
+      "keywordCoverage": "{percent}% of the posting’s own words show up in yours.",
+      "download": {
+        "resume": "Resume",
+        "cover-letter": "Cover letter"
+      }
+    },
+    "done": {
+      "heading": "Your application is ready",
+      "applyHeading": "Worth sending",
+      "skipHeading": "Worth a second look first",
+      "skipNote": "We would not send this one as it stands, but it is yours. Nothing is generated until you ask for it.",
+      "downloadAnyway": "Download it anyway",
+      "rendering": "Turning it into files",
+      "previewTitle": "Your resume",
+      "another": "Start another application"
     },
     "errors": {
       "unauthorized": "Your session ran out. Sign in and try again.",
@@ -184,7 +262,8 @@
       "application_not_found": "We could not find that application.",
       "application_unreadable": "That application was saved before we could re-create its files. Generate it again.",
       "render_failed": "We wrote the application but could not turn it into files. Try the download again.",
-      "unexpected": "Something went wrong on our side. Try again."
+      "unexpected": "Something went wrong on our side. Try again.",
+      "streamInterrupted": "We lost the connection before hearing back. Wait a moment, then try again."
     },
     "retry": "Try again",
     "retryRender": "Try the download again"
