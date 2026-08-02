@@ -110,7 +110,14 @@ function describeFinding(finding: GroundingFinding): string {
   return parts.join(', ');
 }
 
-export function CvUpload() {
+/**
+ * `nextHref` (SLICE-19): where the `done` state's primary link goes once a
+ * CV is parsed. Defaults to `/account`, the standalone `/cv` page's own
+ * finish, so this component still does not know it is inside onboarding
+ * (SLICE-12 decision 2) -- it only knows where "done" goes, which onboarding
+ * overrides to its own `voice` step.
+ */
+export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
   const t = useTranslations('Cv');
   const [phase, setPhase] = useState<Phase>('empty');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -456,7 +463,7 @@ export function CvUpload() {
 
           <motion.div variants={DONE_ITEM} className={styles.row}>
             <Link
-              href="/account"
+              href={nextHref}
               className={`${buttonStyles.button} ${buttonStyles.primary}`}
             >
               {t('done.next')}

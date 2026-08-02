@@ -187,6 +187,12 @@
     "key": {
       "title": "Add your model key",
       "lead": "This is what writes your applications, at your own provider’s rates. You keep the key; we only check that it works before we store it."
+    },
+    "voice": {
+      "title": "Which sounds more like you?",
+      "lead": "Both of these lines are pulled straight from your own CV. Pick whichever one feels more like something you’d actually say, just so you can see we write from your real words, not a generic voice.",
+      "prompt": "Pick one",
+      "error": "Something went wrong on our side. Try again."
     }
   },
   "Applications": {

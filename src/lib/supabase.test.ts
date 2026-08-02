@@ -11,10 +11,12 @@ import {
   loadLocale,
   loadOnboardingDismissed,
   loadProfile,
+  loadVoiceCalibratedAt,
   saveApplication,
   saveDisplayName,
   saveLocale,
   saveProfile,
+  saveVoiceCalibratedAt,
   startApplication,
   StoredShapeError,
   SupabaseError,
@@ -610,6 +612,45 @@ describe('dismissOnboarding', () => {
     expect(JSON.parse(String(calls[0].body))).toEqual({
       onboarding_dismissed: true,
     });
+  });
+});
+
+describe('loadVoiceCalibratedAt', () => {
+  it('returns the stored timestamp', async () => {
+    respondWithJson([{ voice_calibrated_at: '2026-08-02T21:00:00.000Z' }]);
+
+    expect(await loadVoiceCalibratedAt(USER)).toBe('2026-08-02T21:00:00.000Z');
+  });
+
+  it('returns null when the column is unset', async () => {
+    respondWithJson([{ voice_calibrated_at: null }]);
+
+    expect(await loadVoiceCalibratedAt(USER)).toBeNull();
+  });
+
+  it('returns null when there is no profile row', async () => {
+    // No CV uploaded yet is an ordinary state, not a failure.
+    respondWithJson([]);
+
+    expect(await loadVoiceCalibratedAt(USER)).toBeNull();
+  });
+});
+
+describe('saveVoiceCalibratedAt', () => {
+  it('patches the profile row with the current time', async () => {
+    await saveVoiceCalibratedAt(USER);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe(
+      `${URL_BASE}/rest/v1/profiles?user_id=eq.${USER}`,
+    );
+    const body = JSON.parse(String(calls[0].body)) as {
+      voice_calibrated_at: string;
+    };
+    expect(new Date(body.voice_calibrated_at).toISOString()).toBe(
+      body.voice_calibrated_at,
+    );
   });
 });
 

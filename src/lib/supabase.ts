@@ -173,6 +173,48 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
   return result.data;
 }
 
+const StoredCalibration = z.object({
+  voice_calibrated_at: z.string().nullable(),
+});
+
+/**
+ * Whether the onboarding voice-calibration screen (SLICE-19) has already been
+ * answered. Null (the column's own name) means never shown, which is the
+ * ordinary state for an account with no profile yet or one written before
+ * this column existed.
+ */
+export async function loadVoiceCalibratedAt(
+  userId: string,
+): Promise<string | null> {
+  const owner = z.uuid().parse(userId);
+
+  const row = await readOne(
+    'voice calibration read',
+    `/rest/v1/profiles?user_id=eq.${owner}&select=voice_calibrated_at&limit=1`,
+  );
+
+  return row === null ? null : StoredCalibration.parse(row).voice_calibrated_at;
+}
+
+/**
+ * Marks the voice-calibration screen answered, whether the user picked an
+ * anchor or skipped -- both are "shown," and SLICE-19 decision 5 asks for it
+ * to be offered at most once either way.
+ */
+export async function saveVoiceCalibratedAt(userId: string): Promise<void> {
+  const owner = z.uuid().parse(userId);
+
+  await supabaseRequest(
+    'voice calibration update',
+    `/rest/v1/profiles?user_id=eq.${owner}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ voice_calibrated_at: new Date().toISOString() }),
+    },
+  );
+}
+
 const StoredName = z.object({ display_name: z.string().nullable() });
 
 /**

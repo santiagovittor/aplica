@@ -107,6 +107,61 @@
   color: var(--clay);
 }
 
+.groupLabel {
+  display: block;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+/* SLICE-19: the `voice` step's two-anchor picker, the same selectable-card
+   technique ApplyForm.tsx's tier cards already use (apply.module.css's
+   `.tiers`/`.tierCard`/`.tierTitle`) -- selection reads by weight and a rule,
+   never a second green control (§5 one-accent), same as `Steps`. */
+.anchors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 0;
+  border: none;
+  margin: 0;
+}
+
+.anchorCard {
+  display: block;
+  padding: var(--space-4);
+  border-top: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: border-color var(--dur-micro) var(--ease-soft);
+}
+
+.anchorCard:hover {
+  border-top-color: var(--ink-soft);
+}
+
+.anchorCard[data-selected] {
+  border-top: 2px solid var(--ink);
+}
+
+/* The radio itself is visually-hidden, so the global :focus-visible ring
+   would land on a box too small to see; :has() moves it onto the card a
+   keyboard user actually reads (same technique as ApplyForm's tier cards). */
+.anchorCard:has(input:focus-visible) {
+  outline: var(--focus-width) solid var(--green);
+  outline-offset: var(--focus-offset);
+}
+
+.anchorText {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.anchorCard[data-selected] .anchorText {
+  font-weight: 500;
+  font-style: normal;
+  color: var(--ink);
+}
+
 /* Decision 3: the step's own primary button and its quiet skip action sit
    next to each other, never a second green control (§5 one-accent). */
 .actions {

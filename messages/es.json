@@ -187,6 +187,12 @@
     "key": {
       "title": "Agregá tu clave del modelo",
       "lead": "Con esto se escriben tus candidaturas, a las tarifas de tu propio proveedor. La clave es tuya; nosotros solo comprobamos que funcione antes de guardarla."
+    },
+    "voice": {
+      "title": "¿Cuál se parece más a vos?",
+      "lead": "Estas dos líneas son de tu propio CV. Elegí la que te suene más a algo que dirías vos, solo para mostrarte que escribimos con tus palabras reales, no con una voz genérica.",
+      "prompt": "Elegí una",
+      "error": "Algo falló de nuestro lado. Probá de nuevo."
     }
   },
   "Applications": {
