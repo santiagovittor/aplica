@@ -19,6 +19,11 @@
     "applications": "Applications",
     "account": "Account"
   },
+  "Footer": {
+    "label": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
   "Auth": {
     "signIn": {
       "title": "Sign in",
@@ -370,6 +375,54 @@
         "droppedBody": "Not an exact quote from your CV, so it was left out rather than paraphrased:"
       },
       "next": "Go to your account"
+    }
+  },
+  "Privacy": {
+    "title": "Privacy",
+    "lead": "What happens to your CV and your model key, before you hand over either.",
+    "sections": {
+      "collect": {
+        "title": "What we collect",
+        "body": "Your email to sign you in, the CV file you upload and the profile we parse from it, and the API key for whichever model provider you connect."
+      },
+      "why": {
+        "title": "Why",
+        "body": "To turn a job posting you paste in into a resume and cover letter tailored to it, in your own voice."
+      },
+      "key": {
+        "title": "Your model key",
+        "body": "It is encrypted at rest with AES-256-GCM, using a key held in a server-side secret, not in the database next to it. It is used only on the server, to call the provider you chose, and it is never sent back to your browser, logged, or put in an error message, and it is never shown again after you save it. Delete it any time, one click, in your account."
+      },
+      "cv": {
+        "title": "Your CV",
+        "body": "We parse it once into a structured profile and draw from that from then on. The file and the profile stay yours: nothing from it is ever sent to an employer or anywhere outside this product."
+      },
+      "delete": {
+        "title": "Deleting your account",
+        "body": "Removes your profile, the parsed CV, the file you uploaded, every application you generated, and your encrypted key. There is no soft delete: once it runs, it is gone."
+      }
+    }
+  },
+  "Terms": {
+    "title": "Terms",
+    "lead": "The plain-language version, for a product with no lawyers and no billing yet.",
+    "sections": {
+      "byoKey": {
+        "title": "Bring your own key",
+        "body": "Aplica does not charge for generation. You connect your own model provider account, and you pay that provider directly, at their rates. That relationship, and that spend, is between you and them."
+      },
+      "openSource": {
+        "title": "Open source engine",
+        "body": "The engine that writes your applications is MIT licensed. You can read exactly what it does with your CV and your key, or self-host it yourself."
+      },
+      "warranty": {
+        "title": "No warranty",
+        "body": "This is provided as is, with no warranty of any kind. We work to keep it honest and accurate, but you are the one sending your application, so review it before you do."
+      },
+      "v1": {
+        "title": "A v1 product",
+        "body": "There is no billing yet. If that changes, it will be a clear, separate decision you can see coming, never a silent change to what you already agreed to."
+      }
     }
   },
   "Styleguide": {

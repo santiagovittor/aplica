@@ -19,6 +19,11 @@
     "applications": "Postulaciones",
     "account": "Cuenta"
   },
+  "Footer": {
+    "label": "Legal",
+    "privacy": "Privacidad",
+    "terms": "Términos"
+  },
   "Auth": {
     "signIn": {
       "title": "Iniciá sesión",
@@ -370,6 +375,54 @@
         "droppedBody": "No es una cita exacta de tu CV, así que se dejó afuera en vez de parafrasearlo:"
       },
       "next": "Ir a tu cuenta"
+    }
+  },
+  "Privacy": {
+    "title": "Privacidad",
+    "lead": "Qué pasa con tu CV y tu clave del modelo, antes de que nos los confíes.",
+    "sections": {
+      "collect": {
+        "title": "Qué recolectamos",
+        "body": "Tu correo para iniciar tu sesión, el archivo de tu CV que subís y el perfil que armamos a partir de él, y la clave de API del proveedor de modelo que conectes."
+      },
+      "why": {
+        "title": "Para qué",
+        "body": "Para convertir un aviso de trabajo que pegás en un currículum y una carta de presentación hechos a medida, con tu propia voz."
+      },
+      "key": {
+        "title": "Tu clave del modelo",
+        "body": "Se cifra en reposo con AES-256-GCM, con una clave que vive en un secreto del lado del servidor, no en la base de datos junto a ella. Se usa solo del lado del servidor, para llamar al proveedor que elegiste, y nunca vuelve a tu navegador, no se registra ni aparece en un mensaje de error, y no se vuelve a mostrar después de que la guardás. Borrala cuando quieras, con un clic, en tu cuenta."
+      },
+      "cv": {
+        "title": "Tu CV",
+        "body": "Lo analizamos una vez para armar un perfil estructurado, y de ahí en más trabajamos con ese perfil. El archivo y el perfil son tuyos: nada de ahí se manda nunca a un empleador ni a ningún lado fuera de este producto."
+      },
+      "delete": {
+        "title": "Borrar tu cuenta",
+        "body": "Elimina tu perfil, el CV analizado, el archivo que subiste, todas las candidaturas que generaste y tu clave cifrada. No hay borrado blando: una vez que corre, desaparece."
+      }
+    }
+  },
+  "Terms": {
+    "title": "Términos",
+    "lead": "La versión en lenguaje llano, para un producto sin abogados y sin cobro todavía.",
+    "sections": {
+      "byoKey": {
+        "title": "Traé tu propia clave",
+        "body": "Aplica no cobra por generar. Vos conectás tu propia cuenta de proveedor de modelo, y le pagás directo a ese proveedor, a sus tarifas. Esa relación, y ese gasto, son entre vos y ellos."
+      },
+      "openSource": {
+        "title": "Motor de código abierto",
+        "body": "El motor que escribe tus candidaturas tiene licencia MIT. Podés leer exactamente qué hace con tu CV y tu clave, o alojarlo vos mismo."
+      },
+      "warranty": {
+        "title": "Sin garantía",
+        "body": "Esto se ofrece tal cual, sin garantía de ningún tipo. Trabajamos para que sea honesto y preciso, pero quien manda la postulación sos vos, así que revisala antes de hacerlo."
+      },
+      "v1": {
+        "title": "Un producto v1",
+        "body": "Todavía no hay cobro. Si eso cambia, va a ser una decisión clara y separada que vas a ver venir, nunca un cambio silencioso a lo que ya aceptaste."
+      }
     }
   },
   "Styleguide": {

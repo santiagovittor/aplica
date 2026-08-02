@@ -1,0 +1,43 @@
+/* SLICE-17: the first page whose entire job is prose. DESIGN.md §3's centered
+   single column for "pure reading," capped at the measure -- never the 7/12
+   asymmetric grid the working screens use. Shared by /privacy and /terms:
+   same layout twice, not a second file. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding: var(--space-8) var(--margin-outer) var(--space-10);
+}
+
+@media (min-width: 60rem) {
+  .shell {
+    padding-inline: var(--space-7);
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.lead {
+  color: var(--ink-soft);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: var(--text-xl);
+}
