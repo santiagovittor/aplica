@@ -547,6 +547,69 @@ export async function loadApplication(
   };
 }
 
+/** One row of the Applications list (SLICE-16): every column a row needs to
+ * render itself, and nothing a row never shows -- `content` is absent on
+ * purpose, since a list row never needs the full resume/cover-letter text.
+ */
+export interface ApplicationSummary {
+  id: string;
+  company: string | null;
+  role: string | null;
+  tier: Tier;
+  fitScore: number;
+  /** Empty means the render step hasn't run yet, or failed and hasn't been
+   * retried -- a real, expected state, not corruption. */
+  files: StoredFile[];
+  createdAt: string;
+}
+
+const ApplicationSummaryRow = z.object({
+  id: z.uuid(),
+  company: z.string().nullable(),
+  role: z.string().nullable(),
+  tier: z.enum(['basic', 'standard', 'full']),
+  fit_score: z.number(),
+  files: z.array(StoredFileRow),
+  created_at: z.string(),
+});
+
+/**
+ * Every application row a user has, newest first (SLICE-16 decision 1).
+ *
+ * Reads with `SUPABASE_SECRET_KEY`, which bypasses row-level security, so the
+ * `user_id` filter is the only thing standing between this call and every
+ * user's rows -- same discipline `loadApplication` already uses.
+ *
+ * No pagination: the per-user daily generation cap (PROJECT.md section 11)
+ * keeps one user's row count small by construction, so a plain, unlimited
+ * list is honest for v1 (SLICE-16 decision 4).
+ */
+export async function listApplications(
+  userId: string,
+): Promise<ApplicationSummary[]> {
+  const owner = z.uuid().parse(userId);
+
+  const response = await supabaseRequest(
+    'applications list',
+    `/rest/v1/applications?user_id=eq.${owner}&select=id,company,role,tier,fit_score,files,created_at&order=created_at.desc`,
+    { method: 'GET' },
+  );
+  const rows = (await response.json()) as unknown[];
+
+  return rows.map((row) => {
+    const parsed = ApplicationSummaryRow.parse(row);
+    return {
+      id: parsed.id,
+      company: parsed.company,
+      role: parsed.role,
+      tier: parsed.tier,
+      fitScore: parsed.fit_score,
+      files: parsed.files,
+      createdAt: parsed.created_at,
+    };
+  });
+}
+
 /**
  * Renders stored and indexed on a row that already exists.
  *

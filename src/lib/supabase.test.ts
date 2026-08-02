@@ -5,6 +5,7 @@ import type { RenderedFile } from '../render/index';
 import {
   attachFiles,
   dismissOnboarding,
+  listApplications,
   loadApplication,
   loadDisplayName,
   loadLocale,
@@ -727,6 +728,81 @@ describe('loadApplication', () => {
 
   it('refuses an application id that is not a UUID', async () => {
     await expect(loadApplication(USER, '../../other')).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+});
+
+function summaryRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: APPLICATION_ID,
+    company: 'Cooperativa del Norte',
+    role: 'Operations analyst',
+    tier: 'standard',
+    fit_score: 72,
+    files: [],
+    created_at: '2026-07-30T12:00:00Z',
+    ...overrides,
+  };
+}
+
+describe('listApplications', () => {
+  it('returns every row, translated to the shape a list needs', async () => {
+    respondWithJson([summaryRow()]);
+
+    const rows = await listApplications(USER);
+
+    expect(rows).toEqual([
+      {
+        id: APPLICATION_ID,
+        company: 'Cooperativa del Norte',
+        role: 'Operations analyst',
+        tier: 'standard',
+        fitScore: 72,
+        files: [],
+        createdAt: '2026-07-30T12:00:00Z',
+      },
+    ]);
+    expect(calls[0].method).toBe('GET');
+  });
+
+  it('scopes the read to the owner and orders newest first', async () => {
+    // This reads with the secret key, which bypasses row-level security, so
+    // the user_id filter is the only thing between this call and every
+    // user's rows.
+    respondWithJson([summaryRow()]);
+
+    await listApplications(USER);
+
+    expect(calls[0].url).toContain(`user_id=eq.${USER}`);
+    expect(calls[0].url).toContain('order=created_at.desc');
+  });
+
+  it('never selects content, which a list row does not need', async () => {
+    respondWithJson([summaryRow()]);
+
+    await listApplications(USER);
+
+    expect(calls[0].url).not.toContain('content');
+  });
+
+  it('returns an empty list for a user with no applications', async () => {
+    respondWithJson([]);
+
+    expect(await listApplications(USER)).toEqual([]);
+  });
+
+  it('returns a row with no files as a legal, empty-files row', async () => {
+    // files defaults to '[]'::jsonb until attachFiles runs -- a real,
+    // expected state, not corruption.
+    respondWithJson([summaryRow({ files: [] })]);
+
+    const [row] = await listApplications(USER);
+
+    expect(row.files).toEqual([]);
+  });
+
+  it('refuses a user id that is not a UUID', async () => {
+    await expect(listApplications('../../other-user')).rejects.toThrow();
     expect(calls).toHaveLength(0);
   });
 });

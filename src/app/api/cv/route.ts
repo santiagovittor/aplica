@@ -4,7 +4,11 @@ import {
   MAX_CV_BYTES,
 } from '../../../core/extract-text';
 import { ProfileParseError, parseCv } from '../../../core/parse-cv';
-import { getDecryptedKey, describeApiKey } from '../../../lib/api-keys';
+import {
+  describeApiKey,
+  getDecryptedKey,
+  type KeyProvider,
+} from '../../../lib/api-keys';
 import { isTimeout, stream, type Send } from '../../../lib/sse';
 import { currentUser } from '../../../lib/session';
 import { loadLocale, saveProfile } from '../../../lib/supabase';
@@ -130,6 +134,17 @@ export async function POST(request: Request): Promise<Response> {
     return json('key_missing', 409);
   }
 
+  // `openai_compatible` has no `DEFAULT_MODELS` entry -- only the host knows
+  // what it serves -- so the account has to carry a model before a single
+  // token is spent. Before this check existed, a missing model surfaced as a
+  // plain `Error` from the adapter ("A model is required for a custom
+  // endpoint"), which is not a `ProviderError` and fell through `failure`
+  // below to a generic `unexpected`. This gives it its own honest refusal
+  // instead.
+  if (stored.provider === 'openai_compatible' && stored.model === null) {
+    return json('model_missing', 409);
+  }
+
   return stream(async (send: Send) => {
     send('stage', { stage: 'reading' satisfies CvStage });
 
@@ -173,6 +188,9 @@ export async function POST(request: Request): Promise<Response> {
       {
         locale,
         signal,
+        // Only ever set for `openai_compatible`; the three named providers
+        // fall through to `PARSE_MODELS` / `DEFAULT_MODELS` as before.
+        ...(stored.model === null ? {} : { model: stored.model }),
       },
     );
 
@@ -204,10 +222,7 @@ export async function POST(request: Request): Promise<Response> {
  * repeat CLAUDE.md's DRY rule asks for, and the two routes' provider unions
  * already differ in what they might grow to accept.
  */
-function keyedProvider(
-  userId: string,
-  provider: 'anthropic' | 'openai' | 'google',
-): Provider {
+function keyedProvider(userId: string, provider: KeyProvider): Provider {
   return {
     id: provider,
     supportsSearch: false,
@@ -215,6 +230,19 @@ function keyedProvider(
       const key = await getDecryptedKey(userId);
       if (key === null) {
         throw new KeyGone();
+      }
+
+      if (key.provider === 'openai_compatible') {
+        if (key.baseUrl === null) {
+          // The check constraint on `api_keys` guarantees this cannot happen;
+          // guarded anyway, same reasoning as `/api/generate`'s own copy.
+          throw new Error('A stored openai_compatible key has no endpoint.');
+        }
+        return createProvider({
+          id: 'openai_compatible',
+          apiKey: key.apiKey,
+          baseUrl: key.baseUrl,
+        }).generate(messages, opts);
       }
 
       return createProvider({

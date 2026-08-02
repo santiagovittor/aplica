@@ -27,6 +27,7 @@ export function Header({ authenticated }: { authenticated: boolean }) {
 
   const links = [
     { href: '/apply', label: t('apply') },
+    { href: '/applications', label: t('applications') },
     { href: '/account', label: t('account') },
   ] as const;
 

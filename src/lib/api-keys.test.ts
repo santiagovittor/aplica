@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ApiKeyEndpointInvalid,
+  ApiKeyModelInvalid,
   ApiKeyRejected,
   ApiKeyUnreachable,
   deleteApiKey,
@@ -27,6 +29,13 @@ const SECRET = 'sb_secret_pretend-this-is-real';
 const URL_BASE = 'http://127.0.0.1:54321';
 const USER = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const ENCRYPTION_KEY = randomBytes(32).toString('base64');
+
+// A literal address, not a hostname: `assertResolvesSafely` skips DNS
+// entirely for one (`isIP` short-circuits it), so `openai_compatible` tests
+// need no DNS mock, the same reasoning `url-guard.test.ts` already uses this
+// address for.
+const COMPATIBLE_BASE_URL = 'https://8.8.8.8/v1';
+const COMPATIBLE_MODEL = 'meta/llama-3.1-70b-instruct';
 
 interface Captured {
   url: string;
@@ -108,8 +117,17 @@ function restore(name: string, value: string | undefined) {
 /** The row PostgREST would return after a save, taken from the save itself. */
 function storedRow(provider = 'anthropic') {
   const written = calls.find((call) => call.url.includes('/rest/v1/api_keys'));
-  const payload = JSON.parse(written?.body ?? '{}') as { ciphertext: string };
-  return { provider, ciphertext: payload.ciphertext };
+  const payload = JSON.parse(written?.body ?? '{}') as {
+    ciphertext: string;
+    base_url: string | null;
+    model: string | null;
+  };
+  return {
+    provider,
+    ciphertext: payload.ciphertext,
+    base_url: payload.base_url ?? null,
+    model: payload.model ?? null,
+  };
 }
 
 describe('saveApiKey', () => {
@@ -143,9 +161,10 @@ describe('saveApiKey', () => {
     expect(row.user_id).toBe(USER);
     expect(row.provider).toBe('google');
     expect(String(row.ciphertext)).toMatch(/^v1\./);
-    // The three named providers carry no base URL, and the check constraint in
-    // 20260726153343 refuses a row that does.
+    // The three named providers carry no base URL or model, and the check
+    // constraints in 20260726153343 and 20260801120000 refuse a row that does.
     expect(row.base_url ?? null).toBeNull();
+    expect(row.model ?? null).toBeNull();
   });
 
   it('returns nothing at all', async () => {
@@ -203,6 +222,116 @@ describe('a key the provider refuses', () => {
   });
 });
 
+/**
+ * `openai_compatible` is the one provider with no fixed host: the base URL
+ * and model both come from the account form and are validated here, before
+ * `assertKeyWorks` ever reaches the network (SLICE-15 decision 3).
+ */
+describe('saveApiKey for openai_compatible', () => {
+  it('requires a base URL, and calls nobody without one', async () => {
+    await expect(
+      saveApiKey(
+        USER,
+        'openai_compatible',
+        PLAINTEXT,
+        undefined,
+        COMPATIBLE_MODEL,
+      ),
+    ).rejects.toBeInstanceOf(ApiKeyEndpointInvalid);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('refuses an unsafe base URL, and calls nobody', async () => {
+    // The exhaustive SSRF cases already live in url-guard.test.ts; this only
+    // proves `saveApiKey` actually calls `assertSafeBaseUrl` before touching
+    // the network, with one representative address.
+    await expect(
+      saveApiKey(
+        USER,
+        'openai_compatible',
+        PLAINTEXT,
+        'https://169.254.169.254/v1',
+        COMPATIBLE_MODEL,
+      ),
+    ).rejects.toBeInstanceOf(ApiKeyEndpointInvalid);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('requires a model, and calls nobody without one', async () => {
+    await expect(
+      saveApiKey(USER, 'openai_compatible', PLAINTEXT, COMPATIBLE_BASE_URL),
+    ).rejects.toBeInstanceOf(ApiKeyModelInvalid);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('refuses a model name that is not a plausible identifier', async () => {
+    // Untrusted input handed to a user-supplied host: no whitespace, no
+    // quote or brace characters, nothing that could look like an attempt to
+    // break out of the JSON body it is serialised into.
+    for (const bad of [
+      'not a model',
+      'model"; DROP TABLE',
+      'model\nwith-newline',
+      '{"id":"x"}',
+      '',
+    ]) {
+      calls = [];
+      await expect(
+        saveApiKey(
+          USER,
+          'openai_compatible',
+          PLAINTEXT,
+          COMPATIBLE_BASE_URL,
+          bad,
+        ),
+      ).rejects.toBeInstanceOf(ApiKeyModelInvalid);
+      expect(calls).toHaveLength(0);
+    }
+  });
+
+  it('checks the given endpoint, not a fixed host', async () => {
+    await saveApiKey(
+      USER,
+      'openai_compatible',
+      PLAINTEXT,
+      COMPATIBLE_BASE_URL,
+      COMPATIBLE_MODEL,
+    );
+
+    expect(calls[0].url).toBe(`${COMPATIBLE_BASE_URL}/models`);
+    expect(calls[0].method).toBe('GET');
+    expect(calls[1].url).toContain('/rest/v1/api_keys');
+  });
+
+  it('writes the endpoint and model, not just the ciphertext', async () => {
+    await saveApiKey(
+      USER,
+      'openai_compatible',
+      PLAINTEXT,
+      COMPATIBLE_BASE_URL,
+      COMPATIBLE_MODEL,
+    );
+    const row = JSON.parse(calls[1].body) as Record<string, unknown>;
+
+    expect(row.base_url).toBe(COMPATIBLE_BASE_URL);
+    expect(row.model).toBe(COMPATIBLE_MODEL);
+  });
+
+  it('is told apart from a provider that is down, same as the named three', async () => {
+    providerStatus = 503;
+
+    await expect(
+      saveApiKey(
+        USER,
+        'openai_compatible',
+        PLAINTEXT,
+        COMPATIBLE_BASE_URL,
+        COMPATIBLE_MODEL,
+      ),
+    ).rejects.toBeInstanceOf(ApiKeyUnreachable);
+  });
+});
+
 describe('getDecryptedKey', () => {
   it('round trips the key that was saved', async () => {
     await saveApiKey(USER, 'google', PLAINTEXT);
@@ -212,6 +341,27 @@ describe('getDecryptedKey', () => {
     expect(await getDecryptedKey(USER)).toEqual({
       provider: 'google',
       apiKey: PLAINTEXT,
+      baseUrl: null,
+      model: null,
+    });
+  });
+
+  it('round trips the endpoint and model for openai_compatible', async () => {
+    await saveApiKey(
+      USER,
+      'openai_compatible',
+      PLAINTEXT,
+      COMPATIBLE_BASE_URL,
+      COMPATIBLE_MODEL,
+    );
+    rows = [storedRow('openai_compatible')];
+    calls = [];
+
+    expect(await getDecryptedKey(USER)).toEqual({
+      provider: 'openai_compatible',
+      apiKey: PLAINTEXT,
+      baseUrl: COMPATIBLE_BASE_URL,
+      model: COMPATIBLE_MODEL,
     });
   });
 
@@ -233,18 +383,27 @@ describe('getDecryptedKey', () => {
 describe('describeApiKey', () => {
   it('says which provider, and nothing else', async () => {
     await saveApiKey(USER, 'openai', PLAINTEXT);
-    rows = [{ provider: 'openai' }];
+    rows = [{ provider: 'openai', model: null }];
 
     const described = await describeApiKey(USER);
 
-    expect(described).toEqual({ provider: 'openai' });
+    expect(described).toEqual({ provider: 'openai', model: null });
     // Not even a fragment. docs/security.md commits to never showing the key or
     // any part of it, so there is no last-four to leak and none to check.
     expect(JSON.stringify(described)).not.toContain(PLAINTEXT.slice(-4));
   });
 
+  it('says the default model for openai_compatible', async () => {
+    rows = [{ provider: 'openai_compatible', model: COMPATIBLE_MODEL }];
+
+    expect(await describeApiKey(USER)).toEqual({
+      provider: 'openai_compatible',
+      model: COMPATIBLE_MODEL,
+    });
+  });
+
   it('never asks the database for the ciphertext', async () => {
-    rows = [{ provider: 'openai' }];
+    rows = [{ provider: 'openai', model: null }];
     await describeApiKey(USER);
 
     expect(calls[0].url).toContain('select=provider');
@@ -264,6 +423,27 @@ describe('deleteApiKey', () => {
 
     expect(calls[0].method).toBe('DELETE');
     expect(calls[0].url).toContain(`user_id=eq.${USER}`);
+  });
+
+  it('clears the endpoint and model alongside the key, not just the ciphertext', async () => {
+    // One row, one delete (SLICE-15): base_url and model live on the same
+    // row as the ciphertext, and `deleteApiKey` issues no column list, so
+    // there is nothing for a delete to leave behind by accident. Simulated
+    // here the way the rest of this suite simulates a row disappearing:
+    // asserted against what a subsequent read sees, not just the DELETE call.
+    await saveApiKey(
+      USER,
+      'openai_compatible',
+      PLAINTEXT,
+      COMPATIBLE_BASE_URL,
+      COMPATIBLE_MODEL,
+    );
+    await deleteApiKey(USER);
+    rows = [];
+    calls = [];
+
+    expect(await getDecryptedKey(USER)).toBeNull();
+    expect(await describeApiKey(USER)).toBeNull();
   });
 });
 
@@ -331,7 +511,14 @@ describe('no failure path carries a credential', () => {
 
   it('not when the stored ciphertext will not decrypt', async () => {
     // A rotated encryption key, or a tampered row.
-    rows = [{ provider: 'anthropic', ciphertext: 'v1.aaa.bbb.ccc' }];
+    rows = [
+      {
+        provider: 'anthropic',
+        ciphertext: 'v1.aaa.bbb.ccc',
+        base_url: null,
+        model: null,
+      },
+    ];
     assertClean(await failureOf(() => getDecryptedKey(USER)));
   });
 

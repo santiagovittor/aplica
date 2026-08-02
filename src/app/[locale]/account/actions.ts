@@ -6,6 +6,8 @@ import { redirect } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { deleteAccount } from '@/lib/account';
 import {
+  ApiKeyEndpointInvalid,
+  ApiKeyModelInvalid,
   ApiKeyRejected,
   ApiKeyUnreachable,
   KEY_PROVIDERS,
@@ -57,6 +59,10 @@ function screenPath(locale: string, screen: z.infer<typeof Screen>): string {
 const KeyForm = z.object({
   provider: z.enum(KEY_PROVIDERS),
   key: z.string(),
+  /** Only meaningful for `openai_compatible`; `saveApiKey` is what actually
+   *  requires it for that provider and validates its shape. */
+  baseUrl: z.string().optional(),
+  model: z.string().optional(),
   locale: Locale,
   screen: Screen,
 });
@@ -70,26 +76,34 @@ export async function saveKey(
   const parsed = KeyForm.safeParse({
     provider: form.get('provider') ?? undefined,
     key: form.get('key') ?? undefined,
+    baseUrl: form.get('baseUrl') ?? undefined,
+    model: form.get('model') ?? undefined,
     locale: form.get('locale') ?? undefined,
     screen: form.get('screen') ?? undefined,
   });
   if (!parsed.success) {
     return { error: 'unknown' };
   }
-  const { provider, key, locale, screen } = parsed.data;
+  const { provider, key, baseUrl, model, locale, screen } = parsed.data;
 
   if (key.trim() === '') {
     return { error: 'empty', provider };
   }
 
   try {
-    await saveApiKey(user.id, provider, key);
+    await saveApiKey(user.id, provider, key, baseUrl, model);
   } catch (error) {
     // Mapped by type, never by message. The message is not shown and not
     // logged; what reaches the screen is one of our own sentences.
     if (error instanceof ApiKeyRejected) return { error: 'rejected', provider };
     if (error instanceof ApiKeyUnreachable) {
       return { error: 'unreachable', provider };
+    }
+    if (error instanceof ApiKeyEndpointInvalid) {
+      return { error: 'invalid_endpoint', provider };
+    }
+    if (error instanceof ApiKeyModelInvalid) {
+      return { error: 'invalid_model', provider };
     }
     return { error: 'unknown', provider };
   }

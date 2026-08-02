@@ -16,6 +16,7 @@
   "Header": {
     "label": "Principal",
     "apply": "Postular",
+    "applications": "Postulaciones",
     "account": "Cuenta"
   },
   "Auth": {
@@ -99,12 +100,25 @@
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",
-        "google": "Google"
+        "google": "Google",
+        "openai_compatible": "Personalizado (compatible con OpenAI)"
+      },
+      "endpoint": {
+        "label": "URL del endpoint",
+        "placeholder": "https://tu-host.ejemplo.com/v1",
+        "hint": "Un host con la forma de OpenAI: NVIDIA NIM, Ollama, OpenRouter, vLLM, o cualquier otro que hable la misma API. Solo público y https."
+      },
+      "model": {
+        "label": "Nombre del modelo",
+        "placeholder": "por ej. meta/llama-3.1-70b-instruct",
+        "hint": "Solo el host sabe qué sirve, así que acá nos lo decís vos. Después podés usar un modelo distinto en cada postulación."
       },
       "errors": {
         "empty": "Pegá una clave primero.",
         "rejected": "Esa clave no funcionó. Fijate que la hayas copiado entera y que sea de {provider}.",
         "unreachable": "No pudimos llegar a {provider} para comprobarla. Probá en un minuto.",
+        "invalid_endpoint": "Esa dirección no está permitida. Usá una URL https pública, no una local o privada.",
+        "invalid_model": "Eso no parece un nombre de modelo.",
         "unknown": "Algo falló de nuestro lado. Tu clave no se guardó."
       }
     },
@@ -170,6 +184,20 @@
       "lead": "Con esto se escriben tus candidaturas, a las tarifas de tu propio proveedor. La clave es tuya; nosotros solo comprobamos que funcione antes de guardarla."
     }
   },
+  "Applications": {
+    "title": "Tus postulaciones",
+    "lead": "Cada postulación que generaste, la más reciente primero.",
+    "empty": {
+      "invite": "Todavía no hay postulaciones",
+      "body": "Generá la primera y va a aparecer acá.",
+      "cta": "Empezar una postulación"
+    },
+    "row": {
+      "roleUnknown": "Puesto sin registrar",
+      "companyUnknown": "Empresa sin registrar",
+      "preparing": "Todavía estamos preparando tus archivos."
+    }
+  },
   "Apply": {
     "title": "Postulate a un trabajo",
     "lead": "Pegá el aviso. Vamos a adaptar tu currículum, decirte con sinceridad si vale la pena mandarlo, y dejarte descargarlo de cualquier manera.",
@@ -188,6 +216,17 @@
       "label": "El aviso de trabajo",
       "placeholder": "Pegá el aviso completo acá.",
       "hint": "El texto del aviso, no un enlace a él."
+    },
+    "postingUrl": {
+      "label": "O pegá un enlace al aviso",
+      "placeholder": "https://…",
+      "hint": "Vamos a intentar leer el aviso desde el enlace. Algunos sitios, como LinkedIn y Workday, lo bloquean, y si pasa eso, pegá el texto arriba."
+    },
+    "model": {
+      "label": "Modelo",
+      "placeholder": "por ej. meta/llama-3.1-70b-instruct",
+      "hint": "Por defecto usa el que configuraste en tu cuenta. Cambialo acá solo para esta postulación.",
+      "ceiling": "El tiempo de respuesta varía mucho según el host, de unos segundos a un par de minutos."
     },
     "tier": {
       "label": "Elegí un plan",
@@ -250,6 +289,8 @@
       "bad_request": "Algo de ese pedido no estaba bien. Probá de nuevo.",
       "key_missing": "Necesitás una clave del modelo antes de generar. Agregá una en tu cuenta.",
       "name_missing": "Necesitamos tu nombre antes de escribir nada, porque va en los documentos. Agregalo en tu cuenta.",
+      "model_missing": "Agregá un nombre de modelo antes de generar.",
+      "posting_url_blocked": "Ese sitio no nos deja leerlo. Pegá el texto del aviso en su lugar.",
       "profile_missing": "Subí tu CV primero. Todo sale de ahí.",
       "profile_unreadable": "Tu perfil guardado ya no tiene la forma que esperamos. Volvé a subir tu CV.",
       "rate_limited": "Van {limit} candidaturas hoy, que es el límite diario. Se reinicia a la medianoche UTC.",
@@ -298,6 +339,7 @@
       "unauthorized": "Se venció tu sesión. Iniciá sesión y probá de nuevo.",
       "bad_request": "Eso no llegó como un archivo. Elegilo de nuevo.",
       "key_missing": "Necesitás una clave del modelo antes de analizar un CV. Agregá una en tu cuenta.",
+      "model_missing": "Tu cuenta no tiene un nombre de modelo guardado. Agregá uno en tu cuenta.",
       "empty": "Ese archivo está vacío. Subí el CV en sí, no un acceso directo.",
       "too_large": "Ese archivo pesa más de 10 MB. Un CV tan pesado suele ser un escaneo; exportalo como PDF desde un procesador de texto.",
       "unsupported_type": "Ese archivo no es un PDF ni un .docx de Word, diga lo que diga su nombre. Exportá el CV como uno de esos dos y subilo de nuevo.",

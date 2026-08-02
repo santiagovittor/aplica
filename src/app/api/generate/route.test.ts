@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POSTING, PROFILE } from '../../../core/fixtures';
 import { createMockProvider } from '../../../providers/mock';
-import { ProviderError } from '../../../providers/types';
+import {
+  ProviderError,
+  type GenerateOptions,
+  type Message,
+} from '../../../providers/types';
 
 /**
  * The generation route, against mocks for everything it touches.
@@ -32,9 +36,14 @@ const { loadDisplayName, loadProfile, startApplication } = vi.hoisted(() => ({
 }));
 const { spendGeneration } = vi.hoisted(() => ({ spendGeneration: vi.fn() }));
 const { createProvider } = vi.hoisted(() => ({ createProvider: vi.fn() }));
+const { fetchPosting } = vi.hoisted(() => ({ fetchPosting: vi.fn() }));
 
 vi.mock('../../../lib/session', () => ({ currentUser }));
-vi.mock('../../../lib/api-keys', () => ({ describeApiKey, getDecryptedKey }));
+vi.mock('../../../lib/api-keys', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/api-keys')>()),
+  describeApiKey,
+  getDecryptedKey,
+}));
 vi.mock('../../../lib/supabase', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/supabase')>()),
   loadDisplayName,
@@ -49,6 +58,7 @@ vi.mock('../../../providers/index', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../providers/index')>()),
   createProvider,
 }));
+vi.mock('../../../core/fetch-posting', () => ({ fetchPosting }));
 
 const { POST } = await import('./route');
 const { StoredShapeError } = await import('../../../lib/supabase');
@@ -81,11 +91,15 @@ async function read(
   return { raw, events };
 }
 
-function post(body: unknown): Request {
+function post(
+  body: unknown,
+  { signal }: { signal?: AbortSignal } = {},
+): Request {
   return new Request('http://localhost/api/generate', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   });
 }
 
@@ -94,13 +108,21 @@ const VALID = { posting: POSTING, tier: 'standard' as const };
 beforeEach(() => {
   vi.clearAllMocks();
   currentUser.mockResolvedValue({ id: USER });
-  describeApiKey.mockResolvedValue({ provider: 'anthropic' });
-  getDecryptedKey.mockResolvedValue({ provider: 'anthropic', apiKey: API_KEY });
+  describeApiKey.mockResolvedValue({ provider: 'anthropic', model: null });
+  getDecryptedKey.mockResolvedValue({
+    provider: 'anthropic',
+    apiKey: API_KEY,
+    baseUrl: null,
+    model: null,
+  });
   loadDisplayName.mockResolvedValue(NAME);
   loadProfile.mockResolvedValue(PROFILE);
   startApplication.mockResolvedValue(APPLICATION_ID);
   spendGeneration.mockResolvedValue(1);
   createProvider.mockImplementation(() => createMockProvider());
+  fetchPosting.mockResolvedValue(
+    'fetched posting text, at least two hundred characters long so the fetch step never itself becomes the thing under test unless a test overrides this default explicitly for that purpose.',
+  );
 });
 
 afterEach(() => {
@@ -333,6 +355,143 @@ describe('the generation route refuses before it spends anything', () => {
   });
 });
 
+describe('the URL field is best-effort convenience', () => {
+  it('the paste box wins when both are filled, and the fetch never runs', async () => {
+    const { events } = await read(
+      await POST(post({ ...VALID, postingUrl: 'https://jobs.example.com/x' })),
+    );
+
+    expect(fetchPosting).not.toHaveBeenCalled();
+    expect(events.at(-1)?.event).toBe('done');
+  });
+
+  it('fetches the URL when the paste box is empty, before a token is spent', async () => {
+    const { events } = await read(
+      await POST(
+        post({
+          tier: 'standard',
+          postingUrl: 'https://jobs.example.com/posting',
+        }),
+      ),
+    );
+
+    expect(fetchPosting).toHaveBeenCalledWith(
+      'https://jobs.example.com/posting',
+      expect.any(Number),
+    );
+    expect(events.at(-1)?.event).toBe('done');
+  });
+
+  it('a blocked or failed fetch is a calm 422, not a stream, and spends nothing', async () => {
+    fetchPosting.mockRejectedValue(new Error('blocked'));
+
+    const response = await POST(
+      post({
+        tier: 'standard',
+        postingUrl: 'https://jobs.example.com/posting',
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: 'posting_url_blocked' });
+    expect(spendGeneration).not.toHaveBeenCalled();
+    expect(createProvider).not.toHaveBeenCalled();
+  });
+
+  it('neither a posting nor a URL is a bad request naming the posting field', async () => {
+    const response = await POST(post({ tier: 'standard' }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: 'bad_request',
+      fields: ['posting'],
+    });
+    expect(fetchPosting).not.toHaveBeenCalled();
+  });
+});
+
+describe('openai_compatible needs a model before it needs a token', () => {
+  it('refuses before the stream opens when neither the request nor the account has one', async () => {
+    describeApiKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      model: null,
+    });
+
+    const response = await POST(post(VALID));
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'model_missing' });
+    expect(spendGeneration).not.toHaveBeenCalled();
+    expect(createProvider).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the account default when the request names none', async () => {
+    const MODEL = 'meta/llama-3.1-70b-instruct';
+    const BASE_URL = 'https://host.example.com/v1';
+    describeApiKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      model: MODEL,
+    });
+    getDecryptedKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      apiKey: API_KEY,
+      baseUrl: BASE_URL,
+      model: MODEL,
+    });
+    // Delegates to the real MockProvider for a valid draft/review/revise
+    // response at each stage; the spy only captures what it was called with.
+    const inner = createMockProvider();
+    const generate = vi.fn(
+      (messages: Parameters<typeof inner.generate>[0], opts) =>
+        inner.generate(messages, opts),
+    );
+    createProvider.mockImplementation(() => ({
+      id: 'openai_compatible',
+      supportsSearch: false,
+      generate,
+    }));
+
+    await read(await POST(post(VALID)));
+
+    expect(createProvider).toHaveBeenCalledWith({
+      id: 'openai_compatible',
+      apiKey: API_KEY,
+      baseUrl: BASE_URL,
+    });
+    expect(generate.mock.calls[0][1]).toMatchObject({ model: MODEL });
+  });
+
+  it('an explicit model in the request overrides the account default', async () => {
+    const OVERRIDE = 'mistralai/mixtral-8x7b-instruct';
+    describeApiKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      model: 'meta/llama-3.1-70b-instruct',
+    });
+    getDecryptedKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      apiKey: API_KEY,
+      baseUrl: 'https://host.example.com/v1',
+      model: 'meta/llama-3.1-70b-instruct',
+    });
+    // Delegates to the real MockProvider for a valid draft/review/revise
+    // response at each stage; the spy only captures what it was called with.
+    const inner = createMockProvider();
+    const generate = vi.fn(
+      (messages: Parameters<typeof inner.generate>[0], opts) =>
+        inner.generate(messages, opts),
+    );
+    createProvider.mockImplementation(() => ({
+      id: 'openai_compatible',
+      supportsSearch: false,
+      generate,
+    }));
+
+    await read(await POST(post({ ...VALID, model: OVERRIDE })));
+
+    expect(generate.mock.calls[0][1]).toMatchObject({ model: OVERRIDE });
+  });
+});
+
 describe('the daily limit is spent before a token is', () => {
   it('and a refusal never reaches a provider', async () => {
     spendGeneration.mockRejectedValue(new GenerationLimitReached(20));
@@ -463,5 +622,40 @@ describe('a provider failure is told apart from the others', () => {
     await read(await POST(post(VALID)));
 
     expect(startApplication).not.toHaveBeenCalled();
+  });
+});
+
+describe('the timeout budget', () => {
+  it('a wedged provider ends in a calm, specific event, not a hang', async () => {
+    // The cases above prove `failure()` maps an AbortError to
+    // `provider_timeout`; they never prove anything actually aborts. A
+    // provider that just never resolves -- no error, no response -- hangs
+    // forever unless the signal this route builds actually carries a
+    // deadline (or the client's own signal fires). Passing that combined
+    // signal through to the mock and triggering only the client half proves
+    // the wiring end to end, the same way `/api/cv`'s equivalent test does.
+    createProvider.mockImplementation(() => ({
+      id: 'anthropic',
+      supportsSearch: false,
+      generate: (_messages: Message[], opts?: GenerateOptions) =>
+        new Promise((_resolve, reject) => {
+          opts?.signal?.addEventListener('abort', () => {
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+          });
+        }),
+    }));
+
+    const controller = new AbortController();
+    const responsePromise = POST(post(VALID, { signal: controller.signal }));
+    // Yield once so the route reaches the model call before aborting.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    controller.abort();
+
+    const { events } = await read(await responsePromise);
+
+    expect(events.at(-1)).toEqual({
+      event: 'error',
+      data: { error: 'provider_timeout' },
+    });
   });
 });

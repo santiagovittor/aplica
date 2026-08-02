@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { applyToPosting, type ApplyStage } from '../../../core/apply';
 import { ApplicationError } from '../../../core/application';
-import { describeApiKey, getDecryptedKey } from '../../../lib/api-keys';
+import { fetchPosting } from '../../../core/fetch-posting';
+import {
+  describeApiKey,
+  getDecryptedKey,
+  ModelId,
+  type KeyProvider,
+} from '../../../lib/api-keys';
 import { currentUser } from '../../../lib/session';
 import {
   loadDisplayName,
@@ -83,19 +89,55 @@ const MAX_POSTING_CHARS = 50_000;
 const MAX_LABEL_CHARS = 200;
 
 /**
+ * Seconds of headroom reserved to send a calm `provider_timeout` event and
+ * close the stream before Vercel's own hard kill (same reasoning as
+ * `/api/cv`'s `TIMEOUT_HEADROOM_S`).
+ *
+ * Without this, the chain below ran on `request.signal` alone, the
+ * tab-closed signal, not a deadline. `postJson`/`postJsonPinned` each fall
+ * back to their own `AbortSignal.timeout` only when handed no signal at
+ * all, and `request.signal` is always a defined object, so that fallback
+ * never fired: a wedged or silent provider hung the request forever, with
+ * nothing sent to the client and no error to catch. Caught 2026-08-01
+ * against a real NVIDIA NIM endpoint that never answered.
+ */
+const TIMEOUT_HEADROOM_S = 4;
+const GENERATE_TIMEOUT_MS = (maxDuration - TIMEOUT_HEADROOM_S) * 1000;
+
+/**
  * The request body. Deliberately no `user_id`: the user comes from the session
  * cookie, and a body that carried a user id is a body somebody edits.
+ *
+ * `posting` and `postingUrl` are both optional, and the refine below requires
+ * one of them: the paste box is the primary input (PROJECT.md section 9), and
+ * `postingUrl` is the best-effort convenience that wins only when the paste
+ * box is empty (see the handler).
  */
-const GenerateRequest = z.object({
-  posting: z.string().trim().min(1).max(MAX_POSTING_CHARS),
-  tier: z.enum(['basic', 'standard', 'full']),
-  /** Omit to write in the posting's own language. */
-  language: z.enum(['en', 'es']).optional(),
-  company: z.string().trim().max(MAX_LABEL_CHARS).optional(),
-  role: z.string().trim().max(MAX_LABEL_CHARS).optional(),
-  /** Research costs money per search on top of tokens, so it is the caller's. */
-  research: z.boolean().optional(),
-});
+const GenerateRequest = z
+  .object({
+    posting: z.string().trim().max(MAX_POSTING_CHARS).optional(),
+    postingUrl: z.string().trim().min(1).max(2048).optional(),
+    tier: z.enum(['basic', 'standard', 'full']),
+    /** Omit to write in the posting's own language. */
+    language: z.enum(['en', 'es']).optional(),
+    company: z.string().trim().max(MAX_LABEL_CHARS).optional(),
+    role: z.string().trim().max(MAX_LABEL_CHARS).optional(),
+    /** Research costs money per search on top of tokens, so it is the caller's. */
+    research: z.boolean().optional(),
+    /**
+     * Required for `openai_compatible` when the account has no default model
+     * stored; an override of that default otherwise. Absent for the three
+     * named providers, which have `DEFAULT_MODELS`.
+     */
+    model: ModelId.optional(),
+  })
+  .refine(
+    (data) => (data.posting ?? '') !== '' || data.postingUrl !== undefined,
+    {
+      message: 'Either a posting or a posting URL is required.',
+      path: ['posting'],
+    },
+  );
 
 /** The stages this route reports. The first three are the model calls. */
 type StreamStage = ApplyStage | 'saving';
@@ -147,6 +189,33 @@ export async function POST(request: Request): Promise<Response> {
     return json('profile_missing', 409);
   }
 
+  // `openai_compatible` has no `DEFAULT_MODELS` entry -- only the host knows
+  // what it serves -- so either this request or the account row has to name
+  // one. Checked here, before the fetch below and before a token is spent,
+  // same reasoning as every precondition above it.
+  if (
+    stored.provider === 'openai_compatible' &&
+    body.data.model === undefined &&
+    stored.model === null
+  ) {
+    return json('model_missing', 409);
+  }
+
+  // The URL field is best-effort convenience (PROJECT.md section 9): the
+  // paste box is the primary input, and this only runs when it is empty. The
+  // SSRF guard inside `fetchPosting` runs before a single token is spent, and
+  // any failure -- a blocked site, a private address, too little readable
+  // text -- collapses to the same calm fallback (SLICE-15 decision 2): paste
+  // the posting text instead, never a hard refusal.
+  let posting = body.data.posting ?? '';
+  if (posting === '' && body.data.postingUrl !== undefined) {
+    try {
+      posting = await fetchPosting(body.data.postingUrl, MAX_POSTING_CHARS);
+    } catch {
+      return json('posting_url_blocked', 422);
+    }
+  }
+
   // Last, and before the stream opens: the limit is spent before a token is,
   // and a refusal is a plain 429 rather than a stream that opens only to close.
   try {
@@ -158,8 +227,12 @@ export async function POST(request: Request): Promise<Response> {
     return json('unexpected', 500);
   }
 
+  // An explicit model in the request always wins; otherwise the account's
+  // stored default, which only `openai_compatible` ever has.
+  const model = body.data.model ?? stored.model ?? undefined;
+
   const options = {
-    posting: body.data.posting,
+    posting,
     profile,
     name,
     tier: body.data.tier,
@@ -169,9 +242,14 @@ export async function POST(request: Request): Promise<Response> {
     ...(body.data.research === undefined
       ? {}
       : { research: body.data.research }),
-    // The browser going away should stop the spending, not keep it running for
-    // a tab that is gone.
-    signal: request.signal,
+    ...(model === undefined ? {} : { model }),
+    // Either the browser going away or this route's own deadline should stop
+    // the chain: a tab that is gone should not keep spending, and a provider
+    // that never answers should not hang the request forever.
+    signal: AbortSignal.any([
+      request.signal,
+      AbortSignal.timeout(GENERATE_TIMEOUT_MS),
+    ]),
   };
 
   return stream(async (send) => {
@@ -219,20 +297,36 @@ export async function POST(request: Request): Promise<Response> {
  *
  * `supportsSearch` has to be answered before any call, so it is read from
  * `SEARCH_MODELS` rather than from an adapter, which would need a key to build.
+ * `openai_compatible` is absent from that table on purpose (a user-supplied
+ * host cannot be assumed to search), so it always reports false.
  */
-function keyedProvider(
-  userId: string,
-  provider: 'anthropic' | 'openai' | 'google',
-): Provider {
+function keyedProvider(userId: string, provider: KeyProvider): Provider {
   return {
     id: provider,
-    supportsSearch: SEARCH_MODELS[provider] !== undefined,
+    supportsSearch:
+      provider === 'openai_compatible'
+        ? false
+        : SEARCH_MODELS[provider] !== undefined,
     async generate(messages, opts) {
       const key = await getDecryptedKey(userId);
       if (key === null) {
         // Deleted between the check above and now, which is a real race: the
         // account screen has a one-click delete.
         throw new KeyGone();
+      }
+
+      if (key.provider === 'openai_compatible') {
+        if (key.baseUrl === null) {
+          // The check constraint on `api_keys` guarantees this cannot happen;
+          // guarded anyway because a thrown, code-mapped error is a far better
+          // failure than handing `createProvider` a base URL it will refuse.
+          throw new Error('A stored openai_compatible key has no endpoint.');
+        }
+        return createProvider({
+          id: 'openai_compatible',
+          apiKey: key.apiKey,
+          baseUrl: key.baseUrl,
+        }).generate(messages, opts);
       }
 
       return createProvider({

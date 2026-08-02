@@ -5,7 +5,9 @@ import styles from './FitScore.module.css';
  * thin hairline bar, one-line verdict. No gauge, no ring, no gradient meter.
  * Honest flags are plain text with a small marker, never traffic-light
  * pills." Shared rather than apply-specific markup (SLICE-13 decision 6):
- * the Applications list needs the identical display for every row.
+ * the Applications list needs the identical display for every row (SLICE-16
+ * decision 3, collapsed to just the number and bar -- `verdict` is optional
+ * for exactly that caller, and an absent one renders no line at all).
  *
  * The bar's fill is neutral ink, not colour-coded by score or
  * recommendation. Colour-coding it would be a third encoding of the same
@@ -17,7 +19,7 @@ export interface FitScoreProps {
   /** 0-100, as `applicationSchema.fit.score` already bounds it. */
   score: number;
   /** The model's one-sentence `reason`, shown as-is: honest, not truncated. */
-  verdict: string;
+  verdict?: string;
   flags: readonly string[];
   /** Accessible label for the number, e.g. "Fit score". */
   label: string;
@@ -43,7 +45,7 @@ export function FitScore({
       <div className={styles.bar} role="presentation">
         <div className={styles.fill} style={{ width: `${bounded}%` }} />
       </div>
-      <p className={styles.verdict}>{verdict}</p>
+      {verdict && <p className={styles.verdict}>{verdict}</p>}
 
       {flags.length > 0 && (
         <div className={styles.flags}>
