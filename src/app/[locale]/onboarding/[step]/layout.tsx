@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { requireUser } from '@/lib/session';
 import { Steps, type Step } from '@/ui/Steps';
 import styles from '../onboarding.module.css';
+import { StepTransition } from './StepTransition';
 
 /**
  * SLICE-12 decision 4: three entries, order and position only -- never a
@@ -60,7 +61,7 @@ export default async function OnboardingLayout({
       <nav className={styles.stepsNav}>
         <Steps steps={steps} label={t('progressLabel')} />
       </nav>
-      {children}
+      <StepTransition step={step}>{children}</StepTransition>
     </main>
   );
 }
