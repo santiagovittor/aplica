@@ -28,6 +28,21 @@
   }
 }
 
+/* SLICE-18: the step-transition wrapper sits between `.shell`'s grid and its
+   content. Below 60rem `.shell` is not a grid, so this is a plain box. At
+   60rem+ it must both span the full row and re-declare `.shell`'s own 12-col
+   template, or `.heading`/`.card`/`.shellActions` -- no longer direct grid
+   children of `.shell` -- would lose their `grid-column: 3 / span 8`
+   placement and spill edge to edge. */
+@media (min-width: 60rem) {
+  .stepTransition {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+  }
+}
+
 .heading {
   display: flex;
   flex-direction: column;

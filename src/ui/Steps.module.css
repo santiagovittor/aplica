@@ -10,6 +10,9 @@
   flex: 1;
   padding-top: var(--space-3);
   border-top: 1px solid var(--hairline);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    border-top-width var(--dur-micro) var(--ease-soft);
 }
 
 .number {
