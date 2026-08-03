@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { profileSchema } from './profile';
+import { motifLine, profileSchema } from './profile';
 
 // One well-formed profile, mutated per test. Every string here is the kind of
 // thing the CV would actually say, so a test that passes on nonsense is not
@@ -299,4 +299,50 @@ describe('profileSchema rejects', () => {
       expect(profileSchema.safeParse(build()).success).toBe(false);
     });
   }
+});
+
+describe('motifLine', () => {
+  it('picks the first voice anchor when one survived grounding', () => {
+    const profile = profileSchema.parse(validProfile());
+    expect(motifLine(profile)).toBe(
+      'I rebuilt the billing export so it runs on a schedule instead of by hand.',
+    );
+  });
+
+  it('falls back to the first bullet when there are no voice anchors', () => {
+    const profile = profileSchema.parse({
+      ...validProfile(),
+      voiceAnchors: [],
+    });
+    expect(motifLine(profile)).toBe(
+      'Cut the month-end close from three days to one.',
+    );
+  });
+
+  it('is empty for a profile with neither', () => {
+    const profile = profileSchema.parse({
+      voiceAnchors: [],
+      experience: [],
+      projects: [],
+      skills: [],
+      starStories: [],
+      education: [],
+      certifications: [],
+      languages: [],
+      keywordBank: [],
+      gaps: [],
+    });
+    expect(motifLine(profile)).toBe('');
+  });
+
+  it('caps a voice anchor longer than one sentence has any business being', () => {
+    const profile = profileSchema.parse({
+      ...validProfile(),
+      voiceAnchors: ['I shipped a thing. '.repeat(20).trim()],
+    });
+    const result = motifLine(profile);
+
+    expect(result.length).toBeLessThanOrEqual(240);
+    expect(result.endsWith('…')).toBe(true);
+  });
 });

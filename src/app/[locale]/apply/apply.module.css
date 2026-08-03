@@ -256,11 +256,12 @@
   align-items: center;
 }
 
-/* --- working / done: the Stage's one paper object ------------------------- */
-
-/* SLICE-20 §2.3: "one paper object centred on it" -- capped well short of
+/* --- working: the Stage's one paper object --------------------------------
+   SLICE-20 §2.3: "one paper object centred on it" -- capped well short of
    --content-max so it reads as a discrete object on the dark stage rather
-   than another edge-to-edge bar. */
+   than another edge-to-edge bar. The waiting state only: DESIGN.md §3's
+   fit-score exception takes the reveal off this card entirely (`.reveal`
+   below). */
 .card {
   display: flex;
   flex-direction: column;
@@ -291,16 +292,28 @@
   font-size: var(--text-xs);
 }
 
-/* --- done ------------------------------------------------------------------
-   DESIGN.md §6 peak-end: the polish budget goes here. */
+/* --- done: directly on --ink-deep -------------------------------------------
+   DESIGN.md §6 peak-end: the polish budget goes here. Same footprint as
+   `.card` (42rem, centred) so the working->done handoff doesn't jump width,
+   but no paper, no border: DESIGN.md §3's fit-score exception. Every color
+   below is measured against --ink-deep, not assumed -- see the CSS comments
+   on the values that needed a specific one. */
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 42rem;
+  margin-inline: auto;
+}
 
 .doneHeading {
   font-size: var(--text-2xl);
+  color: var(--on-dark);
 }
 
 .keywordCoverage {
   font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
+  color: var(--on-dark-soft);
   font-size: var(--text-xs);
 }
 
@@ -310,12 +323,29 @@
   gap: var(--space-4);
   margin-top: var(--space-2);
   padding-top: var(--space-5);
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--hairline-dark);
 }
 
 .skipNote {
   max-width: var(--measure);
-  color: var(--ink-soft);
+  color: var(--on-dark-soft);
+}
+
+/* A render failure's own text, distinct from `.error` (the form-phase error,
+   which stays on --base and keeps plain --clay): --clay measures 2.4:1 on
+   --ink-deep, well under AA even for large text, and DESIGN.md §5 has no
+   dark-ground pairing for it yet. Composed from tokens rather than a new
+   named color -- see DESIGN.md §5's clay-on-ink-deep note (measured 4.7:1). */
+.revealError {
+  max-width: var(--measure);
+  color: color-mix(in srgb, var(--clay) 70%, var(--paper) 30%);
+}
+
+/* The render-pending status text: `.notice` stays reserved for the working
+   card above, which is always --paper regardless of ground, so it can't
+   also serve this directly-on-ink-deep context without a conditional. */
+.rendering {
+  color: var(--on-dark-soft);
 }
 
 .results {
@@ -324,13 +354,13 @@
   gap: var(--space-5);
   margin-top: var(--space-2);
   padding-top: var(--space-5);
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--hairline-dark);
 }
 
 .preview {
   width: 100%;
   height: 32rem;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-dark);
   border-radius: var(--radius-md);
   background: var(--base);
 }
@@ -339,4 +369,14 @@
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+/* SLICE-20 §2.5: "high contrast, large targets... the brightest object on
+   the screen." buttonStyles.secondary is already --paper on --ink-deep --
+   16.5:1, measured -- so only size grows here, on top of the shared variant
+   rather than forking it (this is the one place downloads read this large). */
+.downloadButton {
+  min-height: calc(var(--target-min) + var(--space-2));
+  padding-inline: var(--space-6);
+  font-size: var(--text-base);
 }

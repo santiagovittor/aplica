@@ -12,7 +12,10 @@ import '../globals.css';
 
 const display = Fraunces({
   subsets: ['latin'],
-  axes: ['opsz'],
+  // 'wght' is the font's default variable axis and needs no registration.
+  // 'SOFT' does: FitScore's dark-stage landing bloom (SLICE-20 §2.5, §4.2)
+  // animates both.
+  axes: ['opsz', 'SOFT'],
   variable: '--font-display',
   display: 'swap',
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -75,6 +76,9 @@ interface DoneResult {
   reason: string;
   keywordCoverage: number;
   flags: string[];
+  /** The motif's own material (DESIGN.md §7): a real line from the resume
+   *  just written. */
+  motif: string;
 }
 
 interface StoredFile {
@@ -84,11 +88,33 @@ interface StoredFile {
 
 const EASE_SOFT = [0.22, 0.75, 0.24, 1] as const;
 
-/** DESIGN.md §6 peak-end: the result reveal gets the motion budget, the same
- *  staggered entrance `CvUpload`'s own `done` state uses. */
+// --dur-micro and --dur-reveal, copied as literals: Motion cannot read a CSS
+// custom property (same reasoning as EASE_SOFT above).
+const DUR_MICRO_S = 0.18;
+const DUR_REVEAL_S = 0.5;
+
+/** The working card's own transition, split so its exit can be quicker than
+ * its enter: SLICE-20 §2.5's "single deliberate move" from working to done
+ * is one continuous gesture, not two states swapped -- the card dissolves
+ * fast (--dur-micro) right as the reveal's own entrance (--dur-reveal,
+ * DONE_CONTAINER below) begins, rather than a slow symmetric crossfade. */
+const WORKING_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_SOFT } },
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    transition: { duration: DUR_MICRO_S, ease: EASE_SOFT },
+  },
+};
+
+/** DESIGN.md §6 peak-end: the result reveal gets the motion budget. Staggered
+ *  60ms per SLICE-20 §2.5, starting the instant the working card has
+ *  dissolved (`delayChildren` matches its exit duration above) so the two
+ *  read as one move rather than a fade-out-then-fade-in. */
 const DONE_CONTAINER = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.06, delayChildren: DUR_MICRO_S } },
 };
 
 const DONE_ITEM = {
@@ -96,7 +122,7 @@ const DONE_ITEM = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.25, ease: EASE_SOFT },
+    transition: { duration: DUR_REVEAL_S, ease: EASE_SOFT },
   },
 };
 
@@ -147,6 +173,16 @@ export function ApplyForm({
   const [files, setFiles] = useState<StoredFile[] | null>(null);
 
   const mounted = useRef(true);
+  // When each step was entered, so a completed step can show how long it
+  // actually took (SLICE-20 §2.4), measured between real event arrivals
+  // rather than predicted. No detail sub-lines here, unlike CvUpload: every
+  // apply stage is one opaque model call with no server-discovered counts to
+  // report honestly in between (see SLICE-20.md's own judgment call on this).
+  // State, not a ref: this repo's react-hooks/refs rule forbids reading a
+  // ref during render, and this is read every render to compute durations.
+  const [stageStartedAt, setStageStartedAt] = useState<
+    Partial<Record<Phase, number>>
+  >({});
   useEffect(
     () => () => {
       mounted.current = false;
@@ -228,6 +264,7 @@ export function ApplyForm({
     setRenderErrorCode(null);
     setErrorCode(null);
     setPhase('empty');
+    setStageStartedAt({});
   }
 
   async function startRender(applicationId: string) {
@@ -280,6 +317,7 @@ export function ApplyForm({
     setElapsed(0);
     setErrorCode(null);
     setUrlError(null);
+    setStageStartedAt({ starting: Date.now() });
 
     let response: Response;
     try {
@@ -361,9 +399,14 @@ export function ApplyForm({
           continue;
         }
         if (event === 'stage') {
-          setPhase(data.stage as GenStage);
+          const stage = data.stage as GenStage;
+          setStageStartedAt((prev) =>
+            prev[stage] === undefined ? { ...prev, [stage]: Date.now() } : prev,
+          );
+          setPhase(stage);
         } else if (event === 'done') {
           sawTerminal = true;
+          setStageStartedAt((prev) => ({ ...prev, done: Date.now() }));
           const done = data as unknown as DoneResult;
           setResult(done);
           setPhase('done');
@@ -403,10 +446,33 @@ export function ApplyForm({
           : index === currentIndex
             ? 'current'
             : 'incomplete';
+
+    // A completed step's own duration, measured between real event
+    // arrivals rather than predicted (SLICE-20 §2.4), same technique as
+    // CvUpload's identical Steps usage.
+    const startedAt = stageStartedAt[stage];
+    const nextStage = STAGE_ORDER[index + 1];
+    const endedAt =
+      nextStage !== undefined
+        ? stageStartedAt[nextStage]
+        : stageStartedAt.done;
+    const durationSeconds =
+      startedAt !== undefined && endedAt !== undefined
+        ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
+        : undefined;
+
+    const meta =
+      status === 'complete' && durationSeconds !== undefined
+        ? `${t('stageStatus.complete')} · ${durationSeconds}s`
+        : status === 'current'
+          ? `← ${t('stageStatus.current')}`
+          : undefined;
+
     return {
       label: t(`stages.${stage}`),
       status,
       statusLabel: t(`stageStatus.${status}`),
+      meta,
     };
   });
 
@@ -560,17 +626,20 @@ export function ApplyForm({
       {STAGE_ORDER.includes(phase as GenStage) && (
         <motion.div
           key="working"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: EASE_SOFT }}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={WORKING_VARIANTS}
           className={styles.card}
           role="status"
           aria-live="polite"
         >
           <p className={styles.notice}>{t('notice')}</p>
           <Steps steps={steps} label={t('notice')} />
-          <p className={styles.elapsed}>{t('elapsed', { seconds: elapsed })}</p>
+          <p className={styles.elapsed}>
+            <NumberFlow value={elapsed} />
+            {t('elapsedSuffix')}
+          </p>
         </motion.div>
       )}
 
@@ -581,11 +650,8 @@ export function ApplyForm({
           animate="visible"
           exit={{ opacity: 0 }}
           variants={DONE_CONTAINER}
-          className={styles.card}
+          className={styles.reveal}
         >
-          <motion.div variants={DONE_ITEM}>
-            <Motif label={t('done.heading')} />
-          </motion.div>
           <motion.h2 variants={DONE_ITEM} className={styles.doneHeading}>
             {result.recommendation === 'apply'
               ? t('done.applyHeading')
@@ -608,6 +674,12 @@ export function ApplyForm({
             })}
           </motion.p>
 
+          {result.motif && (
+            <motion.div variants={DONE_ITEM}>
+              <Motif human={result.motif} dark />
+            </motion.div>
+          )}
+
           {result.recommendation === 'skip' && renderStatus === 'idle' && (
             <motion.div variants={DONE_ITEM} className={styles.skipAction}>
               <p className={styles.skipNote}>{t('done.skipNote')}</p>
@@ -621,14 +693,14 @@ export function ApplyForm({
           )}
 
           {renderStatus === 'pending' && (
-            <motion.p variants={DONE_ITEM} className={styles.notice}>
+            <motion.p variants={DONE_ITEM} className={styles.rendering}>
               {t('done.rendering')}
             </motion.p>
           )}
 
           {renderStatus === 'error' && (
             <motion.div variants={DONE_ITEM} className={styles.row}>
-              <p className={styles.error} role="alert">
+              <p className={styles.revealError} role="alert">
                 {errorMessage(renderErrorCode)}
               </p>
               <Button
@@ -652,7 +724,7 @@ export function ApplyForm({
                   <a
                     key={`${file.kind}.${file.format}`}
                     href={`/api/files/${result.applicationId}/${file.kind}/${file.format}`}
-                    className={`${buttonStyles.button} ${buttonStyles.secondary}`}
+                    className={`${buttonStyles.button} ${buttonStyles.secondary} ${styles.downloadButton}`}
                   >
                     {t(`result.download.${file.kind}`)} (
                     {file.format.toUpperCase()})

@@ -1,5 +1,6 @@
 'use client';
 
+import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -69,6 +70,19 @@ interface DoneData {
   roles: number;
   skills: number;
   keywords: number;
+  /** The motif's own material (DESIGN.md §7): a real line from this CV. */
+  motif: string;
+}
+
+/** Real counts the server discovered mid-stage (SLICE-20 §2.4). Every field
+ *  is optional because a given stage only ever fills in its own. */
+interface StageDetail {
+  chars?: number;
+  pages?: number;
+  roles?: number;
+  skills?: number;
+  checked?: number;
+  softened?: number;
 }
 
 const ACCEPT =
@@ -126,6 +140,17 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorLimit, setErrorLimit] = useState<number | undefined>(undefined);
   const [doneData, setDoneData] = useState<DoneData | null>(null);
+  const [stageDetail, setStageDetail] = useState<
+    Partial<Record<ServerStage, StageDetail>>
+  >({});
+  // When each step was entered, so a completed step can show how long it
+  // actually took (SLICE-20 §2.4) -- measured between real event arrivals,
+  // never predicted. State, not a ref: this repo's react-hooks/refs rule
+  // forbids reading a ref during render, and this is read every render to
+  // compute each step's duration.
+  const [stageStartedAt, setStageStartedAt] = useState<
+    Partial<Record<Phase, number>>
+  >({});
   const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
 
@@ -179,6 +204,8 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     setErrorCode(null);
     setErrorLimit(undefined);
     setDoneData(null);
+    setStageDetail({});
+    setStageStartedAt({});
   }
 
   function pick(file: File | undefined) {
@@ -200,6 +227,7 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     }
     setPhase('uploading');
     setElapsed(0);
+    setStageStartedAt({ uploading: Date.now() });
 
     const form = new FormData();
     form.set('cv', selectedFile);
@@ -261,9 +289,18 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           continue;
         }
         if (event === 'stage') {
-          setPhase(data.stage as ServerStage);
+          const stage = data.stage as ServerStage;
+          setStageStartedAt((prev) =>
+            prev[stage] === undefined ? { ...prev, [stage]: Date.now() } : prev,
+          );
+          const detail = data.detail as StageDetail | undefined;
+          if (detail) {
+            setStageDetail((prev) => ({ ...prev, [stage]: detail }));
+          }
+          setPhase(stage);
         } else if (event === 'done') {
           sawTerminal = true;
+          setStageStartedAt((prev) => ({ ...prev, done: Date.now() }));
           setDoneData(data as unknown as DoneData);
           setPhase('done');
         } else if (event === 'error') {
@@ -292,6 +329,37 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     ...STAGE_ORDER,
   ];
   const currentIndex = stageOrder.indexOf(phase as (typeof stageOrder)[number]);
+
+  /** The real, server-discovered sub-line for a stage, or none yet
+   *  (SLICE-20 §2.4: never invented, only what the server actually sent). */
+  function detailLine(stage: ServerStage): string | undefined {
+    const detail = stageDetail[stage];
+    if (!detail) {
+      return undefined;
+    }
+    switch (stage) {
+      case 'reading':
+        return detail.pages !== undefined
+          ? t('stages.reading.detailWithPages', {
+              pages: detail.pages,
+              chars: detail.chars ?? 0,
+            })
+          : t('stages.reading.detail', { chars: detail.chars ?? 0 });
+      case 'parsing':
+        return t('stages.parsing.detail', {
+          roles: detail.roles ?? 0,
+          skills: detail.skills ?? 0,
+        });
+      case 'checking':
+        return t('stages.checking.detail', {
+          checked: detail.checked ?? 0,
+          softened: detail.softened ?? 0,
+        });
+      case 'saving':
+        return undefined;
+    }
+  }
+
   const steps: Step[] = stageOrder.map((stage, index) => {
     const status =
       currentIndex === -1
@@ -301,10 +369,38 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           : index === currentIndex
             ? 'current'
             : 'incomplete';
+
+    // A completed step's own duration, measured between real event
+    // arrivals rather than predicted: the moment the next step (or, for the
+    // last one, the terminal `done` event) started is when this one ended.
+    const startedAt = stageStartedAt[stage];
+    const nextStage =
+      index + 1 < stageOrder.length ? stageOrder[index + 1] : undefined;
+    const endedAt =
+      nextStage !== undefined
+        ? stageStartedAt[nextStage]
+        : stageStartedAt.done;
+    const durationSeconds =
+      startedAt !== undefined && endedAt !== undefined
+        ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
+        : undefined;
+
+    const meta =
+      status === 'complete' && durationSeconds !== undefined
+        ? `${t('stageStatus.complete')} · ${durationSeconds}s`
+        : status === 'current'
+          ? `← ${t('stageStatus.current')}`
+          : undefined;
+
     return {
-      label: t(`stages.${stage}`),
+      label:
+        stage === 'uploading'
+          ? t('stages.uploading')
+          : t(`stages.${stage}.label`),
       status,
       statusLabel: t(`stageStatus.${status}`),
+      meta,
+      detail: stage === 'uploading' ? undefined : detailLine(stage),
     };
   });
 
@@ -330,7 +426,7 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           className={styles.frame}
         >
           <div className={styles.primary}>
-            <Motif label={t('done.heading')} />
+            <Motif human={t('empty.motifHuman')} />
             <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
             <p className={styles.emptyBody}>{t('empty.body')}</p>
 
@@ -399,7 +495,10 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
         >
           <p className={styles.notice}>{t('notice')}</p>
           <Steps steps={steps} label={t('notice')} />
-          <p className={styles.elapsed}>{t('elapsed', { seconds: elapsed })}</p>
+          <p className={styles.elapsed}>
+            <NumberFlow value={elapsed} />
+            {t('elapsedSuffix')}
+          </p>
         </motion.div>
       )}
 
@@ -434,9 +533,11 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           variants={DONE_CONTAINER}
           className={styles.card}
         >
-          <motion.div variants={DONE_ITEM}>
-            <Motif label={t('done.heading')} />
-          </motion.div>
+          {doneData.motif && (
+            <motion.div variants={DONE_ITEM}>
+              <Motif human={doneData.motif} />
+            </motion.div>
+          )}
           <motion.h2 variants={DONE_ITEM} className={styles.doneHeading}>
             {t('done.heading')}
           </motion.h2>

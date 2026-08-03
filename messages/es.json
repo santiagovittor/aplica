@@ -13,6 +13,9 @@
     "en": "Inglés",
     "es": "Español"
   },
+  "Motif": {
+    "slop": "Profesional orientado a resultados con historial comprobado de éxito."
+  },
   "Header": {
     "label": "Principal",
     "apply": "Postular",
@@ -264,7 +267,7 @@
     "generate": "Adaptar mi postulación",
     "hint": "Pegá un aviso para empezar.",
     "notice": "Escribir algo que valga la pena mandar tarda alrededor de un minuto. Esto es lo que está pasando mientras tanto.",
-    "elapsed": "{seconds}s hasta ahora",
+    "elapsedSuffix": "s hasta ahora",
     "stages": {
       "starting": "Preparando todo",
       "draft": "Escribiendo tu primer borrador",
@@ -329,16 +332,29 @@
       "body": "PDF o Word, hasta 10 MB.",
       "choose": "Elegí un archivo",
       "upload": "Subir CV",
-      "dropHint": "Soltalo acá, o"
+      "dropHint": "o soltalo acá.",
+      "motifHuman": "Bajé el tiempo de despliegue de cuarenta minutos a seis reescribiendo el pipeline de CI en etapas paralelas."
     },
     "notice": "Leer un CV como corresponde tarda cerca de un minuto. Esto es lo que pasa durante todo ese tiempo.",
-    "elapsed": "{seconds}s hasta ahora",
+    "elapsedSuffix": "s hasta ahora",
     "stages": {
       "uploading": "Enviando tu archivo",
-      "reading": "Leyendo tu CV",
-      "parsing": "Entendiendo lo que dice",
-      "checking": "Comprobando cada afirmación contra tus propias palabras",
-      "saving": "Guardando tu perfil"
+      "reading": {
+        "label": "Leyendo tu CV",
+        "detail": "{chars} caracteres leídos",
+        "detailWithPages": "{pages} páginas, {chars} caracteres leídos"
+      },
+      "parsing": {
+        "label": "Entendiendo lo que dice",
+        "detail": "{roles} puestos, {skills} habilidades encontrados"
+      },
+      "checking": {
+        "label": "Comprobando cada afirmación contra tus propias palabras",
+        "detail": "{checked} afirmaciones comprobadas, {softened} suavizadas"
+      },
+      "saving": {
+        "label": "Guardando tu perfil"
+      }
     },
     "stageStatus": {
       "complete": "listo",

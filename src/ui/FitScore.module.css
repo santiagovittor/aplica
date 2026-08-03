@@ -35,6 +35,49 @@
   color: var(--ink-soft);
 }
 
+/* SLICE-20 §2.5 / DESIGN.md §3's fit-score exception: the apply result
+   reveal only. --human clears AA at this size (measured ~3.8:1 on
+   --ink-deep, DESIGN.md §5) but not below it, which is why this whole block
+   is scoped to the one context large enough to use it. Fraunces needs
+   'wght'/'SOFT' registered in the layout's font call for the bloom below to
+   do anything. */
+:global(body[data-stage='true']) .number {
+  font-size: var(--text-display);
+  color: var(--human);
+  font-variation-settings:
+    'opsz' 60,
+    'wght' var(--fit-wght, 400),
+    'SOFT' var(--fit-soft, 0);
+  transition: font-variation-settings var(--dur-reveal) var(--ease-soft);
+}
+
+:global(body[data-stage='true']) .score[data-landed='true'] .number {
+  --fit-wght: 600;
+  --fit-soft: 40;
+}
+
+/* The track needs its own brightening: --hairline-dark measures 1.5:1 on
+   --ink-deep, well under the 3:1 a graphical object needs (DESIGN.md has no
+   sanctioned brighter neutral for this yet, so this composes --on-dark-soft
+   down to a track-appropriate weight rather than using it at full strength,
+   which would out-contrast the fill it is supposed to sit behind). Measured
+   3.5:1. The fill and track are close in lightness (~1.1:1 apart) even so:
+   the number and verdict already carry the score, so the bar stays a
+   secondary, redundant reading rather than the only one. */
+:global(body[data-stage='true']) .bar {
+  background: color-mix(in srgb, var(--on-dark-soft) 65%, var(--ink-deep));
+}
+
+:global(body[data-stage='true']) .fill {
+  background: var(--human);
+  transition: width var(--dur-reveal) var(--ease-soft);
+}
+
+:global(body[data-stage='true']) .verdict {
+  color: var(--on-dark);
+  font-size: var(--text-lg);
+}
+
 /* Its own group, spaced clear of the verdict above it (§3 hierarchy rule). */
 .flags {
   display: flex;
@@ -73,4 +116,16 @@
   height: 1px;
   margin-top: 0.7em;
   background: var(--ink-soft);
+}
+
+:global(body[data-stage='true']) .flagsLabel {
+  color: var(--on-dark-soft);
+}
+
+:global(body[data-stage='true']) .flag {
+  color: var(--on-dark-soft);
+}
+
+:global(body[data-stage='true']) .marker {
+  background: var(--on-dark-soft);
 }

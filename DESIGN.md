@@ -119,6 +119,13 @@ share an archetype.
   ground. No full-width card wrapper. Working screens.
 - **Stage** — full-bleed --ink-deep. One paper object centred on it. Waiting
   and reveal only.
+- **Exception, the fit-score reveal only:** the apply result is the one place
+  --human and --text-display have a ground to mean something on, so it sits
+  directly on --ink-deep rather than inside the paper object — the number,
+  verdict, bar and flags are the stage itself, not a card on it. Downloads
+  stay the one --paper object in that moment, the brightest thing on screen.
+  Every other reveal (the CV parse result, both waiting states) keeps the
+  ordinary one-paper-object reading.
 
 Assignments: /apply = Desk (then Stage for progress and result), /cv = Desk
 (then Stage for parse and grounding report), /applications = Desk,
@@ -157,6 +164,10 @@ Legal text pairs, the only ones allowed:
 - --green-soft: 20px+ text, icons, graphics only. Never body text.
 - --clay on --paper: error text, with calm plain-language copy. Never a
   bright red anywhere.
+- --clay on --ink-deep: not legal at full strength (2.4:1, fails even large
+  text). Where the fit-score reveal's own render step fails,
+  `color-mix(in srgb, var(--clay) 70%, var(--paper) 30%)` measures 4.7:1 —
+  composed from tokens, not a new named color, until this earns its own.
 - --human: strokes and graphics in the motif and the result reveal only.
   Never a button, never text on the light ground, never a third appearance.
   On --ink-deep, --human display text is permitted at 25px and above only

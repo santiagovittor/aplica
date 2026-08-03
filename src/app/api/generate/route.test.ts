@@ -158,17 +158,28 @@ describe('the generation route streams', () => {
     expect(response.headers.get('x-accel-buffering')).toBe('no');
   });
 
-  it('the stored application id, and not the documents', async () => {
-    // The resume comes back from the render route as a file. A body the client
-    // held is a body the client could edit before sending it back.
+  it('the stored application id, and not the documents beyond the one motif line', async () => {
+    // The resume comes back from the render route as a file, which only ever
+    // accepts an applicationId and re-reads the stored row (route.ts's own
+    // comment, pinned on the write side by render/route.test.ts). This event
+    // is read-only and may display one bounded line for the motif
+    // (DESIGN.md §7) -- so the guard here is not "no resume text ever",
+    // it is "no resume text beyond that one line".
     const { raw, events } = await read(await POST(post(VALID)));
     const done = events.at(-1);
 
     expect(done?.event).toBe('done');
     expect(done?.data.applicationId).toBe(APPLICATION_ID);
-    expect(raw).not.toContain('month-end close');
     expect(done?.data.resume).toBeUndefined();
     expect(done?.data.coverLetter).toBeUndefined();
+    expect(done?.data.motif).toBe(
+      'Led the on-call rotation for the payments service, including incident response.',
+    );
+    expect(raw).not.toContain('Rebuilt the billing export');
+    expect(raw).not.toContain('Cut the month-end close');
+    expect(raw).not.toContain(
+      'I ran the month-end close and the on-call rotation.',
+    );
   });
 
   it('exactly one terminal event, never both', async () => {

@@ -29,7 +29,7 @@ export function DeleteAccount({
   if (!open) {
     return (
       <div className={styles.row}>
-        <Button variant="secondary" onClick={() => setOpen(true)}>
+        <Button variant="danger" onClick={() => setOpen(true)}>
           {labels.reveal}
         </Button>
       </div>
@@ -59,7 +59,7 @@ export function DeleteAccount({
       <div className={styles.row}>
         <Button
           type="submit"
-          variant="secondary"
+          variant="danger"
           loading={pending}
           loadingLabel={labels.deleting}
         >

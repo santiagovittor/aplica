@@ -144,3 +144,29 @@ export const profileSchema = z.object({
 });
 
 export type Profile = z.infer<typeof profileSchema>;
+
+/**
+ * A sentence is a sentence, not a paragraph. Matches application.ts's own
+ * `motifLine` cap; not shared, since the two operate on different shapes
+ * and two call sites is not yet CLAUDE.md's third-repeat DRY threshold.
+ */
+const MAX_MOTIF_CHARS = 240;
+
+/**
+ * The motif's own material on the CV parse reveal (DESIGN.md §7, SLICE-20
+ * §1.4): a real sentence pulled from the user's own document, never
+ * invented. A voice anchor is the strongest candidate available -- it is
+ * already a verbatim quote, checked by `groundProfile` -- so it wins
+ * whenever one survived grounding. A CV with none still has real bullets;
+ * the first one is still the user's own words, just not flagged as a
+ * quotable line by the parse itself.
+ */
+export function motifLine(profile: Profile): string {
+  const line = profile.voiceAnchors[0] ?? profile.experience[0]?.bullets[0]?.text;
+  if (line === undefined) {
+    return '';
+  }
+  return line.length > MAX_MOTIF_CHARS
+    ? `${line.slice(0, MAX_MOTIF_CHARS - 1).trimEnd()}…`
+    : line;
+}
