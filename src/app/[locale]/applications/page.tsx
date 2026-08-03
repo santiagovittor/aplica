@@ -4,7 +4,6 @@ import { requireUser } from '@/lib/session';
 import { listApplications } from '@/lib/supabase';
 import buttonStyles from '@/ui/Button.module.css';
 import { FitScore } from '@/ui/FitScore';
-import { Motif } from '@/ui/Motif';
 import styles from './applications.module.css';
 
 /**
@@ -40,7 +39,6 @@ export default async function ApplicationsPage({
 
       {applications.length === 0 ? (
         <div className={styles.empty}>
-          <Motif label={t('empty.invite')} />
           <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
           <p className={styles.emptyBody}>{t('empty.body')}</p>
           <Link
