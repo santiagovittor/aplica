@@ -1,0 +1,36 @@
+/* SLICE-17 decision 2: the same restraint as Header.module.css -- plain text
+   links, no chrome, --green reserved for each screen's own primary action.
+   Unlike Header, this always renders, so its border sits on top rather than
+   under, closing the page instead of opening it. */
+
+.footer {
+  border-top: 1px solid var(--hairline);
+  margin-top: var(--space-8);
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-5);
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--margin-outer);
+}
+
+@media (min-width: 60rem) {
+  .nav {
+    padding-inline: var(--space-7);
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--ink);
+}
