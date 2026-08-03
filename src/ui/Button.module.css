@@ -83,6 +83,20 @@
   cursor: not-allowed;
 }
 
+/* SLICE-20 §2.2: a disabled primary reads as *waiting for you*, not *off*
+   -- the arrival state of /apply has a disabled primary and nothing else on
+   screen resolves to --green, so this is what satisfies SLICE-20's own
+   acceptance item 3 ("accent presence... including disabled primaries") for
+   that state. Same specificity as the generic rule above
+   (.button:disabled:not(...) vs .primary:disabled:not(...)), so it has to
+   come after it in source order to win the tie. */
+.primary:disabled:not([aria-busy='true']) {
+  background: var(--paper);
+  border-color: var(--green);
+  color: color-mix(in srgb, var(--green) 55%, var(--base));
+  cursor: default;
+}
+
 /* A working button keeps its color and says what is running. It does not grey
    out and it does not spin: DESIGN.md §2, nothing pretends to think. */
 .button[aria-busy='true'] {

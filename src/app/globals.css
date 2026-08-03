@@ -28,6 +28,18 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--dur-stage) var(--ease-soft);
+}
+
+/* SLICE-20 §2.3: the Stage archetype. `ApplyForm`/`CvUpload` toggle this
+   attribute on `document.body` from their own phase machine when a run
+   starts, and clear it on the way out (done -> start over, or unmount).
+   `body` is the one surface both those client components and `Header`
+   (a sibling in the root layout, see Header.module.css) can all reach, so
+   it carries the ground for the whole page rather than each page's own
+   `.shell` repeating this. */
+body[data-stage='true'] {
+  background: var(--ink-deep);
 }
 
 h1,

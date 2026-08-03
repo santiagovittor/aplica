@@ -136,6 +136,30 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     [],
   );
 
+  /**
+   * SLICE-20 §2.3: the Stage archetype. `body[data-stage]` is the one
+   * surface this component and `Header` (a sibling in the root layout, not
+   * an ancestor of this one) can both reach -- see Header.module.css's own
+   * comment on why a prop can't do this. `CvUpload` does not know it is
+   * inside onboarding (a standing decision, SLICE-12), so this fires there
+   * too; onboarding.module.css carries the matching dark-ground overrides
+   * for its own heading/skip-link classes for exactly that reason.
+   */
+  useEffect(() => {
+    const onStage =
+      phase === 'uploading' ||
+      STAGE_ORDER.includes(phase as ServerStage) ||
+      phase === 'done';
+    if (onStage) {
+      document.body.dataset.stage = 'true';
+    } else {
+      delete document.body.dataset.stage;
+    }
+    return () => {
+      delete document.body.dataset.stage;
+    };
+  }, [phase]);
+
   useEffect(() => {
     const working: Phase[] = ['uploading', ...STAGE_ORDER];
     if (!working.includes(phase)) {
@@ -303,53 +327,61 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: EASE_SOFT }}
-          className={styles.card}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={onDrop}
-          data-drag-active={dragActive || undefined}
+          className={styles.frame}
         >
-          <Motif label={t('done.heading')} />
-          <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
-          <p className={styles.emptyBody}>{t('empty.body')}</p>
+          <div className={styles.primary}>
+            <Motif label={t('done.heading')} />
+            <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
+            <p className={styles.emptyBody}>{t('empty.body')}</p>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPT}
-            className="visually-hidden"
-            onChange={(event) => pick(event.target.files?.[0])}
-          />
+            <div
+              className={styles.dropzone}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={onDrop}
+              data-drag-active={dragActive || undefined}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                accept={ACCEPT}
+                className="visually-hidden"
+                onChange={(event) => pick(event.target.files?.[0])}
+              />
 
-          {selectedFile ? (
-            <div className={styles.selected}>
-              <p className={styles.fileName}>{selectedFile.name}</p>
-              <div className={styles.row}>
-                <Button variant="primary" onClick={submit}>
-                  {t('empty.upload')}
-                </Button>
-                <Button
-                  variant="quiet"
-                  onClick={() => inputRef.current?.click()}
-                >
-                  {t('chooseAnother')}
-                </Button>
-              </div>
+              {selectedFile ? (
+                <div className={styles.selected}>
+                  <p className={styles.fileName}>{selectedFile.name}</p>
+                  <div className={styles.row}>
+                    <Button variant="primary" onClick={submit}>
+                      {t('empty.upload')}
+                    </Button>
+                    <Button
+                      variant="quiet"
+                      onClick={() => inputRef.current?.click()}
+                    >
+                      {t('chooseAnother')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.row}>
+                  <Button
+                    variant="primary"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    {t('empty.choose')}
+                  </Button>
+                  <span className={styles.dropHint}>
+                    {t('empty.dropHint')}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className={styles.row}>
-              <Button
-                variant="primary"
-                onClick={() => inputRef.current?.click()}
-              >
-                {t('empty.choose')}
-              </Button>
-              <span className={styles.dropHint}>{t('empty.dropHint')}</span>
-            </div>
-          )}
+          </div>
         </motion.div>
       )}
 
@@ -378,15 +410,17 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: EASE_SOFT }}
-          className={styles.card}
+          className={styles.frame}
         >
-          <p className={styles.error} role="alert">
-            {errorMessage}
-          </p>
-          <div className={styles.row}>
-            <Button variant="primary" onClick={reset}>
-              {t('retry')}
-            </Button>
+          <div className={styles.primary}>
+            <p className={styles.error} role="alert">
+              {errorMessage}
+            </p>
+            <div className={styles.row}>
+              <Button variant="primary" onClick={reset}>
+                {t('retry')}
+              </Button>
+            </div>
           </div>
         </motion.div>
       )}

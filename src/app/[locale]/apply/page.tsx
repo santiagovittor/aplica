@@ -7,6 +7,9 @@ import { ApplyForm } from './ApplyForm';
 import styles from './apply.module.css';
 
 /**
+ * DESIGN.md §3 archetype: Desk (then Stage for progress and result, wired in
+ * ApplyForm.tsx via body[data-stage] -- SLICE-20 §2.3).
+ *
  * SLICE-13: the payoff screen. Decision 2 -- missing key, name, or CV is not
  * a gate here. The paste box, tier cards, and button render unconditionally;
  * `/api/generate`'s own `key_missing` / `name_missing` / `profile_missing`

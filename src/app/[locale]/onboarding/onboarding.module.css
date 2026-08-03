@@ -58,11 +58,25 @@
 
 .title {
   font-size: var(--text-3xl);
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .lead {
   max-width: var(--measure);
   color: var(--ink-soft);
+  transition: color var(--dur-stage) var(--ease-soft);
+}
+
+/* SLICE-20 §2.3: only the `cv` step ever sets body[data-stage] (CvUpload
+   does not know it is inside onboarding, so it behaves the same way here as
+   it does on standalone /cv), but the title/lead/skip-link classes here are
+   shared by every step, so the override is harmless everywhere else. */
+:global(body[data-stage='true']) .title {
+  color: var(--on-dark);
+}
+
+:global(body[data-stage='true']) .lead {
+  color: var(--on-dark-soft);
 }
 
 .card {
@@ -171,10 +185,15 @@
   flex-wrap: wrap;
 }
 
-/* The `cv` step's own skip: `CvUpload` renders its own `.card` (cv.module.css)
-   and is not wrapped in this file's `.card`, so its skip link is a direct
-   grid child of `.shell` and needs the same column alignment `.heading` and
-   `.card` get rather than `.actions`' plain flex row. */
+/* The `cv` step's own skip: `CvUpload` renders its own frame/card
+   (cv.module.css) and is not wrapped in this file's `.card`, so its skip
+   link is a direct grid child of `.shell` and needs its own column
+   alignment rather than `.actions`' plain flex row. `CvUpload`'s own
+   top-level elements claim the full 12-col width of this shell
+   (`grid-column: 1 / -1`, cv.module.css) and centre their own content
+   internally -- SLICE-20 made /cv a Desk archetype while onboarding stays
+   Column, so the two can no longer share one grid-column convention the
+   way they did before that split. */
 .shellActions {
   margin-top: var(--space-6);
 }
@@ -189,8 +208,17 @@
   color: var(--ink-soft);
   text-decoration: underline;
   text-underline-offset: 0.2em;
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .quiet:hover {
   color: var(--ink);
+}
+
+:global(body[data-stage='true']) .quiet {
+  color: var(--on-dark-soft);
+}
+
+:global(body[data-stage='true']) .quiet:hover {
+  color: var(--on-dark);
 }

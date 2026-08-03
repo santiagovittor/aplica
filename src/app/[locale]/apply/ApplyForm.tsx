@@ -154,6 +154,26 @@ export function ApplyForm({
     [],
   );
 
+  /**
+   * SLICE-20 §2.3: the Stage archetype. `body[data-stage]` is the one
+   * surface this component and `Header` (a sibling in the root layout, not
+   * an ancestor of this one) can both reach -- see Header.module.css's own
+   * comment on why a prop can't do this. Stays dark through `done` (the
+   * reveal), same as `CvUpload`'s identical effect; only `startOver` or
+   * leaving the page clears it.
+   */
+  useEffect(() => {
+    const onStage = STAGE_ORDER.includes(phase as GenStage) || phase === 'done';
+    if (onStage) {
+      document.body.dataset.stage = 'true';
+    } else {
+      delete document.body.dataset.stage;
+    }
+    return () => {
+      delete document.body.dataset.stage;
+    };
+  }, [phase]);
+
   useEffect(() => {
     if (!STAGE_ORDER.includes(phase as GenStage)) {
       return;
@@ -399,130 +419,140 @@ export function ApplyForm({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: EASE_SOFT }}
-          className={styles.card}
+          className={styles.grid}
         >
-          <p className={styles.chip}>
-            {cvOnFile ? t('chip.onFile') : t('chip.none')}{' '}
-            <Link href="/cv">
-              {cvOnFile ? t('chip.replace') : t('chip.upload')}
-            </Link>
-          </p>
+          <div className={styles.primary}>
+            <Textarea
+              id="posting"
+              label={t('posting.label')}
+              placeholder={t('posting.placeholder')}
+              hint={t('posting.hint')}
+              value={posting}
+              onChange={(event) => updatePosting(event.target.value)}
+              rows={12}
+            />
 
-          <div className={styles.languageGroup}>
-            <span className={styles.groupLabel}>{t('language.label')}</span>
-            <div
-              className={styles.toggle}
-              role="group"
-              aria-label={t('language.label')}
-            >
-              {(['en', 'es'] as const).map((option) => (
-                <Button
+            <Input
+              id="postingUrl"
+              label={t('postingUrl.label')}
+              placeholder={t('postingUrl.placeholder')}
+              hint={urlError ?? t('postingUrl.hint')}
+              error={urlError ?? undefined}
+              value={postingUrl}
+              onChange={(event) => updatePostingUrl(event.target.value)}
+            />
+
+            <fieldset className={styles.tiers}>
+              <legend className={styles.groupLabel}>{t('tier.label')}</legend>
+              {TIERS.map((option) => (
+                <label
                   key={option}
-                  type="button"
-                  variant={language === option ? 'secondary' : 'quiet'}
-                  aria-pressed={language === option}
-                  onClick={() => chooseLanguage(option)}
+                  className={styles.tierCard}
+                  data-selected={tier === option || undefined}
                 >
-                  {t(`language.${option}`)}
-                </Button>
+                  <input
+                    type="radio"
+                    name="tier"
+                    value={option}
+                    checked={tier === option}
+                    onChange={() => setTier(option)}
+                    className="visually-hidden"
+                  />
+                  <span className={styles.tierTitle}>
+                    {t(`tier.${option}.title`)}
+                  </span>
+                  <span className={styles.tierDescription}>
+                    {t(`tier.${option}.description`)}
+                  </span>
+                </label>
               ))}
+            </fieldset>
+
+            {phase === 'error' && (
+              <p className={styles.error} role="alert">
+                {errorMessage(errorCode, errorLimit)}
+              </p>
+            )}
+
+            <div className={styles.row}>
+              <Button
+                variant="primary"
+                onClick={submit}
+                disabled={
+                  (posting.trim() === '' && postingUrl.trim() === '') ||
+                  (requiresModel && model.trim() === '')
+                }
+              >
+                {t('generate')}
+              </Button>
+              {posting.trim() === '' && postingUrl.trim() === '' && (
+                <span className={styles.hint}>{t('hint')}</span>
+              )}
             </div>
           </div>
 
-          <Textarea
-            id="posting"
-            label={t('posting.label')}
-            placeholder={t('posting.placeholder')}
-            hint={t('posting.hint')}
-            value={posting}
-            onChange={(event) => updatePosting(event.target.value)}
-            rows={12}
-          />
+          <div className={styles.aside}>
+            <p className={styles.chip}>
+              {cvOnFile ? t('chip.onFile') : t('chip.none')}{' '}
+              <Link href="/cv">
+                {cvOnFile ? t('chip.replace') : t('chip.upload')}
+              </Link>
+            </p>
 
-          <Input
-            id="postingUrl"
-            label={t('postingUrl.label')}
-            placeholder={t('postingUrl.placeholder')}
-            hint={urlError ?? t('postingUrl.hint')}
-            error={urlError ?? undefined}
-            value={postingUrl}
-            onChange={(event) => updatePostingUrl(event.target.value)}
-          />
-
-          <fieldset className={styles.tiers}>
-            <legend className={styles.groupLabel}>{t('tier.label')}</legend>
-            {TIERS.map((option) => (
-              <label
-                key={option}
-                className={styles.tierCard}
-                data-selected={tier === option || undefined}
-              >
+            {researchAvailable && (
+              <label className={styles.research}>
                 <input
-                  type="radio"
-                  name="tier"
-                  value={option}
-                  checked={tier === option}
-                  onChange={() => setTier(option)}
-                  className="visually-hidden"
+                  type="checkbox"
+                  checked={research}
+                  onChange={(event) => setResearch(event.target.checked)}
                 />
-                <span className={styles.tierTitle}>
-                  {t(`tier.${option}.title`)}
-                </span>
-                <span className={styles.tierDescription}>
-                  {t(`tier.${option}.description`)}
+                <span>
+                  <span className={styles.researchTitle}>
+                    {t('research.label')}
+                  </span>
+                  <span className={styles.researchCost}>
+                    {researchCostLine}
+                  </span>
                 </span>
               </label>
-            ))}
-          </fieldset>
+            )}
 
-          {researchAvailable && (
-            <label className={styles.research}>
-              <input
-                type="checkbox"
-                checked={research}
-                onChange={(event) => setResearch(event.target.checked)}
-              />
-              <span>
-                <span className={styles.researchTitle}>
-                  {t('research.label')}
-                </span>
-                <span className={styles.researchCost}>{researchCostLine}</span>
-              </span>
-            </label>
-          )}
+            {requiresModel && (
+              <div className={styles.modelGroup}>
+                <Input
+                  id="model"
+                  label={t('model.label')}
+                  placeholder={t('model.placeholder')}
+                  hint={t('model.hint')}
+                  value={model}
+                  onChange={(event) => setModel(event.target.value)}
+                  required
+                />
+                <p className={styles.note}>{t('model.ceiling')}</p>
+              </div>
+            )}
 
-          {requiresModel && (
-            <div className={styles.modelGroup}>
-              <Input
-                id="model"
-                label={t('model.label')}
-                placeholder={t('model.placeholder')}
-                hint={t('model.hint')}
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                required
-              />
-              <p className={styles.note}>{t('model.ceiling')}</p>
+            <div className={styles.languageGroup}>
+              <span className={styles.groupLabel}>{t('language.label')}</span>
+              <div
+                className={styles.toggle}
+                role="group"
+                aria-label={t('language.label')}
+              >
+                {(['en', 'es'] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={styles.toggleOption}
+                    data-selected={language === option || undefined}
+                    aria-pressed={language === option}
+                    onClick={() => chooseLanguage(option)}
+                  >
+                    {t(`language.${option}`)}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-
-          {phase === 'error' && (
-            <p className={styles.error} role="alert">
-              {errorMessage(errorCode, errorLimit)}
-            </p>
-          )}
-
-          <div className={styles.row}>
-            <Button
-              variant="primary"
-              onClick={submit}
-              disabled={
-                (posting.trim() === '' && postingUrl.trim() === '') ||
-                (requiresModel && model.trim() === '')
-              }
-            >
-              {t('generate')}
-            </Button>
           </div>
         </motion.div>
       )}

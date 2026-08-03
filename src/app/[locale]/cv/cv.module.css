@@ -1,8 +1,17 @@
-/* DESIGN.md §3: this is a focused, single-task screen with no secondary
-   content, the same exception §3 grants onboarding steps — centred rather
-   than the 7/12+4/12 working-screen split, which would invent a secondary
-   column with nothing to put in it. Centred via the grid's own columns, not
-   an invented pixel max-width. */
+/* DESIGN.md §3 archetype: Desk (then Stage for parse and grounding report,
+   wired in CvUpload.tsx via body[data-stage] -- SLICE-20 §2.3). The empty
+   and error states are the working screen proper: content sits directly on
+   --base, no full-width card wrapper (SLICE-20 §2.1).
+
+   Not the full 7/12+4/12 asymmetric split, unlike /apply: there is no
+   secondary status to show before a CV exists, so a real 4/12 column would
+   sit empty for no reason, and `CvUpload` is also embedded in onboarding
+   (`/onboarding/[step]/page.tsx`, step `cv`), which is a Column archetype
+   -- it does not know it is inside onboarding (a standing decision from
+   SLICE-12), so it cannot render asymmetrically there without contradicting
+   the flow it is actually in. `.primary` below is a capped-width, centred
+   block instead: still no card, still off `--paper` inputs directly on
+   `--base`, and it reads the same way in both places it is used. */
 
 .shell {
   max-width: var(--content-max);
@@ -12,9 +21,6 @@
 
 @media (min-width: 60rem) {
   .shell {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: var(--gutter);
     padding-inline: var(--space-7);
   }
 }
@@ -26,51 +32,51 @@
   margin-bottom: var(--space-8);
 }
 
-@media (min-width: 60rem) {
-  .heading {
-    grid-column: 3 / span 8;
-  }
-}
-
 .title {
   font-size: var(--text-3xl);
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .lead {
   max-width: var(--measure);
   color: var(--ink-soft);
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
-.card {
+/* SLICE-20 §2.3: the page ground going to --ink-deep takes the heading with
+   it -- --ink/--ink-soft on the dark ground would be nearly unreadable. */
+:global(body[data-stage='true']) .title {
+  color: var(--on-dark);
+}
+
+:global(body[data-stage='true']) .lead {
+  color: var(--on-dark-soft);
+}
+
+/* --- empty / error ---------------------------------------------------------
+   `.frame` is a plain block, not a grid. `grid-column: 1 / -1` still claims
+   the full width of whatever ancestor this lands in: a no-op inside /cv's
+   own plain-block `.shell`, load-bearing inside onboarding's `.shell`
+   (onboarding.module.css), which is itself a 12-col grid -- without it this
+   would auto-place as a single 1-of-12 track. */
+
+.frame {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  background: var(--paper);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
 }
 
 @media (min-width: 60rem) {
-  .card {
-    grid-column: 3 / span 8;
-    padding: var(--space-7);
+  .frame {
+    grid-column: 1 / -1;
   }
 }
 
-/* --- empty -------------------------------------------------------------- */
-
-.card:has(.emptyInvite) {
-  align-items: center;
-  padding-block: var(--space-8);
-  text-align: center;
-}
-
-/* A drop target invites without looking like a dashed placeholder rectangle
-   (DESIGN.md §9): the paper card itself lifts a hair on drag-over. */
-.card[data-drag-active] {
-  background: var(--surface-sunken);
-  border-color: var(--green);
+.primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 46rem;
+  margin-inline: auto;
 }
 
 .emptyInvite {
@@ -82,12 +88,32 @@
   color: var(--ink-soft);
 }
 
+/* The drop target itself reads as paper you write on (DESIGN.md §6 Norman),
+   the same discipline /apply's textarea already uses -- an input becomes
+   --paper precisely because the ground under it is --base, not more paper. */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-6);
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-micro) var(--ease-soft);
+}
+
+.dropzone[data-drag-active] {
+  background: var(--surface-sunken);
+  border-color: var(--green);
+}
+
 .selected {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
-  margin-top: var(--space-3);
 }
 
 .fileName {
@@ -108,7 +134,38 @@
   font-size: var(--text-xs);
 }
 
-/* --- working -------------------------------------------------------------- */
+.error {
+  max-width: var(--measure);
+  color: var(--clay);
+}
+
+/* --- working / done: the Stage's one paper object -------------------------
+   DESIGN.md §6 peak-end: the polish budget goes here. §5: --human appears
+   in this reveal and nowhere outside the motif. */
+
+/* SLICE-20 §2.3: "one paper object centred on it" -- capped well short of
+   --content-max so it reads as a discrete object on the dark stage rather
+   than another edge-to-edge bar. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 42rem;
+  margin-inline: auto;
+  padding: var(--space-6);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 60rem) {
+  /* Same reasoning as `.grid` above: full width of whatever ancestor this
+     lands in, grid or not. */
+  .card {
+    grid-column: 1 / -1;
+    padding: var(--space-7);
+  }
+}
 
 .notice {
   color: var(--ink-soft);
@@ -120,21 +177,6 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   font-size: var(--text-xs);
-}
-
-/* --- error -------------------------------------------------------------- */
-
-.error {
-  max-width: var(--measure);
-  color: var(--clay);
-}
-
-/* --- done ----------------------------------------------------------------
-   DESIGN.md §6 peak-end: the polish budget goes here. §5: --human appears in
-   this reveal and nowhere outside the motif. */
-
-.card:has(.doneHeading) {
-  align-items: flex-start;
 }
 
 /* --human is strokes and graphics only, never text (DESIGN.md §5) — the

@@ -47,9 +47,23 @@ by eye before any screen is built.
   --clay: #8F3D2E;        /* errors, calm */
   --hairline: #DED7C9;    /* 1px separators, borders */
 
+  /* dark ground: the desk's tools, not a dark mode. A named surface used on
+     specific screens (the Stage archetype, section 3), always, in both
+     future themes. This is NOT dark mode; section 9's "no dark mode in v1"
+     stands and is unrelated. */
+  --ink-deep:     #1C1913;  /* full-bleed dark ground: stage screens, header */
+  --ink-raised:   #2A251D;  /* raised surface on ink-deep */
+  --on-dark:      #EDE6D8;  /* body text on ink-deep / ink-raised */
+  --on-dark-soft: #A79E8D;  /* secondary text on ink-deep / ink-raised */
+  --hairline-dark:#3D362B;  /* 1px separators on ink-deep */
+
+  /* recessed surface on light ground (inputs inside cards) */
+  --paper-dim:    #EFE9DD;
+
   /* type scale, major third 1.25 */
   --text-xs: 13px; --text-base: 16px; --text-lg: 20px;
   --text-xl: 25px; --text-2xl: 31px; --text-3xl: 39px; --text-4xl: 49px;
+  --text-display: 61px;   /* the display step above the scale (section 4) */
 
   /* space, 8px base */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
@@ -62,6 +76,7 @@ by eye before any screen is built.
 
   /* motion */
   --dur-micro: 180ms; --dur-move: 250ms; --dur-reveal: 500ms;
+  --dur-stage: 700ms;     /* the ground change between archetypes, section 3 */
 }
 ```
 
@@ -95,6 +110,20 @@ Every element must be **useful, honest, and as little design as possible.**
 - Baseline: text sits on a 4px rhythm; use --space-1 for optical correction
   only. Optical beats mathematical when they disagree (Bringhurst).
 
+**Screen archetypes.** Every screen declares one archetype in a comment at
+the top of its page component. Two consecutive screens in a flow may not
+share an archetype.
+
+- **Column** — centred, ≤65ch, no card wrapper. Reading and onboarding only.
+- **Desk** — 7/12 + 4/12 asymmetric on --base. Content sits directly on the
+  ground. No full-width card wrapper. Working screens.
+- **Stage** — full-bleed --ink-deep. One paper object centred on it. Waiting
+  and reveal only.
+
+Assignments: /apply = Desk (then Stage for progress and result), /cv = Desk
+(then Stage for parse and grounding report), /applications = Desk,
+/account = Desk, onboarding = Column.
+
 ## 4. Typography (Bringhurst, Lupton)
 
 - Sizes only from the scale. Body 400, emphasis 500/600; Fraunces uses two
@@ -109,6 +138,9 @@ Every element must be **useful, honest, and as little design as possible.**
 - Sentence case everywhere. Uppercase only for tiny structural labels
   (11-13px) and always letterspaced 0.04-0.08em.
 - A hierarchy level differs by at least two of {size, weight, color, space}.
+- **Two headings on the same screen may not occupy adjacent steps** on the
+  scale. Page title 49, section titles 25. The 39 step is reserved for the
+  result reveal and the landing hero only.
 
 ## 5. Color rules (Albers)
 
@@ -126,13 +158,33 @@ Legal text pairs, the only ones allowed:
 - --clay on --paper: error text, with calm plain-language copy. Never a
   bright red anywhere.
 - --human: strokes and graphics in the motif and the result reveal only.
-  Never a button, never text, never a third appearance.
+  Never a button, never text on the light ground, never a third appearance.
+  On --ink-deep, --human display text is permitted at 25px and above only
+  (see the inventory below) — its contrast there is ≈3.8:1, which passes AA
+  for large text and graphics and fails for body.
 
-**One-accent discipline (Von Restorff):** --green appears on exactly one
-interactive element per screen: the primary action. Secondary actions are ink
+**One-primary discipline (Von Restorff):** one primary action per screen
+(section 6 Hick already says this; that was always the real rule). --green
+additionally carries the *system of choice*: focus rings, selected states,
+active step markers, inline links, and success text. It may not appear on
+more than one element that looks like a *button*. Secondary actions are ink
 outlines or plain text. Depth = paper/base shift + hairline + at most one soft
 ink shadow (0 1px 2px + 0 8px 24px, very low opacity). No glassmorphism, no
 glow, no gradients.
+
+Accent inventory, exhaustive:
+
+| Use | Token | Notes |
+|---|---|---|
+| Primary button fill | --green | one per screen |
+| Selected segmented control | --green fill, --paper text | e.g. EN/ES, tier |
+| Focus ring | --green | unchanged |
+| Active progress step | --green | the 1px rule fills in --green |
+| Inline link | --green | unchanged |
+| Fit score number | --human | its home is the result reveal |
+| Motif stroke / struck-through line | --human | its homes are section 7 |
+| Display text on --ink-deep | --human | >=25px only, verified by measurement |
+| Errors, destructive action | --clay | see section 6 |
 
 ## 6. Interaction laws (Yablonski, Norman)
 
@@ -154,10 +206,16 @@ glow, no gradients.
 
 ## 7. The motif (Leborg) and data (Tufte)
 
-- One object: the line. Slop = jittery, mechanical, over-regular, drawn in
-  --ink-soft. Human = one confident hand-variant stroke in --human.
-- One activity: the transformation, slop to human (SVG stroke animation).
-- Three homes: landing hero, empty states, result reveal. Nowhere else.
+- **One object: a line of text.** The slop state is a real generic sentence,
+  set in the body face, --ink-soft, slightly too even. The human state is a
+  real sentence from the user's own document, set in Fraunces, --human.
+- **One activity:** the slop sentence is struck through and replaced by the
+  human one, one clause at a time.
+- **Three homes:** landing hero, empty states, result reveal. Nowhere else.
+  On the empty state, where no document exists yet, use a fixed demo pair.
+  This is the wedge made visible: it demonstrates the product in one glance
+  and cannot be mistaken for anyone else's UI, because the material is the
+  user's own words.
 - Fit score (Tufte): a large tabular number, one thin hairline bar, one-line
   verdict. No gauge, no ring, no gradient meter. Honest flags are plain text
   with a small marker, never traffic-light pills. Never encode one value more
@@ -166,11 +224,20 @@ glow, no gradients.
 ## 8. Motion
 
 - One easing family: soft spring, high damping, no visible bounce.
-- Durations from tokens: micro 180ms, moves 250ms, the reveal 500ms.
+- Durations from tokens: micro 180ms, moves 250ms, the reveal 500ms, the
+  stage (ground change between archetypes) 700ms.
 - Enter = 8-12px translate + fade, staggered 40-60ms in groups. Nothing scales
   from zero, nothing spins.
 - prefers-reduced-motion swaps every animation for instant states, implemented
   once in the Motion wrapper.
+- **Motion driven by a real event is always honest** and is not subject to
+  the restraint rules above, which govern decorative motion only. A step
+  marker filling when its SSE event arrives, a counter incrementing, a
+  status line replacing another when the server says so — these report the
+  truth as it arrives. The ban is on motion that *predicts* (a bar filling
+  over an estimated duration) or that *performs thinking* (pulsing,
+  shimmering, spinners). Absence of motion during real work is not honesty,
+  it is a dead screen.
 
 ## 9. Component constants
 
@@ -198,7 +265,8 @@ page doing its job, and is not precedent for a second green action anywhere else
 2. Between-group spacing ≥ two steps larger than within-group.
 3. Prose ≤ 65ch; tabular figures on numbers; baselines hold.
 4. Real punctuation; zero em dashes, including UI copy.
-5. --green on exactly one interactive element; --human only in its homes.
+5. One primary action; the accent inventory in section 5 is respected;
+   --human only in its homes.
 6. Every text uses a legal pair, judged on the real oat background.
 7. One primary action; targets ≥ 44px; focus ring visible.
 8. Feedback within 400ms; progress honest.
@@ -206,3 +274,10 @@ page doing its job, and is not precedent for a second green action anywhere else
 10. Reduced motion honored; one easing family; durations from tokens.
 11. Rams pass: name one element you removed. If you can't, look harder.
 12. avoid-ai-design detect mode: zero P0/P1 tells.
+13. **Value range.** At 1440x900, the resolved background colors present on
+    the screen must span >= 0.35 in relative luminance, or the screen must
+    be a Column archetype (onboarding and reading are exempt). Measured
+    from computed styles on rendered elements, not asserted.
+14. **Shape.** The screen declares its archetype in a comment at the top of
+    its page component, and does not match the archetype of the screen
+    that precedes it in the flow.

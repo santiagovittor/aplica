@@ -262,6 +262,7 @@
       }
     },
     "generate": "Adaptar mi postulación",
+    "hint": "Pegá un aviso para empezar.",
     "notice": "Escribir algo que valga la pena mandar tarda alrededor de un minuto. Esto es lo que está pasando mientras tanto.",
     "elapsed": "{seconds}s hasta ahora",
     "stages": {

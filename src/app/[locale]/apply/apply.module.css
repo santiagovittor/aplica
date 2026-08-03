@@ -1,6 +1,8 @@
-/* DESIGN.md §3: same centred, single-task treatment as /cv -- one linear
-   task carried through a phase machine, not a working screen with a
-   secondary column. */
+/* DESIGN.md §3 archetype: Desk (then Stage for progress and result, wired in
+   ApplyForm.tsx via body[data-stage]). The empty/error form is the working
+   screen proper: 7/12 primary + 4/12 secondary, content directly on --base,
+   no full-width card wrapper (SLICE-20 §2.1). The working/done states keep
+   a --paper object, but it now sits on the dark stage rather than on --base. */
 
 .shell {
   max-width: var(--content-max);
@@ -10,9 +12,6 @@
 
 @media (min-width: 60rem) {
   .shell {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: var(--gutter);
     padding-inline: var(--space-7);
   }
 }
@@ -24,39 +23,61 @@
   margin-bottom: var(--space-8);
 }
 
-@media (min-width: 60rem) {
-  .heading {
-    grid-column: 2 / span 10;
-  }
-}
-
 .title {
   font-size: var(--text-3xl);
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .lead {
   max-width: var(--measure);
   color: var(--ink-soft);
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-6);
-  background: var(--paper);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
+/* SLICE-20 §2.3: the page ground going to --ink-deep takes the heading with
+   it -- --ink/--ink-soft on the dark ground would be nearly unreadable. */
+:global(body[data-stage='true']) .title {
+  color: var(--on-dark);
+}
+
+:global(body[data-stage='true']) .lead {
+  color: var(--on-dark-soft);
+}
+
+/* --- form (empty / error): the Desk grid ---------------------------------- */
+
+.grid {
+  display: grid;
+  gap: var(--space-7);
 }
 
 @media (min-width: 60rem) {
-  .card {
-    grid-column: 2 / span 10;
-    padding: var(--space-7);
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gutter);
+    align-items: start;
+  }
+
+  .primary {
+    grid-column: span 7;
+  }
+
+  .aside {
+    grid-column: 9 / span 4;
   }
 }
 
-/* --- form (empty / error) ------------------------------------------------ */
+.primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
 
 .chip {
   color: var(--ink-soft);
@@ -84,9 +105,41 @@
   border: none;
 }
 
+/* Real segmented control (SLICE-20 §2.1): the container is --paper-dim with
+   a hairline, so an unselected option reads as --ink on --paper-dim without
+   its own background, and the selected option fills --green. One shared
+   --radius-sm on the container; each option gets the radius minus the
+   container's own 2px inset padding. */
 .toggle {
-  display: flex;
-  gap: var(--space-2);
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--paper-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.toggleOption {
+  min-height: var(--target-min);
+  padding-inline: var(--space-5);
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    color var(--dur-micro) var(--ease-soft);
+}
+
+.toggleOption:hover:not([data-selected]) {
+  background: var(--surface-sunken);
+}
+
+.toggleOption[data-selected] {
+  background: var(--green);
+  color: var(--paper);
 }
 
 .tiers {
@@ -104,24 +157,28 @@
 }
 
 /* Selection reads by weight and a rule, never a second green control
-   (DESIGN.md §5 one-accent discipline) -- the same technique Steps uses for
+   (DESIGN.md §5 one-primary discipline) -- the same technique Steps uses for
    current/complete. */
 .tierCard {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4);
-  border-top: 1px solid var(--hairline);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-top: 2px solid transparent;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color var(--dur-micro) var(--ease-soft);
 }
 
 .tierCard:hover {
-  border-top-color: var(--ink-soft);
+  border-color: var(--ink-soft);
 }
 
 .tierCard[data-selected] {
-  border-top: 2px solid var(--ink);
+  border-top-color: var(--ink);
+  border-color: var(--ink);
 }
 
 /* The radio itself is visually-hidden (clipped to 1x1px), so the global
@@ -187,6 +244,11 @@
   color: var(--clay);
 }
 
+.hint {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
 .row {
   display: flex;
   gap: var(--space-4);
@@ -194,7 +256,28 @@
   align-items: center;
 }
 
-/* --- working -------------------------------------------------------------- */
+/* --- working / done: the Stage's one paper object ------------------------- */
+
+/* SLICE-20 §2.3: "one paper object centred on it" -- capped well short of
+   --content-max so it reads as a discrete object on the dark stage rather
+   than another edge-to-edge bar. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 42rem;
+  margin-inline: auto;
+  padding: var(--space-6);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 60rem) {
+  .card {
+    padding: var(--space-7);
+  }
+}
 
 .notice {
   color: var(--ink-soft);

@@ -262,6 +262,7 @@
       }
     },
     "generate": "Tailor my application",
+    "hint": "Paste a posting to start.",
     "notice": "Writing something worth sending takes about a minute. Here is what is happening the whole way.",
     "elapsed": "{seconds}s so far",
     "stages": {

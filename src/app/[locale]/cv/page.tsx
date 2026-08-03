@@ -4,6 +4,9 @@ import styles from './cv.module.css';
 import { CvUpload } from './CvUpload';
 
 /**
+ * DESIGN.md §3 archetype: Desk (then Stage for parse and grounding report,
+ * wired in CvUpload.tsx via body[data-stage] -- SLICE-20 §2.3).
+ *
  * SLICE-11 decision 5: its own route rather than a card on the account
  * screen. A fifty-five-second operation with five states needs a page, and
  * onboarding embeds this same component later.
