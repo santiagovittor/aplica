@@ -93,11 +93,16 @@ do $$
 declare rejected boolean;
 begin
   update public.api_keys
-     set provider = 'openai_compatible', base_url = 'https://integrate.api.nvidia.com/v1'
+     set provider = 'openai_compatible',
+         base_url = 'https://integrate.api.nvidia.com/v1',
+         model = 'meta/llama-3.1-70b-instruct'
    where user_id = '11111111-1111-1111-1111-111111111111';
   assert (select base_url from public.api_keys
            where user_id = '11111111-1111-1111-1111-111111111111') is not null,
     'openai_compatible with a base URL was rejected';
+  assert (select model from public.api_keys
+           where user_id = '11111111-1111-1111-1111-111111111111') is not null,
+    'openai_compatible with a model was rejected';
 
   rejected := false;
   begin
@@ -106,6 +111,14 @@ begin
   exception when check_violation then rejected := true;
   end;
   assert rejected, 'openai_compatible without a base URL was accepted';
+
+  rejected := false;
+  begin
+    update public.api_keys set model = null
+     where user_id = '11111111-1111-1111-1111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  assert rejected, 'openai_compatible without a model was accepted';
 
   rejected := false;
   begin
@@ -123,7 +136,7 @@ begin
   end;
   assert rejected, 'an unknown provider was accepted';
 
-  update public.api_keys set provider = 'anthropic', base_url = null
+  update public.api_keys set provider = 'anthropic', base_url = null, model = null
    where user_id = '11111111-1111-1111-1111-111111111111';
 end $$;
 

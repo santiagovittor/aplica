@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
@@ -35,12 +35,17 @@ export function KeyCard({
 }) {
   const [saveState, save, saving] = useActionState(saveKey, {});
   const [removeState, remove, removing] = useActionState(removeKey, {});
+  // Controlled, unlike the rest of this form's fields: whether the base-url
+  // and model inputs show at all depends on which provider is picked, so
+  // there has to be somewhere in React to read that from before submit.
+  const [provider, setProvider] = useState(providers[0].value);
 
   const failure = saveState.error ?? removeState.error;
-  // The provider the server actually called. The select is uncontrolled: its
-  // value only matters at submit, and mirroring it into React state would be a
-  // second copy that can disagree with the one the server was given.
-  const messages = errors[saveState.provider ?? providers[0].value] ?? {};
+  // The provider the server actually called, once there has been a submit;
+  // the live selection otherwise, so a refusal before any submit still names
+  // the provider on screen rather than always the first option in the list.
+  const messages = errors[saveState.provider ?? provider] ?? {};
+  const showEndpoint = provider === 'openai_compatible';
 
   return (
     <>
@@ -60,8 +65,31 @@ export function KeyCard({
             name="provider"
             label={labels.provider}
             options={providers}
-            defaultValue={providers[0].value}
+            value={provider}
+            onChange={(event) => setProvider(event.target.value)}
           />
+          {showEndpoint && (
+            <Input
+              id="baseUrl"
+              name="baseUrl"
+              autoComplete="off"
+              required
+              label={labels.endpointLabel}
+              placeholder={labels.endpointPlaceholder}
+              hint={labels.endpointHint}
+            />
+          )}
+          {showEndpoint && (
+            <Input
+              id="model"
+              name="model"
+              autoComplete="off"
+              required
+              label={labels.modelLabel}
+              placeholder={labels.modelPlaceholder}
+              hint={labels.modelHint}
+            />
+          )}
           <Input
             id="key"
             name="key"

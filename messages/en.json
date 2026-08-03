@@ -16,6 +16,7 @@
   "Header": {
     "label": "Main",
     "apply": "Apply",
+    "applications": "Applications",
     "account": "Account"
   },
   "Auth": {
@@ -99,12 +100,25 @@
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",
-        "google": "Google"
+        "google": "Google",
+        "openai_compatible": "Custom (OpenAI-compatible)"
+      },
+      "endpoint": {
+        "label": "Endpoint URL",
+        "placeholder": "https://your-host.example.com/v1",
+        "hint": "An OpenAI-shaped host: NVIDIA NIM, Ollama, OpenRouter, vLLM, or anything else that speaks the same API. Public and https only."
+      },
+      "model": {
+        "label": "Model name",
+        "placeholder": "e.g. meta/llama-3.1-70b-instruct",
+        "hint": "Only the host knows what it serves, so this is the one provider where you tell us. You can use a different model per application later."
       },
       "errors": {
         "empty": "Paste a key first.",
         "rejected": "That key didn’t work. Check you copied all of it, and that it belongs to {provider}.",
         "unreachable": "We couldn’t reach {provider} to check the key. Try again in a minute.",
+        "invalid_endpoint": "That address isn’t allowed. Use a public https URL, not a local or private one.",
+        "invalid_model": "That doesn’t look like a model name.",
         "unknown": "Something went wrong on our side. Your key was not saved."
       }
     },
@@ -170,6 +184,20 @@
       "lead": "This is what writes your applications, at your own provider’s rates. You keep the key; we only check that it works before we store it."
     }
   },
+  "Applications": {
+    "title": "Your applications",
+    "lead": "Every run you have generated, newest first.",
+    "empty": {
+      "invite": "No applications yet",
+      "body": "Run your first one and it will show up here.",
+      "cta": "Start an application"
+    },
+    "row": {
+      "roleUnknown": "Role not recorded",
+      "companyUnknown": "Company not recorded",
+      "preparing": "Still preparing your files."
+    }
+  },
   "Apply": {
     "title": "Apply to a job",
     "lead": "Paste the posting. We will tailor your resume to it, tell you honestly whether it is worth sending, and let you download it either way.",
@@ -188,6 +216,17 @@
       "label": "The job posting",
       "placeholder": "Paste the full posting here.",
       "hint": "The text of the posting, not a link to it."
+    },
+    "postingUrl": {
+      "label": "Or paste a link to it",
+      "placeholder": "https://…",
+      "hint": "We’ll try to read the posting from the link. Some sites, like LinkedIn and Workday, block this, and if that happens, paste the text above instead."
+    },
+    "model": {
+      "label": "Model",
+      "placeholder": "e.g. meta/llama-3.1-70b-instruct",
+      "hint": "Defaults to the one set in your account. Change it here for just this application.",
+      "ceiling": "Response times vary a lot by host, from a few seconds to a couple of minutes."
     },
     "tier": {
       "label": "Choose a tier",
@@ -250,6 +289,8 @@
       "bad_request": "Something in that request was off. Try again.",
       "key_missing": "You need a model key before you can generate. Add one in your account.",
       "name_missing": "We need your name before we write anything, because it goes on the documents. Add it in your account.",
+      "model_missing": "Add a model name before generating.",
+      "posting_url_blocked": "That site won’t let us read it. Paste the posting text instead.",
       "profile_missing": "Upload your CV first. Everything is drawn from it.",
       "profile_unreadable": "Your stored profile no longer matches what we expect. Upload your CV again.",
       "rate_limited": "That is {limit} applications today, which is the daily limit. It resets at midnight UTC.",
@@ -298,6 +339,7 @@
       "unauthorized": "Your session ran out. Sign in and try again.",
       "bad_request": "That did not come through as a file. Choose it again.",
       "key_missing": "You need a model key before you can parse a CV. Add one in your account.",
+      "model_missing": "Your account has no model name saved. Add one in your account.",
       "empty": "That file is empty. Upload the CV itself, not a shortcut to it.",
       "too_large": "That file is larger than 10 MB. A CV that big is usually a scan; export it from a word processor as a PDF instead.",
       "unsupported_type": "That file is not a PDF or a Word .docx, whatever its name says. Export the CV as one of those and upload it again.",

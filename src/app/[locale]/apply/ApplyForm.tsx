@@ -8,6 +8,7 @@ import { detectPostingLanguage } from '@/lib/detect-language';
 import { Button } from '@/ui/Button';
 import buttonStyles from '@/ui/Button.module.css';
 import { FitScore } from '@/ui/FitScore';
+import { Input } from '@/ui/Input';
 import { Motif } from '@/ui/Motif';
 import { Steps, type Step } from '@/ui/Steps';
 import { Textarea } from '@/ui/Textarea';
@@ -46,6 +47,7 @@ const ERROR_CODES = [
   'bad_request',
   'key_missing',
   'name_missing',
+  'model_missing',
   'profile_missing',
   'profile_unreadable',
   'rate_limited',
@@ -60,6 +62,10 @@ const ERROR_CODES = [
   'render_failed',
   'unexpected',
   'streamInterrupted',
+  // Handled through its own inline state (see `submit`), not `fail`/
+  // `errorMessage`; listed anyway so every code `/api/generate` can answer
+  // with lives in one place.
+  'posting_url_blocked',
 ] as const;
 
 interface DoneResult {
@@ -98,15 +104,25 @@ export function ApplyForm({
   cvOnFile,
   researchAvailable,
   researchCostLine,
+  requiresModel,
+  defaultModel,
 }: {
   cvOnFile: boolean;
   researchAvailable: boolean;
   researchCostLine: string | null;
+  /** True when the account's provider is `openai_compatible`, which has no
+   *  `DEFAULT_MODELS` entry (SLICE-15 decision 3). */
+  requiresModel: boolean;
+  /** The account's stored default model, or `''` if it has none yet. */
+  defaultModel: string;
 }) {
   const t = useTranslations('Apply');
   const uiLocale = useLocale() as Language;
 
   const [posting, setPosting] = useState('');
+  const [postingUrl, setPostingUrl] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [model, setModel] = useState(defaultModel);
   const [tier, setTier] = useState<Tier>('standard');
   const [research, setResearch] = useState(researchAvailable);
 
@@ -160,6 +176,18 @@ export function ApplyForm({
     if (next.trim() === '') {
       setManualLanguage(null);
     }
+    if (urlError !== null) {
+      setUrlError(null);
+    }
+  }
+
+  /** The URL field's own error clears the moment the user acts on it, rather
+   *  than lingering under a link they are actively changing. */
+  function updatePostingUrl(next: string) {
+    setPostingUrl(next);
+    if (urlError !== null) {
+      setUrlError(null);
+    }
   }
 
   function fail(code: string, limit?: number) {
@@ -170,6 +198,9 @@ export function ApplyForm({
 
   function startOver() {
     setPosting('');
+    setPostingUrl('');
+    setUrlError(null);
+    setModel(defaultModel);
     setManualLanguage(null);
     setResult(null);
     setFiles(null);
@@ -217,12 +248,18 @@ export function ApplyForm({
   }
 
   async function submit() {
-    if (posting.trim() === '') {
+    const hasPosting = posting.trim() !== '';
+    const hasUrl = postingUrl.trim() !== '';
+    if (!hasPosting && !hasUrl) {
+      return;
+    }
+    if (requiresModel && model.trim() === '') {
       return;
     }
     setPhase('starting');
     setElapsed(0);
     setErrorCode(null);
+    setUrlError(null);
 
     let response: Response;
     try {
@@ -230,10 +267,13 @@ export function ApplyForm({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          posting,
+          // The paste box wins when both are filled (PROJECT.md section 9:
+          // it is the primary input, the URL is best-effort convenience).
+          ...(hasPosting ? { posting } : { postingUrl }),
           tier,
           language,
           ...(researchAvailable ? { research } : {}),
+          ...(requiresModel ? { model } : {}),
         }),
       });
     } catch {
@@ -252,7 +292,18 @@ export function ApplyForm({
         error: string;
         limit?: number;
       };
-      if (mounted.current) fail(body.error, body.limit);
+      if (mounted.current) {
+        // Decision 2: a blocked or failed fetch is never a hard refusal. The
+        // form stays exactly as it was, minus the URL that did not work, and
+        // focus moves to the box that always works.
+        if (body.error === 'posting_url_blocked') {
+          setPhase('empty');
+          setUrlError(t('errors.posting_url_blocked'));
+          document.getElementById('posting')?.focus();
+        } else {
+          fail(body.error, body.limit);
+        }
+      }
       return;
     }
 
@@ -388,6 +439,16 @@ export function ApplyForm({
             rows={12}
           />
 
+          <Input
+            id="postingUrl"
+            label={t('postingUrl.label')}
+            placeholder={t('postingUrl.placeholder')}
+            hint={urlError ?? t('postingUrl.hint')}
+            error={urlError ?? undefined}
+            value={postingUrl}
+            onChange={(event) => updatePostingUrl(event.target.value)}
+          />
+
           <fieldset className={styles.tiers}>
             <legend className={styles.groupLabel}>{t('tier.label')}</legend>
             {TIERS.map((option) => (
@@ -430,6 +491,21 @@ export function ApplyForm({
             </label>
           )}
 
+          {requiresModel && (
+            <div className={styles.modelGroup}>
+              <Input
+                id="model"
+                label={t('model.label')}
+                placeholder={t('model.placeholder')}
+                hint={t('model.hint')}
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                required
+              />
+              <p className={styles.note}>{t('model.ceiling')}</p>
+            </div>
+          )}
+
           {phase === 'error' && (
             <p className={styles.error} role="alert">
               {errorMessage(errorCode, errorLimit)}
@@ -440,7 +516,10 @@ export function ApplyForm({
             <Button
               variant="primary"
               onClick={submit}
-              disabled={posting.trim() === ''}
+              disabled={
+                (posting.trim() === '' && postingUrl.trim() === '') ||
+                (requiresModel && model.trim() === '')
+              }
             >
               {t('generate')}
             </Button>

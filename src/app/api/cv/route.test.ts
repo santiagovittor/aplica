@@ -460,6 +460,60 @@ describe('a grounding finding is shown to the user', () => {
   });
 });
 
+describe('openai_compatible needs a model before it needs a token', () => {
+  it('refuses before the stream opens when the account has none', async () => {
+    // Before this precondition existed, a missing model surfaced mid-parse as
+    // a plain, un-typed Error from the adapter and fell through to
+    // `unexpected`. This is the honest refusal that replaces that.
+    describeApiKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      model: null,
+    });
+
+    const response = await POST(post(VALID_CV));
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'model_missing' });
+    expect(createProvider).not.toHaveBeenCalled();
+    expect(spendParse).not.toHaveBeenCalled();
+  });
+
+  it('threads the account default model and endpoint to the provider', async () => {
+    const MODEL = 'meta/llama-3.1-70b-instruct';
+    const BASE_URL = 'https://host.example.com/v1';
+    describeApiKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      model: MODEL,
+    });
+    getDecryptedKey.mockResolvedValue({
+      provider: 'openai_compatible',
+      apiKey: API_KEY,
+      baseUrl: BASE_URL,
+      model: MODEL,
+    });
+    const generate = vi.fn(() =>
+      Promise.resolve(JSON.stringify(GROUNDED_PROFILE)),
+    );
+    createProvider.mockImplementation(() => ({
+      id: 'openai_compatible',
+      supportsSearch: false,
+      generate,
+    }));
+
+    await read(await POST(post(VALID_CV)));
+
+    expect(createProvider).toHaveBeenCalledWith({
+      id: 'openai_compatible',
+      apiKey: API_KEY,
+      baseUrl: BASE_URL,
+    });
+    expect(generate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ model: MODEL }),
+    );
+  });
+});
+
 describe('a provider failure is told apart from the others', () => {
   const cases: [number, string][] = [
     [401, 'provider_rejected_key'],

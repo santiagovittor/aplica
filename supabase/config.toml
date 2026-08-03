@@ -410,7 +410,13 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+# Off: the vector/Logflare sidecar this powers only feeds Studio's local Logs
+# tab, and on Windows + Docker Desktop it needs the Docker Engine API exposed
+# over unauthenticated TCP (host.docker.internal:2375), which Docker Desktop
+# leaves off by default for good reason. With it off, vector crash-loops
+# forever instead of degrading gracefully. `docker logs <container>` still
+# shows everything this would have; nothing else in the stack reads from it.
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

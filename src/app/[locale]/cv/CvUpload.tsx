@@ -39,6 +39,7 @@ const ERROR_CODES = [
   'unauthorized',
   'bad_request',
   'key_missing',
+  'model_missing',
   'empty',
   'too_large',
   'unsupported_type',

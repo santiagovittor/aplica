@@ -19,5 +19,8 @@ export default defineConfig({
     // both tools default to matching `*.spec.ts`, and vitest picking it up
     // fails on Playwright's own `test.skip`, which needs Playwright's context.
     exclude: [...configDefaults.exclude, 'e2e/**'],
+    // See vitest.setup.ts: a WebSocket stub so @supabase/supabase-js's eager
+    // RealtimeClient construction does not throw on Node < 22.
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

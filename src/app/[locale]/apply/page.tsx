@@ -37,7 +37,9 @@ export default async function ApplyPage({
     .catch(() => true);
 
   const researchAvailable =
-    key !== null && SEARCH_MODELS[key.provider] !== undefined;
+    key !== null &&
+    key.provider !== 'openai_compatible' &&
+    SEARCH_MODELS[key.provider] !== undefined;
 
   return (
     <main className={styles.shell}>
@@ -50,10 +52,14 @@ export default async function ApplyPage({
         cvOnFile={cvOnFile}
         researchAvailable={researchAvailable}
         researchCostLine={
-          researchAvailable && key !== null
+          researchAvailable &&
+          key !== null &&
+          key.provider !== 'openai_compatible'
             ? t(`research.cost.${key.provider}`)
             : null
         }
+        requiresModel={key?.provider === 'openai_compatible'}
+        defaultModel={key?.model ?? ''}
       />
     </main>
   );
