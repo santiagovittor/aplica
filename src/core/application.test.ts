@@ -106,14 +106,16 @@ describe('ApplicationError', () => {
 describe('motifLine', () => {
   it('picks the longest real line, stripped of markdown furniture', () => {
     expect(
-      motifLine('# Ada Lovelace\n\nCut the month-end close from three days to one.'),
+      motifLine(
+        '# Ada Lovelace\n\nCut the month-end close from three days to one.',
+      ),
     ).toBe('Cut the month-end close from three days to one.');
   });
 
   it('strips bullet markers and blockquote markers', () => {
-    expect(motifLine('* Led a team of six engineers across two time zones.')).toBe(
-      'Led a team of six engineers across two time zones.',
-    );
+    expect(
+      motifLine('* Led a team of six engineers across two time zones.'),
+    ).toBe('Led a team of six engineers across two time zones.');
   });
 
   it('is empty for a resume with no lines', () => {

@@ -60,9 +60,9 @@ describe('extractCvText reads', () => {
   });
 
   it('a docx handed over as a Buffer', async () => {
-    expect(
-      (await extractCvText(Buffer.from(docx(CV_LINES)))).text,
-    ).toContain('Ada Lovelace');
+    expect((await extractCvText(Buffer.from(docx(CV_LINES)))).text).toContain(
+      'Ada Lovelace',
+    );
   });
 
   it('a docx whose entry is stored rather than deflated', async () => {
@@ -108,9 +108,9 @@ describe('the Math.sumPrecise polyfill', () => {
   it('is installed by an extraction, and sums', async () => {
     delete math.sumPrecise;
 
-    expect(
-      (await extractCvText(pdf(textStream(CV_LINES)))).text,
-    ).toContain('Ada Lovelace');
+    expect((await extractCvText(pdf(textStream(CV_LINES)))).text).toContain(
+      'Ada Lovelace',
+    );
     const installed = Reflect.get(Math, 'sumPrecise') as
       ((values: Iterable<number>) => number) | undefined;
     expect(typeof installed).toBe('function');

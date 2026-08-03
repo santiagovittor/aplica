@@ -377,9 +377,7 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     const nextStage =
       index + 1 < stageOrder.length ? stageOrder[index + 1] : undefined;
     const endedAt =
-      nextStage !== undefined
-        ? stageStartedAt[nextStage]
-        : stageStartedAt.done;
+      nextStage !== undefined ? stageStartedAt[nextStage] : stageStartedAt.done;
     const durationSeconds =
       startedAt !== undefined && endedAt !== undefined
         ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
@@ -471,9 +469,7 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
                   >
                     {t('empty.choose')}
                   </Button>
-                  <span className={styles.dropHint}>
-                    {t('empty.dropHint')}
-                  </span>
+                  <span className={styles.dropHint}>{t('empty.dropHint')}</span>
                 </div>
               )}
             </div>

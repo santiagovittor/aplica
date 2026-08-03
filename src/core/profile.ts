@@ -162,7 +162,8 @@ const MAX_MOTIF_CHARS = 240;
  * quotable line by the parse itself.
  */
 export function motifLine(profile: Profile): string {
-  const line = profile.voiceAnchors[0] ?? profile.experience[0]?.bullets[0]?.text;
+  const line =
+    profile.voiceAnchors[0] ?? profile.experience[0]?.bullets[0]?.text;
   if (line === undefined) {
     return '';
   }

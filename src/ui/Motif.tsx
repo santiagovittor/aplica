@@ -46,7 +46,13 @@ function clausesOf(sentence: string): string[] {
  * tell the two apart. Each call site already knows its own ground and it
  * never changes, so this is simpler than trying to detect it.
  */
-export function Motif({ human, dark = false }: { human: string; dark?: boolean }) {
+export function Motif({
+  human,
+  dark = false,
+}: {
+  human: string;
+  dark?: boolean;
+}) {
   const t = useTranslations('Motif');
   const clauses = clausesOf(human);
 

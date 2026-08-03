@@ -223,9 +223,15 @@ describe('the CV route streams', () => {
     const { events } = await read(await POST(post(VALID_CV)));
     const stages = events.filter((event) => event.event === 'stage');
 
-    expect(stages[1].data.detail).toEqual({ chars: expect.any(Number), pages: 1 });
+    expect(stages[1].data.detail).toEqual({
+      chars: expect.any(Number),
+      pages: 1,
+    });
     expect(stages[3].data.detail).toEqual({ roles: 1, skills: 1 });
-    expect(stages[5].data.detail).toEqual({ checked: expect.any(Number), softened: 0 });
+    expect(stages[5].data.detail).toEqual({
+      checked: expect.any(Number),
+      softened: 0,
+    });
     expect(stages[0].data.detail).toBeUndefined();
     expect(stages[6].data.detail).toBeUndefined();
   });

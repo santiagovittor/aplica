@@ -100,7 +100,11 @@ const DUR_REVEAL_S = 0.5;
  * DONE_CONTAINER below) begins, rather than a slow symmetric crossfade. */
 const WORKING_VARIANTS = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_SOFT } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: EASE_SOFT },
+  },
   exit: {
     opacity: 0,
     scale: 0.98,
@@ -114,7 +118,9 @@ const WORKING_VARIANTS = {
  *  read as one move rather than a fade-out-then-fade-in. */
 const DONE_CONTAINER = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.06, delayChildren: DUR_MICRO_S } },
+  visible: {
+    transition: { staggerChildren: 0.06, delayChildren: DUR_MICRO_S },
+  },
 };
 
 const DONE_ITEM = {
@@ -453,9 +459,7 @@ export function ApplyForm({
     const startedAt = stageStartedAt[stage];
     const nextStage = STAGE_ORDER[index + 1];
     const endedAt =
-      nextStage !== undefined
-        ? stageStartedAt[nextStage]
-        : stageStartedAt.done;
+      nextStage !== undefined ? stageStartedAt[nextStage] : stageStartedAt.done;
     const durationSeconds =
       startedAt !== undefined && endedAt !== undefined
         ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
