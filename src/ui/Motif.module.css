@@ -13,8 +13,14 @@
   gap: var(--space-5);
   margin: 0;
   /* The measure holds here too: this is prose, and a motif that runs the full
-     width of a hero column is the same bug §4 names anywhere else. */
-  max-width: 34ch;
+     width of its container is the same bug DESIGN.md §4 names anywhere else.
+
+     46ch rather than the 65ch of body prose, because the human line is set at
+     --text-xl and a long measure at display size reads as a paragraph instead
+     of a sentence. It is a ceiling, not a width: in the hero's 4/12 column the
+     column is narrower and wins, so this only does work in the wider card,
+     where 34ch had been breaking a real CV line into six ragged lines. */
+  max-width: 46ch;
 }
 
 .half {
