@@ -101,12 +101,22 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  transition: border-color var(--dur-micro) var(--ease-soft);
+  box-shadow: var(--shadow-raised);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft);
 }
 
+.dropzone:hover {
+  box-shadow: var(--shadow-lifted);
+}
+
+/* A file held over the target: the sheet accepts it, so it sinks rather than
+   rises, and the border takes the accent. */
 .dropzone[data-drag-active] {
   background: var(--surface-sunken);
   border-color: var(--green);
+  box-shadow: var(--shadow-raised);
 }
 
 .selected {
@@ -156,6 +166,7 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 60rem) {

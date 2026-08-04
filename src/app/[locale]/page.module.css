@@ -69,7 +69,6 @@
     'WONK' 1;
   line-height: 1.05;
   letter-spacing: -0.015em;
-  text-shadow: var(--letterpress);
   text-wrap: balance;
 }
 
@@ -157,7 +156,6 @@
    so no two headings on this screen occupy adjacent steps (DESIGN.md §4). */
 .sectionTitle {
   font-size: var(--text-xl);
-  text-shadow: var(--letterpress);
 }
 
 .sectionBody {

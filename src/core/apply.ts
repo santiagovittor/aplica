@@ -54,6 +54,33 @@ export const APPLY_MAX_TOKENS = 16_384;
  */
 export type ApplyStage = 'draft' | 'review' | 'revise';
 
+/**
+ * What a stage actually found, reported the moment it is known (SLICE-23
+ * §5.6). Real counts only: each of these is read off a value the pipeline
+ * already holds, never estimated and never a proxy for elapsed time.
+ *
+ * There is no `detail` for the *start* of a stage, because at the start
+ * nothing has been discovered yet. A sub-line that appeared with the stage
+ * would be predicting, which DESIGN.md §8 rules out as firmly as a progress
+ * bar filling over an estimated duration.
+ */
+export type ApplyStageDetail =
+  | { stage: 'draft'; fit: number; coverage: number }
+  | { stage: 'review'; fixes: number }
+  | { stage: 'revise'; slop: number; ungrounded: number };
+
+/**
+ * How many numbered fixes the reviewer raised.
+ *
+ * `reviewer.ts` fixes the output format: a `FIXES (highest priority first):`
+ * block of numbered lines. This counts those lines and nothing else. A model
+ * that ignores the format yields 0, and 0 means no sub-line is shown at all --
+ * an honest silence rather than a number that describes nothing.
+ */
+export function countFixes(critique: string): number {
+  return (critique.match(/^\s*\d+\.\s+\S/gm) ?? []).length;
+}
+
 export interface ApplyOptions {
   /** The posting as text. Fetching a URL is a separate SSRF surface. */
   posting: string;
@@ -92,6 +119,17 @@ export interface ApplyOptions {
    * here throws away work the user has already been billed for.
    */
   onStage?: (stage: ApplyStage) => void;
+  /**
+   * Called when a stage finishes with what it actually found, so a caller can
+   * report a real count under the step (SLICE-23 §5.6). Separate from
+   * `onStage` rather than an optional second argument to it: the two fire at
+   * opposite ends of a stage and mean opposite things, and one callback that
+   * sometimes means "starting" and sometimes means "finished with these
+   * numbers" is the kind of seam that gets misread later.
+   *
+   * Must not throw, for the same reason `onStage` must not.
+   */
+  onStageDetail?: (detail: ApplyStageDetail) => void;
 }
 
 export interface ApplyResult {
@@ -129,6 +167,11 @@ export async function applyToPosting(
     draftSystemPrompt(draftOptions),
     draftUserMessage({ posting, profile: profileText }),
   );
+  options.onStageDetail?.({
+    stage: 'draft',
+    fit: draft.fit.score,
+    coverage: Math.round(draft.keywordCoverage),
+  });
 
   // Available unless the caller says otherwise. The visible toggle and its cost
   // line are step 7's; this is the default it will start from.
@@ -163,6 +206,8 @@ export async function applyToPosting(
     throw new ApplicationError('review', 'the critique was empty');
   }
 
+  options.onStageDetail?.({ stage: 'review', fixes: countFixes(critique) });
+
   options.onStage?.('revise');
   const application = await generate(
     provider,
@@ -181,7 +226,14 @@ export async function applyToPosting(
   // Reported, never thrown on. The gate test and, later, the route decide what
   // a finding means; a finding surviving the revision pass is a prompt failure
   // worth seeing rather than an exception to swallow.
-  return { application, critique, ...gate(application, options) };
+  const gated = gate(application, options);
+  options.onStageDetail?.({
+    stage: 'revise',
+    slop: gated.slop.length,
+    ungrounded: gated.ungrounded.length,
+  });
+
+  return { application, critique, ...gated };
 }
 
 /** The three CI gates of CLAUDE.md section 5, run over the final documents. */

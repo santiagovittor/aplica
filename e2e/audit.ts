@@ -132,6 +132,12 @@ export async function checkHover(page: Page): Promise<Finding[]> {
     if (!(await element.isVisible().catch(() => false))) {
       continue;
     }
+    // A disabled control is not interactive, and the correct affordance for it
+    // is precisely that nothing happens. §3.3's rule is about an interface
+    // where nothing responds to the cursor, not about controls that are off.
+    if (await element.isDisabled().catch(() => false)) {
+      continue;
+    }
     const box = await element.boundingBox();
     if (box === null || box.width < 2 || box.height < 2) {
       continue;
@@ -164,7 +170,15 @@ export async function checkHover(page: Page): Promise<Finding[]> {
     if (before === after) {
       const description = await element.evaluate((node) => {
         const el = node as Element;
-        return `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(' ')[0]}` : ''} "${(el.textContent ?? '').trim().slice(0, 30)}"`;
+        const label =
+          (el.textContent ?? '').trim() ||
+          el.getAttribute('aria-label') ||
+          el.getAttribute('placeholder') ||
+          el.getAttribute('name') ||
+          el.getAttribute('type') ||
+          el.id ||
+          '';
+        return `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(' ')[0]}` : ''} "${label.slice(0, 30)}"`;
       });
       findings.push({ check: 'hover', detail: `no response: ${description}` });
     }
@@ -231,6 +245,13 @@ export async function checkContrast(page: Page): Promise<Finding[]> {
       }
       const rect = element.getBoundingClientRect();
       if (rect.width < 1 || rect.height < 1) continue;
+      // Screen-reader-only text is not painted, so it has no contrast to
+      // measure: `.visually-hidden` keeps a 1x1 box and clips it away, which
+      // is exactly the shape that survives a bounding-box test and must not
+      // survive this one.
+      if (style.clipPath !== 'none' && rect.width <= 2 && rect.height <= 2) {
+        continue;
+      }
 
       const fg = parse(style.color);
       if (fg === null || fg[3] < 0.1) continue;

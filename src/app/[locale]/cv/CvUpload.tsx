@@ -127,7 +127,26 @@ function describeFinding(finding: GroundingFinding): string {
  * (SLICE-12 decision 2) -- it only knows where "done" goes, which onboarding
  * overrides to its own `voice` step.
  */
-export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
+export function CvUpload({
+  nextHref = '/account',
+  ground = 'stage',
+}: {
+  nextHref?: string;
+  /**
+   * Which ground the run sits on. `stage` is the standalone `/cv` route, whose
+   * parse run is one of the three screens DESIGN.md §3 assigns the Stage
+   * archetype. `column` is onboarding, which is a Column screen for its whole
+   * length and is never dark (DESIGN.md §3, SLICE-23 §3.5).
+   *
+   * An explicit prop rather than this component detecting onboarding: it
+   * deliberately does not know where it renders (SLICE-12 decision 2), and it
+   * still does not -- it knows which ground it was given. Before this it set
+   * the dark ground unconditionally, which put onboarding's step nav, an
+   * uncarded list, on --ink-deep at about 2.4:1: a WCAG failure on the first
+   * screen a new user sees.
+   */
+  ground?: 'stage' | 'column';
+}) {
   const t = useTranslations('Cv');
   const [phase, setPhase] = useState<Phase>('empty');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -158,19 +177,20 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
   );
 
   /**
-   * SLICE-20 §2.3: the Stage archetype. `body[data-stage]` is the one
-   * surface this component and `Header` (a sibling in the root layout, not
-   * an ancestor of this one) can both reach -- see Header.module.css's own
-   * comment on why a prop can't do this. `CvUpload` does not know it is
-   * inside onboarding (a standing decision, SLICE-12), so this fires there
-   * too; onboarding.module.css carries the matching dark-ground overrides
-   * for its own heading/skip-link classes for exactly that reason.
+   * The Stage archetype's ground. `body[data-stage]` is the one surface this
+   * component and `Header` (a sibling in the root layout, not an ancestor of
+   * this one) can both reach -- see Header.module.css's own comment on why a
+   * prop cannot do this.
+   *
+   * Gated on `ground`, per DESIGN.md §3: exactly three screens are Stage, and
+   * onboarding is not one of them however similar its CV step looks.
    */
   useEffect(() => {
     const onStage =
-      phase === 'uploading' ||
-      STAGE_ORDER.includes(phase as ServerStage) ||
-      phase === 'done';
+      ground === 'stage' &&
+      (phase === 'uploading' ||
+        STAGE_ORDER.includes(phase as ServerStage) ||
+        phase === 'done');
     if (onStage) {
       document.body.dataset.stage = 'true';
     } else {
@@ -179,7 +199,7 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
     return () => {
       delete document.body.dataset.stage;
     };
-  }, [phase]);
+  }, [phase, ground]);
 
   useEffect(() => {
     const working: Phase[] = ['uploading', ...STAGE_ORDER];
@@ -379,12 +399,12 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
         ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
         : undefined;
 
+    // SLICE-23 §5.6: no bare arrow. The filled marker, the --green rule and
+    // the sub-line carry that meaning already.
     const meta =
       status === 'complete' && durationSeconds !== undefined
         ? `${t('stageStatus.complete')} · ${durationSeconds}s`
-        : status === 'current'
-          ? `← ${t('stageStatus.current')}`
-          : undefined;
+        : undefined;
 
     return {
       label:

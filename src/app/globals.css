@@ -42,6 +42,13 @@ body[data-stage='true'] {
   background: var(--ink-deep);
 }
 
+/* DESIGN.md §5a, impression: ink pressed into paper leaves an edge, so a
+   heading on a light ground carries a 1px light highlight below it. Set here
+   once rather than per screen, so a new heading cannot ship without it. On the
+   dark ground there is no highlight, which is why the few headings that sit
+   directly on --ink-deep opt out by name (apply.module.css's `.doneHeading`)
+   rather than this rule guessing from `body[data-stage]` -- most headings
+   during a Stage run are inside the --paper card, which stays light. */
 h1,
 h2,
 h3,
@@ -52,6 +59,7 @@ h6 {
   font-optical-sizing: auto;
   line-height: 1.15;
   text-wrap: balance;
+  text-shadow: var(--letterpress);
 }
 
 img,

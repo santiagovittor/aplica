@@ -113,6 +113,21 @@
     "onboarding": {
       "finish": "Terminá de configurar tu cuenta"
     },
+    "nav": {
+      "label": "En esta página",
+      "key": "Clave del modelo",
+      "cv": "CV",
+      "language": "Idioma",
+      "session": "Sesión",
+      "danger": "Eliminar"
+    },
+    "sections": {
+      "key": "Credenciales",
+      "cv": "Material de origen",
+      "language": "Interfaz",
+      "session": "Sesión",
+      "danger": "Irreversible"
+    },
     "key": {
       "title": "Tu clave del modelo",
       "body": "Aplica funciona con tu propia clave, así le pagás al proveedor directamente y nosotros no cobramos nada encima. Se cifra antes de llegar a la base de datos y no se vuelve a mostrar después de que la guardás.",
@@ -159,16 +174,13 @@
       "replace": "Reemplazarlo",
       "upload": "Subí tu CV"
     },
-    "apply": {
-      "title": "Postularte a un trabajo",
-      "body": "Pegá un aviso, elegí un plan y conseguí un currículum a medida en una sola sentada.",
-      "link": "Empezar una postulación"
-    },
     "language": {
       "title": "Idioma",
       "body": "Cambia la app. No cambia el idioma en el que se escriben tus candidaturas."
     },
     "session": {
+      "title": "Sesión iniciada",
+      "body": "Cerrar sesión no cambia nada. Tu clave, tu CV y tus postulaciones siguen acá cuando vuelvas.",
       "signOut": "Cerrar sesión"
     },
     "danger": {
@@ -295,7 +307,11 @@
       "draft": "Escribiendo tu primer borrador",
       "review": "Comprobándolo contra el aviso",
       "revise": "Aplicando lo que encontró la revisión",
-      "saving": "Guardando tu candidatura"
+      "saving": "Guardando tu candidatura",
+      "draftDetail": "{fit}/100 de afinidad, {coverage}% de las palabras clave del aviso",
+      "reviewDetail": "{fixes, plural, one {# corrección señalada} other {# correcciones señaladas}}",
+      "reviewDetailClean": "Nada que corregir",
+      "reviseDetail": "Quedan {slop, plural, one {# rastro de IA} other {# rastros de IA}} y {ungrounded, plural, one {# afirmación sin respaldo} other {# afirmaciones sin respaldo}}"
     },
     "stageStatus": {
       "complete": "listo",
@@ -363,16 +379,16 @@
       "uploading": "Enviando tu archivo",
       "reading": {
         "label": "Leyendo tu CV",
-        "detail": "{chars} caracteres leídos",
-        "detailWithPages": "{pages} páginas, {chars} caracteres leídos"
+        "detail": "{chars, plural, one {# carácter leído} other {# caracteres leídos}}",
+        "detailWithPages": "{pages, plural, one {# página} other {# páginas}}, {chars, plural, one {# carácter leído} other {# caracteres leídos}}"
       },
       "parsing": {
         "label": "Entendiendo lo que dice",
-        "detail": "{roles} puestos, {skills} habilidades encontrados"
+        "detail": "{roles, plural, one {# puesto} other {# puestos}} y {skills, plural, one {# habilidad} other {# habilidades}}"
       },
       "checking": {
         "label": "Comprobando cada afirmación contra tus propias palabras",
-        "detail": "{checked} afirmaciones comprobadas, {softened} suavizadas"
+        "detail": "{checked, plural, one {# afirmación comprobada} other {# afirmaciones comprobadas}}, {softened} suavizadas"
       },
       "saving": {
         "label": "Guardando tu perfil"

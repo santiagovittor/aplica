@@ -113,6 +113,21 @@
     "onboarding": {
       "finish": "Finish setting up your account"
     },
+    "nav": {
+      "label": "On this page",
+      "key": "Model key",
+      "cv": "CV",
+      "language": "Language",
+      "session": "Session",
+      "danger": "Delete"
+    },
+    "sections": {
+      "key": "Credentials",
+      "cv": "Source material",
+      "language": "Interface",
+      "session": "Session",
+      "danger": "Irreversible"
+    },
     "key": {
       "title": "Your model key",
       "body": "Aplica runs on your own provider key, so you pay the model directly and we never mark it up. It is encrypted before it reaches the database, and it is never shown again after you save it.",
@@ -159,16 +174,13 @@
       "replace": "Replace it",
       "upload": "Upload your CV"
     },
-    "apply": {
-      "title": "Apply to a job",
-      "body": "Paste a posting, pick a tier, and get a tailored resume in one sitting.",
-      "link": "Start an application"
-    },
     "language": {
       "title": "Language",
       "body": "This changes the app. It does not change the language your applications are written in."
     },
     "session": {
+      "title": "Signed in",
+      "body": "Signing out leaves everything where it is. Your key, your CV and your applications are all still here when you come back.",
       "signOut": "Sign out"
     },
     "danger": {
@@ -295,7 +307,11 @@
       "draft": "Writing your first draft",
       "review": "Checking it against the posting",
       "revise": "Applying what the review found",
-      "saving": "Saving your application"
+      "saving": "Saving your application",
+      "draftDetail": "{fit}/100 fit, {coverage}% of the posting’s keywords covered",
+      "reviewDetail": "{fixes, plural, one {# fix raised} other {# fixes raised}}",
+      "reviewDetailClean": "Nothing to fix",
+      "reviseDetail": "{slop, plural, one {# AI tell} other {# AI tells}} and {ungrounded, plural, one {# unsupported claim} other {# unsupported claims}} left"
     },
     "stageStatus": {
       "complete": "done",
@@ -363,16 +379,16 @@
       "uploading": "Sending your file",
       "reading": {
         "label": "Reading your CV",
-        "detail": "{chars} characters read",
-        "detailWithPages": "{pages} pages, {chars} characters read"
+        "detail": "{chars, plural, one {# character read} other {# characters read}}",
+        "detailWithPages": "{pages, plural, one {# page} other {# pages}}, {chars, plural, one {# character read} other {# characters read}}"
       },
       "parsing": {
         "label": "Understanding what is in it",
-        "detail": "{roles} roles, {skills} skills found"
+        "detail": "{roles, plural, one {# role} other {# roles}}, {skills, plural, one {# skill} other {# skills}} found"
       },
       "checking": {
         "label": "Checking every claim against your own words",
-        "detail": "{checked} claims checked, {softened} softened"
+        "detail": "{checked, plural, one {# claim checked} other {# claims checked}}, {softened} softened"
       },
       "saving": {
         "label": "Saving your profile"

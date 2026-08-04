@@ -56,27 +56,17 @@
   }
 }
 
+/* SLICE-23 §3.5: onboarding is Column and is never dark, so the
+   body[data-stage] overrides that used to sit here are gone with the state
+   they served. The `cv` step passes `ground="column"` to `CvUpload`, which is
+   what keeps that state from arising at all. */
 .title {
   font-size: var(--text-3xl);
-  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .lead {
   max-width: var(--measure);
   color: var(--ink-soft);
-  transition: color var(--dur-stage) var(--ease-soft);
-}
-
-/* SLICE-20 §2.3: only the `cv` step ever sets body[data-stage] (CvUpload
-   does not know it is inside onboarding, so it behaves the same way here as
-   it does on standalone /cv), but the title/lead/skip-link classes here are
-   shared by every step, so the override is harmless everywhere else. */
-:global(body[data-stage='true']) .title {
-  color: var(--on-dark);
-}
-
-:global(body[data-stage='true']) .lead {
-  color: var(--on-dark-soft);
 }
 
 .card {
@@ -87,6 +77,7 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 60rem) {
@@ -205,20 +196,11 @@
 }
 
 .quiet {
+  composes: underline from '@/ui/Link.module.css';
   color: var(--ink-soft);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  transition: color var(--dur-stage) var(--ease-soft);
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
 .quiet:hover {
   color: var(--ink);
-}
-
-:global(body[data-stage='true']) .quiet {
-  color: var(--on-dark-soft);
-}
-
-:global(body[data-stage='true']) .quiet:hover {
-  color: var(--on-dark);
 }

@@ -167,7 +167,8 @@ export default async function OnboardingStepPage({
           <p className={styles.lead}>{tCv('lead')}</p>
         </header>
 
-        <CvUpload nextHref="/onboarding/voice" />
+        {/* Column, not Stage: onboarding is never dark (DESIGN.md §3). */}
+        <CvUpload nextHref="/onboarding/voice" ground="column" />
 
         <div className={styles.shellActions}>
           <Link href="/account" className={styles.quiet}>

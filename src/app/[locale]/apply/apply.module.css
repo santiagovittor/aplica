@@ -84,12 +84,14 @@
   font-size: var(--text-xs);
 }
 
-.chip a {
+.chipLink {
+  composes: underline from '@/ui/Link.module.css';
   color: var(--green);
   font-weight: 500;
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
-.chip a:hover {
+.chipLink:hover {
   color: var(--green-soft);
 }
 
@@ -142,6 +144,17 @@
   color: var(--paper);
 }
 
+/* The selected option is still a button, so it still answers the cursor
+   (DESIGN.md §9, zero exceptions). It deepens rather than lightens, which
+   reads as "already down" instead of offering a change that isn't one. */
+.toggleOption[data-selected]:hover {
+  background: var(--green-pressed);
+}
+
+.toggleOption:active {
+  transform: translateY(1px);
+}
+
 .tiers {
   display: grid;
   gap: var(--space-4);
@@ -169,11 +182,23 @@
   border-top: 2px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color var(--dur-micro) var(--ease-soft);
+  box-shadow: var(--shadow-raised);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft),
+    transform var(--dur-micro) var(--ease-soft);
 }
 
+/* DESIGN.md §9: a surface rises 1px on hover and drops 1px on press. */
 .tierCard:hover {
   border-color: var(--ink-soft);
+  box-shadow: var(--shadow-lifted);
+  transform: translateY(-1px);
+}
+
+.tierCard:active {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(1px);
 }
 
 .tierCard[data-selected] {
@@ -213,6 +238,19 @@
 .research input {
   margin-top: 0.35em;
   accent-color: var(--ink);
+  /* A native checkbox has no hover state of its own on any platform this
+     ships to, so it gets one: the box scales fractionally under the cursor.
+     Its label is the real target and covers it, so this fires from anywhere
+     in the row. */
+  transition: transform var(--dur-micro) var(--ease-soft);
+}
+
+.research:hover input {
+  transform: scale(1.1);
+}
+
+.research input:active {
+  transform: scale(0.95);
 }
 
 .researchTitle {
@@ -272,6 +310,7 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 60rem) {
@@ -306,9 +345,14 @@
   margin-inline: auto;
 }
 
+/* The one heading in the product that sits directly on --ink-deep, so it is
+   the one that opts out of the global letterpress in globals.css: DESIGN.md
+   §5a grants the impression highlight to headings on a *light* ground, and a
+   white highlight under ink-deep is a glow. */
 .doneHeading {
   font-size: var(--text-2xl);
   color: var(--on-dark);
+  text-shadow: none;
 }
 
 .keywordCoverage {

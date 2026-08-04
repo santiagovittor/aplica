@@ -87,6 +87,17 @@ interface StoredFile {
   format: 'pdf' | 'docx';
 }
 
+/** Real counts a stage reported on finishing (SLICE-23 §5.6, mirroring
+ *  `ApplyStageDetail` in core/apply.ts). Numbers only: the wording is this
+ *  screen's, resolved through next-intl. */
+interface StageDetail {
+  fit?: number;
+  coverage?: number;
+  fixes?: number;
+  slop?: number;
+  ungrounded?: number;
+}
+
 // --dur-micro and --dur-reveal, copied as literals: Motion cannot read a CSS
 // custom property. --ease-soft is not copied; it lives in @/ui/easing, where
 // one test pins it against tokens.css.
@@ -178,12 +189,19 @@ export function ApplyForm({
   const [renderErrorCode, setRenderErrorCode] = useState<string | null>(null);
   const [files, setFiles] = useState<StoredFile[] | null>(null);
 
+  // Real counts the server discovered as each stage finished (SLICE-23 §5.6).
+  // SLICE-20 judged that apply had none to report, because each stage is one
+  // opaque model call; that was true of a stage's *start* and wrong about its
+  // end. A finished draft knows its fit and coverage, a finished review knows
+  // how many fixes it raised, and a finished revision knows what the gate
+  // found. Each field is optional because a stage only ever fills its own.
+  const [stageDetail, setStageDetail] = useState<
+    Partial<Record<GenStage, StageDetail>>
+  >({});
+
   const mounted = useRef(true);
   // When each step was entered, so a completed step can show how long it
-  // actually took (SLICE-20 §2.4), measured between real event arrivals
-  // rather than predicted. No detail sub-lines here, unlike CvUpload: every
-  // apply stage is one opaque model call with no server-discovered counts to
-  // report honestly in between (see SLICE-20.md's own judgment call on this).
+  // actually took, measured between real event arrivals rather than predicted.
   // State, not a ref: this repo's react-hooks/refs rule forbids reading a
   // ref during render, and this is read every render to compute durations.
   const [stageStartedAt, setStageStartedAt] = useState<
@@ -271,6 +289,7 @@ export function ApplyForm({
     setErrorCode(null);
     setPhase('empty');
     setStageStartedAt({});
+    setStageDetail({});
   }
 
   async function startRender(applicationId: string) {
@@ -409,6 +428,10 @@ export function ApplyForm({
           setStageStartedAt((prev) =>
             prev[stage] === undefined ? { ...prev, [stage]: Date.now() } : prev,
           );
+          const detail = data.detail as StageDetail | undefined;
+          if (detail) {
+            setStageDetail((prev) => ({ ...prev, [stage]: detail }));
+          }
           setPhase(stage);
         } else if (event === 'done') {
           sawTerminal = true;
@@ -442,6 +465,37 @@ export function ApplyForm({
 
   const showForm = phase === 'empty' || phase === 'error';
 
+  /** The real, server-discovered sub-line for a stage, or none yet: never
+   *  invented, only what the server actually sent. `starting` and `saving`
+   *  have nothing to report and say nothing. */
+  function detailLine(stage: GenStage): string | undefined {
+    const detail = stageDetail[stage];
+    if (!detail) {
+      return undefined;
+    }
+    switch (stage) {
+      case 'draft':
+        return t('stages.draftDetail', {
+          fit: detail.fit ?? 0,
+          coverage: detail.coverage ?? 0,
+        });
+      case 'review':
+        // Zero fixes is a real outcome and gets its own sentence rather than
+        // "0 fixes", which reads like a failure to count.
+        return detail.fixes === 0
+          ? t('stages.reviewDetailClean')
+          : t('stages.reviewDetail', { fixes: detail.fixes ?? 0 });
+      case 'revise':
+        return t('stages.reviseDetail', {
+          slop: detail.slop ?? 0,
+          ungrounded: detail.ungrounded ?? 0,
+        });
+      case 'starting':
+      case 'saving':
+        return undefined;
+    }
+  }
+
   const currentIndex = STAGE_ORDER.indexOf(phase as GenStage);
   const steps: Step[] = STAGE_ORDER.map((stage, index) => {
     const status =
@@ -465,18 +519,21 @@ export function ApplyForm({
         ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
         : undefined;
 
+    // SLICE-23 §5.6: the bare arrow is gone. The filled marker, the --green
+    // rule and the sub-line already carry "this one is running", and an arrow
+    // character pointing at nothing was the only part of it that could not
+    // survive a screen reader or a right-to-left locale.
     const meta =
       status === 'complete' && durationSeconds !== undefined
         ? `${t('stageStatus.complete')} · ${durationSeconds}s`
-        : status === 'current'
-          ? `← ${t('stageStatus.current')}`
-          : undefined;
+        : undefined;
 
     return {
       label: t(`stages.${stage}`),
       status,
       statusLabel: t(`stageStatus.${status}`),
       meta,
+      detail: detailLine(stage),
     };
   });
 
@@ -564,7 +621,7 @@ export function ApplyForm({
           <div className={styles.aside}>
             <p className={styles.chip}>
               {cvOnFile ? t('chip.onFile') : t('chip.none')}{' '}
-              <Link href="/cv">
+              <Link href="/cv" className={styles.chipLink}>
                 {cvOnFile ? t('chip.replace') : t('chip.upload')}
               </Link>
             </p>
