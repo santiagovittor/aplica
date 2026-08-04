@@ -96,10 +96,16 @@
   font-weight: 500;
 }
 
+/* Same hold-then-step as the footer's, for the same measured reason
+   (tokens.css, --delay-invert). */
 :global(body[data-stage='true']) .link {
   color: var(--on-dark-soft);
+  transition-duration: var(--dur-invert);
+  transition-delay: var(--delay-invert);
 }
 
 :global(body[data-stage='true']) .link:hover {
   color: var(--on-dark);
+  transition-duration: var(--dur-micro);
+  transition-delay: 0s;
 }

@@ -18,7 +18,11 @@
   line-height: 1;
   color: var(--ink);
   text-shadow: var(--letterpress);
-  transition: color var(--dur-stage) var(--ease-soft);
+  /* Not --dur-stage: the mark's ink and the ground it sits on travel opposite
+     directions, so matching the ground's own duration is exactly what makes
+     them meet in the middle (measured at 1.98:1, a visible ghost). It holds
+     still until the ground is past the crossing, then moves quickly. */
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
 /* The dotless stem the tick sits over. Positioned, so the stroke can be
@@ -46,4 +50,6 @@
 :global(body[data-stage='true']) .wordmark {
   color: var(--on-dark);
   text-shadow: none;
+  transition-duration: var(--dur-invert);
+  transition-delay: var(--delay-invert);
 }

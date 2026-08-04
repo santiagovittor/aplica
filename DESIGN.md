@@ -78,6 +78,8 @@ by eye before any screen is built.
   --dur-micro: 180ms; --dur-move: 250ms; --dur-reveal: 500ms;
   --dur-stage: 700ms;     /* the ground change between archetypes, section 3 */
   --dur-draw: 900ms;      /* a hand-drawn annotation drawing itself, section 7 */
+  --delay-invert: 120ms;  /* when the chrome's ink crosses the ground, section 8 */
+  --dur-invert: 1ms;      /* it crosses in one frame, never by fading */
 
   /* material (section 5a). Shadows mix from --ink, never black: black on
      cream goes grey and dead. */
@@ -295,6 +297,14 @@ Accent inventory, exhaustive:
   stage (ground change between archetypes) 700ms.
 - Enter = 8-12px translate + fade, staggered 40-60ms in groups. Nothing scales
   from zero, nothing spins.
+- **The ground change inverts the chrome by stepping, never by fading.** The
+  shell chrome's ink and the ground it sits on travel in opposite directions
+  over --dur-stage, so fading both at once walks the text through the ground's
+  own colour: measured at the worst frame, the footer links hit 1.13:1 and the
+  wordmark 1.33:1, text that vanishes and returns on every run start. The
+  chrome holds its ink until --delay-invert, then crosses in one frame
+  (--dur-invert). Verified by `checkGroundInversion`, which samples the whole
+  transition rather than its two ends; the two ends were always fine.
 - prefers-reduced-motion swaps every animation for instant states, implemented
   once in the Motion wrapper.
 - **Motion driven by a real event is always honest** and is not subject to

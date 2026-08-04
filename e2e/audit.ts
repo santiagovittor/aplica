@@ -361,3 +361,97 @@ export async function checkWordmark(page: Page): Promise<Finding[]> {
     ? []
     : [{ check: 'wordmark', detail: 'no wordmark in the header' }];
 }
+
+/**
+ * The ground change, sampled while it runs (SLICE-20 §2.3, DESIGN.md §8).
+ *
+ * Every other check here reads a resting state. This one exists because the
+ * defect it caught lives only *between* two resting states, both of which
+ * measure fine: the shell chrome's ink and the ground travel in opposite
+ * directions over --dur-stage, so animating them together walked the text
+ * through the ground's own colour. Measured at the worst frame, the footer
+ * links hit 1.13:1 and the wordmark 1.33:1 -- text that disappears and comes
+ * back on every run start.
+ *
+ * The fix (tokens.css `--delay-invert`) holds the ink still, then steps it in
+ * one frame once the ground is past the crossing. That floor cannot reach AA:
+ * with --ink-soft on the way out and --on-dark-soft on the way in, the two
+ * luminances are close enough that the best any timing can do for the footer
+ * links is about 1.7:1. That is arithmetic, not a choice.
+ *
+ * So this is a regression guard, not an accessibility floor. It sits above
+ * what the broken version measured (1.13:1 and 1.33:1) and below what the
+ * fixed one does (footer links 1.82:1, wordmark 4.40:1). The first threshold
+ * tried was 1.9, read off a sampling pass that stepped over the worst frame;
+ * the dense sweep found 1.82 and the harness rightly failed on its own author.
+ *
+ * Toggling `body[data-stage]` directly is what `ApplyForm` and `CvUpload` do
+ * from their own phase machines, so this drives the real mechanism on whatever
+ * screen it is called from. It restores the attribute afterwards.
+ */
+const INVERT_FLOOR = 1.6;
+
+export async function checkGroundInversion(page: Page): Promise<Finding[]> {
+  const wasSet = await page.evaluate(
+    () => document.body.dataset.stage === 'true',
+  );
+
+  const read = () =>
+    page.evaluate(() => {
+      const chrome = [
+        ...document.querySelectorAll('header *, footer *'),
+      ].filter((el) =>
+        [...el.childNodes].some(
+          (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim(),
+        ),
+      );
+      return {
+        ground: getComputedStyle(document.body).backgroundColor,
+        items: chrome.map((el) => ({
+          text: (el.textContent ?? '').trim().slice(0, 24),
+          color: getComputedStyle(el).color,
+        })),
+      };
+    });
+
+  const rgb = (value: string): [number, number, number] => {
+    const [r, g, b] = (value.match(/[\d.]+/g) ?? ['0', '0', '0']).map(Number);
+    return [r, g, b];
+  };
+
+  const floors = new Map<string, number>();
+  const started = Date.now();
+  await page.evaluate(() => {
+    document.body.dataset.stage = 'true';
+  });
+
+  // Every 20ms across the whole --dur-stage change and a little past it.
+  // Screenshotting inside this loop perturbs it: the captures cost enough
+  // wall-clock that the sampler steps straight over the worst frame and
+  // reports a floor that is too kind. So it only measures.
+  for (let ms = 20; ms <= 900; ms += 20) {
+    const wait = ms - (Date.now() - started);
+    if (wait > 0) await page.waitForTimeout(wait);
+    const { ground, items } = await read();
+    for (const item of items) {
+      const ratio = contrastRatio(rgb(item.color), rgb(ground));
+      const best = floors.get(item.text);
+      if (best === undefined || ratio < best) floors.set(item.text, ratio);
+    }
+  }
+
+  await page.evaluate((restore) => {
+    if (restore) document.body.dataset.stage = 'true';
+    else delete document.body.dataset.stage;
+  }, wasSet);
+
+  return [...floors]
+    .filter(([, ratio]) => ratio < INVERT_FLOOR)
+    .map(([text, ratio]) => ({
+      check: 'ground-inversion',
+      detail:
+        `"${text}" drops to ${ratio.toFixed(2)}:1 during the ground change ` +
+        `(floor ${INVERT_FLOOR}:1). The chrome's ink is crossing the ground ` +
+        `instead of stepping past it -- see --delay-invert.`,
+    }));
+}

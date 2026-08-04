@@ -49,10 +49,24 @@
   color: var(--ink);
 }
 
+/* Held, then stepped (tokens.css, --delay-invert). These links were the worst
+   measured case: --ink-soft on its way out and --on-dark-soft on its way in
+   are close enough in luminance that fading between them under a darkening
+   ground bottomed out at 1.16:1, which is text you cannot see. 1.82:1 is not
+   good, but it is the arithmetic ceiling for that pair of inks and it is the
+   difference between briefly dim and briefly gone. */
 :global(body[data-stage='true']) .link {
   color: var(--on-dark-soft);
+  transition-duration: var(--dur-invert);
+  transition-delay: var(--delay-invert);
 }
 
+/* Hover keeps its own timing on the dark ground: the step above is for the
+   ground change, and a link still has to answer the cursor over --dur-micro
+   (DESIGN.md §9). The one seam left is un-hovering *during* a run, which
+   takes the rule above and so snaps rather than fades. */
 :global(body[data-stage='true']) .link:hover {
   color: var(--on-dark);
+  transition-duration: var(--dur-micro);
+  transition-delay: 0s;
 }

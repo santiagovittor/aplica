@@ -7,6 +7,7 @@ import {
   checkContrast,
   checkFooter,
   checkGrain,
+  checkGroundInversion,
   checkHover,
   checkMotif,
   checkWordmark,
@@ -204,6 +205,16 @@ test.describe('public screens', () => {
   test('landing, auth and legal', async ({ page }) => {
     await page.goto('/en');
     await capture(page, 'landing');
+
+    // Once, not per screen. The chrome it measures is the shell's, identical
+    // on every route, and it costs a second of real wall clock because it has
+    // to watch an animation actually run rather than read a resting state.
+    findings.push(
+      ...(await checkGroundInversion(page)).map((f) => ({
+        ...f,
+        screen: 'ground-change',
+      })),
+    );
 
     await page.goto('/en/sign-in');
     await capture(page, 'sign-in', { motif: false });

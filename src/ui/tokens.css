@@ -60,6 +60,26 @@
   --dur-reveal: 500ms;
   --dur-stage: 700ms; /* SLICE-20 §1.5: the ground change, Column/Desk <-> Stage */
   --dur-draw: 900ms; /* SLICE-23 §5.3: a hand-drawn annotation drawing itself */
+  /* When the shell chrome flips its ink during the ground change, and how
+     long the flip takes. Measured on the rendered page by sweeping both, not
+     chosen: the chrome's ink and the ground travel opposite directions over
+     --dur-stage, so animating them together walks the text through the
+     ground's own colour. Sampled every 20ms across the whole transition, the
+     worst moment for each candidate:
+
+       delay   0ms, over 180ms   wordmark 1.20:1   footer links 1.16:1
+       delay 120ms, over 180ms   wordmark 1.87:1   footer links 1.09:1
+       delay 120ms, stepped      wordmark 3.91:1   footer links 1.82:1
+       delay 250ms, stepped      wordmark 1.20:1   footer links 1.06:1
+       delay 700ms, stepped      wordmark 1.01:1   footer links 1.06:1
+
+     So: hold, then step. Interpolating always walks through the crossing;
+     stepping crosses it in one frame, and 120ms is where the ground's
+     luminance sits between the two inks. Holding longer is much worse, not
+     better -- --ease-soft is front-loaded, so the ground is already near
+     --ink-deep by 250ms and dark ink on it measures 1.01:1. See DESIGN.md §8. */
+  --delay-invert: 120ms;
+  --dur-invert: 1ms;
 
   /* material (DESIGN.md §5a). The ground is paper, not a fill: grain, edge
      falloff, the impression ink leaves, and real weight under a raised
