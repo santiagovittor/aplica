@@ -5,7 +5,6 @@ import { useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { routing, type Locale } from '@/i18n/routing';
 import { setLocale } from '@/lib/locale';
-import { Button } from './Button';
 import styles from './LocaleToggle.module.css';
 
 export function LocaleToggle() {
@@ -28,18 +27,24 @@ export function LocaleToggle() {
   }
 
   return (
+    // A nav with `aria-current`, not a `role="group"` of pressed toggles like
+    // /apply's: that one sets a field on a form, this one navigates. Same
+    // control to the eye, different thing to a screen reader, which is the
+    // distinction the shared stylesheet deliberately does not touch.
     <nav aria-label={t('label')} className={styles.group}>
       {routing.locales.map((locale) => (
-        <Button
+        <button
           key={locale}
+          type="button"
           lang={locale}
-          variant={locale === active ? 'secondary' : 'quiet'}
+          className={styles.option}
+          data-selected={locale === active || undefined}
           disabled={isPending}
           aria-current={locale === active ? 'true' : undefined}
           onClick={() => switchTo(locale)}
         >
           {t(locale)}
-        </Button>
+        </button>
       ))}
     </nav>
   );
