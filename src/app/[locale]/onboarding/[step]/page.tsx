@@ -1,21 +1,28 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
+import { Link, redirect } from '@/i18n/navigation';
 import { CvUpload } from '@/app/[locale]/cv/CvUpload';
 import { KeyCard } from '@/app/[locale]/account/KeyCard';
 import { KEY_PROVIDERS, describeApiKey } from '@/lib/api-keys';
 import { requireUser } from '@/lib/session';
-import { dismissOnboarding, loadDisplayName } from '@/lib/supabase';
+import {
+  dismissOnboarding,
+  loadDisplayName,
+  loadProfile,
+  loadVoiceCalibratedAt,
+} from '@/lib/supabase';
 import { LocaleToggle } from '@/ui/LocaleToggle';
-import { isOnboardingStep } from './layout';
+import { isOnboardingRoute } from './layout';
 import { LanguageForm } from './LanguageForm';
+import { VoiceCalibration } from './VoiceCalibration';
 import styles from '../onboarding.module.css';
 
 /**
- * The three steps' actual content (SLICE-12 decisions 1-3). `language` and
- * `key` are built fresh; `cv` reuses `CvUpload` exactly as it renders on
- * `/cv` (decision 2) -- it does not know it is inside onboarding, and its own
- * `done` state already links to `/account`, which is this flow's real finish.
+ * The steps' actual content (SLICE-12 decisions 1-3, SLICE-19 for `voice`).
+ * `language` and `key` are built fresh; `cv` reuses `CvUpload` exactly as it
+ * renders on `/cv` (SLICE-12 decision 2) -- it does not know it is inside
+ * onboarding, it is just told its `done` state's next stop is `voice`
+ * instead of the standalone page's own default, `/account`.
  */
 export default async function OnboardingStepPage({
   params,
@@ -25,7 +32,7 @@ export default async function OnboardingStepPage({
   const { locale, step } = await params;
   setRequestLocale(locale);
 
-  if (!isOnboardingStep(step)) {
+  if (!isOnboardingRoute(step)) {
     notFound();
   }
 
@@ -141,27 +148,66 @@ export default async function OnboardingStepPage({
     );
   }
 
-  // step === 'cv'. Reaching this step at all -- continued through, skipped
-  // into, or opened straight from /account's "finish onboarding" link -- is
-  // what SLICE-12's migration comment calls "shown all the way through," so
-  // it is marked here rather than gated behind CvUpload's own success path,
-  // which decision 2 keeps unmodified and unaware of onboarding.
-  await dismissOnboarding(user.id);
-  const tCv = await getTranslations('Cv');
+  if (step === 'cv') {
+    // Reaching this step at all -- continued through, skipped into, or
+    // opened straight from /account's "finish onboarding" link -- is what
+    // SLICE-12's migration comment calls "shown all the way through," so it
+    // is marked here rather than gated behind CvUpload's own success path,
+    // which decision 2 keeps unmodified and unaware of onboarding. Skipping
+    // this step (the link below) goes straight to /account, same as always
+    // -- with no CV parsed there are no voice anchors, so `voice` would just
+    // bounce straight back (SLICE-19 decision 3).
+    await dismissOnboarding(user.id);
+    const tCv = await getTranslations('Cv');
+
+    return (
+      <>
+        <header className={styles.heading}>
+          <h1 className={styles.title}>{tCv('title')}</h1>
+          <p className={styles.lead}>{tCv('lead')}</p>
+        </header>
+
+        <CvUpload nextHref="/onboarding/voice" />
+
+        <div className={styles.shellActions}>
+          <Link href="/account" className={styles.quiet}>
+            {t('skip')}
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  // step === 'voice' (SLICE-19). Not a tracked ONBOARDING_STEPS entry
+  // (decision 3), so it has to gate itself: fewer than two voice anchors, or
+  // already answered once, and it redirects straight through rather than
+  // rendering a screen with nothing honest to ask.
+  const profile = await loadProfile(user.id);
+  const calibratedAt = await loadVoiceCalibratedAt(user.id);
+  const anchors = (profile?.voiceAnchors ?? []).slice(0, 2);
+
+  if (calibratedAt !== null || anchors.length < 2) {
+    redirect({ href: '/account', locale });
+  }
 
   return (
     <>
       <header className={styles.heading}>
-        <h1 className={styles.title}>{tCv('title')}</h1>
-        <p className={styles.lead}>{tCv('lead')}</p>
+        <h1 className={styles.title}>{t('voice.title')}</h1>
+        <p className={styles.lead}>{t('voice.lead')}</p>
       </header>
 
-      <CvUpload />
-
-      <div className={styles.shellActions}>
-        <Link href="/account" className={styles.quiet}>
-          {t('skip')}
-        </Link>
+      <div className={styles.card}>
+        <VoiceCalibration
+          locale={locale}
+          anchors={anchors as [string, string]}
+          labels={{
+            prompt: t('voice.prompt'),
+            continueLabel: t('continue'),
+            skipLabel: t('skip'),
+            error: t('voice.error'),
+          }}
+        />
       </div>
     </>
   );

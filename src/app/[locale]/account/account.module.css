@@ -20,8 +20,10 @@
   margin-bottom: var(--space-8);
 }
 
+/* SLICE-20 §2.6 (the 1.2 heading rule): page title 49, sections 25 -- three
+   scale steps apart, so they never occupy adjacent steps (DESIGN.md §4). */
 .title {
-  font-size: var(--text-3xl);
+  font-size: var(--text-4xl);
 }
 
 .lead {
@@ -62,12 +64,11 @@
   gap: var(--space-4);
 }
 
+/* Shared by both columns' h2s: was --text-lg in the aside, one step below
+   the primary column's own section titles, until SLICE-20 §2.6 asked for
+   every section heading at the same 25px step. */
 .sectionTitle {
   font-size: var(--text-xl);
-}
-
-.asideTitle {
-  font-size: var(--text-lg);
 }
 
 .body {

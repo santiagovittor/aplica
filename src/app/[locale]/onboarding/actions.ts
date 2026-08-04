@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { requireUser } from '@/lib/session';
-import { saveDisplayName } from '@/lib/supabase';
+import { saveDisplayName, saveVoiceCalibratedAt } from '@/lib/supabase';
 
 /**
  * The `language` step's own action (SLICE-12 decision 1): saves the name if
@@ -45,5 +45,45 @@ export async function saveNameAndContinue(
   }
 
   redirect({ href: '/onboarding/key', locale });
+  throw new Error('Unreachable: redirect did not throw.');
+}
+
+/**
+ * The `voice` step's own action (SLICE-19 decisions 1 and 5). Picking an
+ * anchor and clicking "Skip for now" both submit this same action: the pick
+ * itself has no technical effect (decision 1), so all that ever needs
+ * recording is that the screen was answered, which is why this never reads a
+ * `pick` field out of the form at all.
+ */
+
+export interface VoiceCalibrationState {
+  error?: string;
+}
+
+const VoiceForm = z.object({
+  locale: z.enum(routing.locales),
+});
+
+export async function recordVoiceCalibration(
+  _previous: VoiceCalibrationState,
+  form: FormData,
+): Promise<VoiceCalibrationState> {
+  const user = await requireUser();
+
+  const parsed = VoiceForm.safeParse({
+    locale: form.get('locale') ?? undefined,
+  });
+  if (!parsed.success) {
+    return { error: 'unknown' };
+  }
+  const { locale } = parsed.data;
+
+  try {
+    await saveVoiceCalibratedAt(user.id);
+  } catch {
+    return { error: 'unknown' };
+  }
+
+  redirect({ href: '/account', locale });
   throw new Error('Unreachable: redirect did not throw.');
 }

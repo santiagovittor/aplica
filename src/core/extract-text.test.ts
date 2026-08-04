@@ -17,7 +17,7 @@ import { CvExtractionError, MAX_CV_BYTES, extractCvText } from './extract-text';
 /** The code an extraction failed with, or the text if it did not fail. */
 async function outcome(bytes: Uint8Array): Promise<string> {
   try {
-    return await extractCvText(bytes);
+    return (await extractCvText(bytes)).text;
   } catch (error) {
     if (error instanceof CvExtractionError) {
       return error.code;
@@ -28,7 +28,7 @@ async function outcome(bytes: Uint8Array): Promise<string> {
 
 describe('extractCvText reads', () => {
   it('a PDF', async () => {
-    const text = await extractCvText(pdf(textStream(CV_LINES)));
+    const { text } = await extractCvText(pdf(textStream(CV_LINES)));
 
     expect(text).toContain('Ada Lovelace');
     expect(text).toContain('Cut the month-end close from three days to one');
@@ -36,31 +36,43 @@ describe('extractCvText reads', () => {
   });
 
   it('a docx', async () => {
-    const text = await extractCvText(docx(CV_LINES));
+    const { text } = await extractCvText(docx(CV_LINES));
 
     expect(text).toContain('Ada Lovelace');
     expect(text).toContain('Ran the on-call rotation for the payments service');
+  });
+
+  it("a PDF's page count", async () => {
+    const { pages } = await extractCvText(pdf(textStream(CV_LINES)));
+    expect(pages).toBe(1);
+  });
+
+  it('no page count for a docx', async () => {
+    const { pages } = await extractCvText(docx(CV_LINES));
+    expect(pages).toBeUndefined();
   });
 
   it('a PDF handed over as a Buffer', async () => {
     // pdf.js refuses a Node Buffer by name, and a file read off disk is one, so
     // without normalising it every real upload would fail as corrupt.
     const buffer = Buffer.from(pdf(textStream(CV_LINES)));
-    expect(await extractCvText(buffer)).toContain('Ada Lovelace');
+    expect((await extractCvText(buffer)).text).toContain('Ada Lovelace');
   });
 
   it('a docx handed over as a Buffer', async () => {
-    expect(await extractCvText(Buffer.from(docx(CV_LINES)))).toContain(
+    expect((await extractCvText(Buffer.from(docx(CV_LINES)))).text).toContain(
       'Ada Lovelace',
     );
   });
 
   it('a docx whose entry is stored rather than deflated', async () => {
-    expect(await extractCvText(docx(CV_LINES, true))).toContain('Ada Lovelace');
+    expect((await extractCvText(docx(CV_LINES, true))).text).toContain(
+      'Ada Lovelace',
+    );
   });
 
   it('a docx as one line per paragraph', async () => {
-    const text = await extractCvText(docx(CV_LINES));
+    const { text } = await extractCvText(docx(CV_LINES));
     expect(text.split('\n')).toEqual(CV_LINES);
   });
 
@@ -72,7 +84,7 @@ describe('extractCvText reads', () => {
     ]);
     const bytes = zip([{ name: 'word/document.xml', content: xml }]);
 
-    const text = await extractCvText(bytes);
+    const { text } = await extractCvText(bytes);
     expect(text).toContain('Tools:\tSQL & Python');
     expect(text).toContain('Ada Lovelace\nOperations analyst');
   });
@@ -96,7 +108,7 @@ describe('the Math.sumPrecise polyfill', () => {
   it('is installed by an extraction, and sums', async () => {
     delete math.sumPrecise;
 
-    expect(await extractCvText(pdf(textStream(CV_LINES)))).toContain(
+    expect((await extractCvText(pdf(textStream(CV_LINES)))).text).toContain(
       'Ada Lovelace',
     );
     const installed = Reflect.get(Math, 'sumPrecise') as

@@ -52,6 +52,46 @@ export const applicationSchema = z.object({
 export type Application = z.infer<typeof applicationSchema>;
 
 /**
+ * A sentence is a sentence, not a paragraph a bad extraction grabbed by
+ * mistake. Both `motifLine`s in this codebase (this one and profile.ts's)
+ * cap at the same length for the same reason; not shared, since the two
+ * operate on different shapes and two call sites is not yet CLAUDE.md's
+ * third-repeat DRY threshold.
+ */
+const MAX_MOTIF_CHARS = 240;
+
+function truncate(line: string): string {
+  return line.length > MAX_MOTIF_CHARS
+    ? `${line.slice(0, MAX_MOTIF_CHARS - 1).trimEnd()}…`
+    : line;
+}
+
+/**
+ * The motif's own material on the apply result reveal (DESIGN.md §7,
+ * SLICE-20 §1.4): a real sentence pulled from the resume just written, never
+ * invented. `resume` is markdown, so this strips the furniture (headings,
+ * bullet markers) and takes the longest surviving line -- the cheapest
+ * proxy for "reads as a real sentence" without parsing markdown properly,
+ * and long lines in a resume are prose, not labels. Length-capped and
+ * returned as plain text: this becomes the one piece of resume content that
+ * leaves the render boundary (see route.ts's own comment on why that is
+ * still fine), so it stays a single bounded sentence, never markup.
+ */
+export function motifLine(resume: string): string {
+  const lines = resume
+    .split('\n')
+    .map((line) => line.replace(/^[\s>#*_+-]+/, '').trim())
+    .filter(Boolean);
+
+  const longest = lines.reduce(
+    (best, line) => (line.length > best.length ? line : best),
+    '',
+  );
+
+  return truncate(longest);
+}
+
+/**
  * Carries the stage and what was wrong with the shape, and nothing else. The
  * posting, the drafts and the profile are deliberately absent: an error reaches
  * logs and error trackers, and all three are personal data. Same rule as

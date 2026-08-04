@@ -126,6 +126,9 @@ export interface GroundingResult {
   findings: GroundingFinding[];
   /** Voice anchors dropped for not being the exact quotes they claim to be. */
   droppedAnchors: string[];
+  /** How many claims were checked against the CV, clean or not. SLICE-20
+   *  §2.4's "checking" stage reports this as a real count, not an estimate. */
+  checked: number;
 }
 
 /**
@@ -146,9 +149,11 @@ export function groundProfile(
   const source = flatten(sourceText);
   const sourceNumbers = new Set(numbersIn(sourceText));
   const findings: GroundingFinding[] = [];
+  let checked = 0;
 
   /** Checks one claim, records a finding, and says whether it was clean. */
   const check = (path: string, text: string): boolean => {
+    checked += 1;
     const numbers = numbersIn(text).filter((n) => !sourceNumbers.has(n));
     const entities = ungroundedEntities(text, [source], DOCUMENT_TERMS);
 
@@ -247,7 +252,7 @@ export function groundProfile(
     });
   }
 
-  return { profile: grounded, findings, droppedAnchors };
+  return { profile: grounded, findings, droppedAnchors, checked };
 }
 
 /**

@@ -64,6 +64,13 @@ describe('groundProfile leaves grounded claims alone', () => {
     expect(grounded.gaps).toEqual([]);
   });
 
+  it('reports how many claims it checked, clean or not', () => {
+    // One profile with a single bullet and nothing else checkable: the CV's
+    // own honest count, not the total field count on the schema.
+    const { checked } = groundProfile(profile(), CV);
+    expect(checked).toBe(1);
+  });
+
   it('a reworded claim that invents nothing', () => {
     // The measurement that killed the whole-sentence approach: rewording is not
     // invention, and a grounding rule that punishes it throws away honest work.

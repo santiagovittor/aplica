@@ -13,6 +13,9 @@
     "en": "English",
     "es": "Spanish"
   },
+  "Motif": {
+    "slop": "Results-driven professional with a proven track record of success."
+  },
   "Header": {
     "label": "Main",
     "apply": "Apply",
@@ -187,6 +190,12 @@
     "key": {
       "title": "Add your model key",
       "lead": "This is what writes your applications, at your own provider’s rates. You keep the key; we only check that it works before we store it."
+    },
+    "voice": {
+      "title": "Which sounds more like you?",
+      "lead": "Both of these lines are pulled straight from your own CV. Pick whichever one feels more like something you’d actually say, just so you can see we write from your real words, not a generic voice.",
+      "prompt": "Pick one",
+      "error": "Something went wrong on our side. Try again."
     }
   },
   "Applications": {
@@ -256,8 +265,9 @@
       }
     },
     "generate": "Tailor my application",
+    "hint": "Paste a posting to start.",
     "notice": "Writing something worth sending takes about a minute. Here is what is happening the whole way.",
-    "elapsed": "{seconds}s so far",
+    "elapsedSuffix": "s so far",
     "stages": {
       "starting": "Getting ready",
       "draft": "Writing your first draft",
@@ -322,16 +332,29 @@
       "body": "PDF or Word, up to 10 MB.",
       "choose": "Choose a file",
       "upload": "Upload CV",
-      "dropHint": "Drop it here, or"
+      "dropHint": "or drop it here.",
+      "motifHuman": "Cut deployment time from forty minutes to six by rewriting the CI pipeline in parallel stages."
     },
     "notice": "Reading a CV properly takes about a minute. Here is what is happening the whole way.",
-    "elapsed": "{seconds}s so far",
+    "elapsedSuffix": "s so far",
     "stages": {
       "uploading": "Sending your file",
-      "reading": "Reading your CV",
-      "parsing": "Understanding what is in it",
-      "checking": "Checking every claim against your own words",
-      "saving": "Saving your profile"
+      "reading": {
+        "label": "Reading your CV",
+        "detail": "{chars} characters read",
+        "detailWithPages": "{pages} pages, {chars} characters read"
+      },
+      "parsing": {
+        "label": "Understanding what is in it",
+        "detail": "{roles} roles, {skills} skills found"
+      },
+      "checking": {
+        "label": "Checking every claim against your own words",
+        "detail": "{checked} claims checked, {softened} softened"
+      },
+      "saving": {
+        "label": "Saving your profile"
+      }
     },
     "stageStatus": {
       "complete": "done",

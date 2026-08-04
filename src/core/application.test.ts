@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ApplicationError, applicationSchema } from './application';
+import { ApplicationError, applicationSchema, motifLine } from './application';
 
 function application(overrides: Record<string, unknown> = {}) {
   return {
@@ -100,5 +100,33 @@ describe('ApplicationError', () => {
     expect(new ApplicationError('revise', 'resume is wrong').message).toContain(
       'The revise step',
     );
+  });
+});
+
+describe('motifLine', () => {
+  it('picks the longest real line, stripped of markdown furniture', () => {
+    expect(
+      motifLine(
+        '# Ada Lovelace\n\nCut the month-end close from three days to one.',
+      ),
+    ).toBe('Cut the month-end close from three days to one.');
+  });
+
+  it('strips bullet markers and blockquote markers', () => {
+    expect(
+      motifLine('* Led a team of six engineers across two time zones.'),
+    ).toBe('Led a team of six engineers across two time zones.');
+  });
+
+  it('is empty for a resume with no lines', () => {
+    expect(motifLine('')).toBe('');
+  });
+
+  it('caps a line longer than one sentence has any business being', () => {
+    const long = 'Shipped a thing. '.repeat(20).trim();
+    const result = motifLine(long);
+
+    expect(result.length).toBeLessThanOrEqual(240);
+    expect(result.endsWith('…')).toBe(true);
   });
 });

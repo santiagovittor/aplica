@@ -18,6 +18,16 @@
   --clay: #8f3d2e; /* errors, calm */
   --hairline: #ded7c9; /* 1px separators, borders */
 
+  /* dark ground: the desk's tools, not a dark mode (SLICE-20 §1.1) */
+  --ink-deep: #1c1913; /* full-bleed dark ground: stage screens, header */
+  --ink-raised: #2a251d; /* raised surface on ink-deep */
+  --on-dark: #ede6d8; /* body text on ink-deep / ink-raised */
+  --on-dark-soft: #a79e8d; /* secondary text on ink-deep / ink-raised */
+  --hairline-dark: #3d362b; /* 1px separators on ink-deep */
+
+  /* recessed surface on light ground (inputs inside cards) */
+  --paper-dim: #efe9dd;
+
   /* type scale, major third 1.25 */
   --text-xs: 13px;
   --text-base: 16px;
@@ -26,6 +36,7 @@
   --text-2xl: 31px;
   --text-3xl: 39px;
   --text-4xl: 49px;
+  --text-display: 61px; /* SLICE-20 §1.2: the fit-score reveal, and nothing else */
 
   /* space, 8px base */
   --space-1: 4px;
@@ -47,6 +58,7 @@
   --dur-micro: 180ms;
   --dur-move: 250ms;
   --dur-reveal: 500ms;
+  --dur-stage: 700ms; /* SLICE-20 §1.5: the ground change, Column/Desk <-> Stage */
 
   /* --- 2. Derived from DESIGN.md prose -------------------------------- */
 

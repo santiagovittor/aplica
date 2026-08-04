@@ -132,7 +132,7 @@ export default async function AccountPage({
 
         <div className={styles.aside}>
           <section className={styles.section}>
-            <h2 className={styles.asideTitle}>{t('cv.title')}</h2>
+            <h2 className={styles.sectionTitle}>{t('cv.title')}</h2>
             <p className={styles.body}>
               {hasProfile ? t('cv.onFile') : t('cv.none')}{' '}
               <Link href="/cv">
@@ -142,7 +142,7 @@ export default async function AccountPage({
           </section>
 
           <section className={styles.section}>
-            <h2 className={styles.asideTitle}>{t('language.title')}</h2>
+            <h2 className={styles.sectionTitle}>{t('language.title')}</h2>
             <p className={styles.body}>{t('language.body')}</p>
             <LocaleToggle />
           </section>
@@ -150,14 +150,14 @@ export default async function AccountPage({
           <section className={styles.section}>
             <form action={signOut}>
               <input type="hidden" name="locale" value={locale} />
-              <Button type="submit" variant="secondary">
+              <Button type="submit" variant="quiet">
                 {t('session.signOut')}
               </Button>
             </form>
           </section>
 
           <section className={styles.section}>
-            <h2 className={styles.asideTitle}>{t('danger.title')}</h2>
+            <h2 className={styles.sectionTitle}>{t('danger.title')}</h2>
             <p className={styles.body}>{t('danger.body')}</p>
             <DeleteAccount
               locale={locale}

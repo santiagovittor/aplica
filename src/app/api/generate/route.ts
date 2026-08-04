@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { applyToPosting, type ApplyStage } from '../../../core/apply';
-import { ApplicationError } from '../../../core/application';
+import { ApplicationError, motifLine } from '../../../core/application';
 import { fetchPosting } from '../../../core/fetch-posting';
 import {
   describeApiKey,
@@ -268,9 +268,16 @@ export async function POST(request: Request): Promise<Response> {
       ...(body.data.role === undefined ? {} : { role: body.data.role }),
     });
 
-    // The application id, the numbers, and the gate's findings. Not the resume:
-    // the documents come back from the render route as files, and a body the
-    // client held is a body the client could edit before sending it back.
+    // The invariant this route protects is that no route ever accepts
+    // document text from the client on a write path: /api/render takes only
+    // an applicationId and re-reads the stored row, and that is what must
+    // never change, regardless of what any route's own `done`/response body
+    // happens to carry. That is a different question from what this
+    // read-only event may *display* -- sending one line down for the motif
+    // to show (DESIGN.md §7) is not the resume coming back as an editable
+    // body, since nothing downstream ever accepts it as input again. The
+    // motif line is bounded and plain text (see application.ts's own
+    // `motifLine`), never the full resume.
     send('done', {
       applicationId,
       fit: result.application.fit,
@@ -280,6 +287,7 @@ export async function POST(request: Request): Promise<Response> {
       flags: result.application.flags,
       slop: result.slop.length,
       ungrounded: result.ungrounded.length,
+      motif: motifLine(result.application.resume),
     });
   }, failure);
 }

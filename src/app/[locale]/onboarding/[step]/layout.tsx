@@ -21,6 +21,22 @@ export function isOnboardingStep(value: string): value is OnboardingStep {
 }
 
 /**
+ * `voice` (SLICE-19): a real route under this same `[step]` segment, reached
+ * only after `cv`, but deliberately not a fourth entry in `ONBOARDING_STEPS`
+ * (SLICE-19 decision 3). It is conditional -- it needs a parsed CV with two
+ * or more voice anchors, and is skipped invisibly otherwise -- so it is never
+ * guaranteed the way the three tracked steps are. The indicator below treats
+ * reaching it as every tracked step already complete, rather than adding a
+ * slot most sessions would never fill.
+ */
+const VOICE_STEP = 'voice';
+export type OnboardingRoute = OnboardingStep | typeof VOICE_STEP;
+
+export function isOnboardingRoute(value: string): value is OnboardingRoute {
+  return isOnboardingStep(value) || value === VOICE_STEP;
+}
+
+/**
  * The shell every step shares (SLICE-12 decision 1 and 4): gates on a
  * session, 404s an unknown step segment, and drives the `Steps` progress
  * indicator purely from where the current step sits in `ONBOARDING_STEPS`.
@@ -36,12 +52,15 @@ export default async function OnboardingLayout({
   setRequestLocale(locale);
   await requireUser();
 
-  if (!isOnboardingStep(step)) {
+  if (!isOnboardingRoute(step)) {
     notFound();
   }
 
   const t = await getTranslations('Onboarding');
-  const currentIndex = ONBOARDING_STEPS.indexOf(step);
+  const currentIndex =
+    step === VOICE_STEP
+      ? ONBOARDING_STEPS.length
+      : ONBOARDING_STEPS.indexOf(step);
   const steps: Step[] = ONBOARDING_STEPS.map((entry, index) => {
     const status =
       index < currentIndex

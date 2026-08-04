@@ -54,12 +54,19 @@ export class CvExtractionError extends Error {
   }
 }
 
+export interface ExtractedCv {
+  text: string;
+  /** PDF only: the honest page count SLICE-20's reading-stage detail line
+   *  reports. Undefined for a docx, which has no fixed pagination. */
+  pages?: number;
+}
+
 /**
  * The format is decided by the file's own first bytes, never by its extension.
  * A `.pdf` that is really a JPEG has to fail as an unsupported type, not as a
  * corrupt PDF, because those two sentences send the person to different fixes.
  */
-export async function extractCvText(bytes: Uint8Array): Promise<string> {
+export async function extractCvText(bytes: Uint8Array): Promise<ExtractedCv> {
   if (bytes.byteLength === 0) {
     throw new CvExtractionError('empty');
   }
@@ -70,18 +77,18 @@ export async function extractCvText(bytes: Uint8Array): Promise<string> {
   }
 
   const format = cvFormat(bytes);
-  const text = normalise(
+  const extracted: { text: string; pages?: number } =
     format === 'pdf'
       ? await pdfText(bytes)
       : format === 'docx'
-        ? docxText(bytes)
-        : refuse(bytes),
-  );
+        ? { text: docxText(bytes) }
+        : refuse(bytes);
+  const text = normalise(extracted.text);
 
   if (countTextCharacters(text) < MIN_TEXT_CHARS) {
     throw new CvExtractionError('no_text_layer');
   }
-  return text;
+  return { text, pages: extracted.pages };
 }
 
 export type CvFormat = 'pdf' | 'docx';
@@ -153,7 +160,9 @@ function polyfillSumPrecise(): void {
   };
 }
 
-async function pdfText(bytes: Uint8Array): Promise<string> {
+async function pdfText(
+  bytes: Uint8Array,
+): Promise<{ text: string; pages: number }> {
   polyfillSumPrecise();
   // Imported here rather than at the top of the file: unpdf carries a build of
   // pdf.js, and a docx upload should not pay to load it.
@@ -165,8 +174,8 @@ async function pdfText(bytes: Uint8Array): Promise<string> {
     // a CV read off disk is one; it also takes ownership of what it is given,
     // and the caller still needs these bytes to store the file afterwards.
     pdf = await getDocumentProxy(new Uint8Array(bytes));
-    const { text } = await extractText(pdf, { mergePages: true });
-    return text;
+    const { text, totalPages } = await extractText(pdf, { mergePages: true });
+    return { text, pages: totalPages };
   } catch (error) {
     // pdf.js signals a missing password by exception name. Everything else that
     // fails after a valid header is a file we cannot read.

@@ -60,6 +60,26 @@
   transform: translateY(1px);
 }
 
+/* SLICE-20 §2.6: destruction reads as destruction. "Delete my account" and
+   "Sign out" used to share .secondary and carry identical weight; this is
+   the only place --clay borders a button rather than just coloring text. */
+.danger {
+  background: var(--paper);
+  border-color: var(--clay);
+  color: var(--clay);
+}
+
+.danger:hover:not(:disabled),
+.danger[data-force~='hover'] {
+  background: color-mix(in srgb, var(--clay) 8%, var(--paper));
+}
+
+.danger:active:not(:disabled),
+.danger[data-force~='active'] {
+  background: color-mix(in srgb, var(--clay) 8%, var(--paper));
+  transform: translateY(1px);
+}
+
 .quiet {
   padding-inline: var(--space-3);
   background: transparent;
@@ -69,6 +89,20 @@
 .quiet:hover:not(:disabled),
 .quiet[data-force~='hover'] {
   background: var(--surface-sunken);
+}
+
+/* SLICE-20 §2.5: the only quiet button that lands directly on --ink-deep
+   today is the reveal's "start another" (ApplyForm.tsx) -- --ink text there
+   is nearly invisible on the dark ground it used to never touch back when
+   the reveal was still inside the --paper card. Every other quiet button
+   stays on --base/--paper, so this is a no-op for them. */
+:global(body[data-stage='true']) .quiet {
+  color: var(--on-dark);
+}
+
+:global(body[data-stage='true']) .quiet:hover:not(:disabled),
+:global(body[data-stage='true']) .quiet[data-force~='hover'] {
+  background: var(--ink-raised);
 }
 
 .quiet:active:not(:disabled),
@@ -81,6 +115,20 @@
   border-color: transparent;
   color: var(--ink-soft);
   cursor: not-allowed;
+}
+
+/* SLICE-20 §2.2: a disabled primary reads as *waiting for you*, not *off*
+   -- the arrival state of /apply has a disabled primary and nothing else on
+   screen resolves to --green, so this is what satisfies SLICE-20's own
+   acceptance item 3 ("accent presence... including disabled primaries") for
+   that state. Same specificity as the generic rule above
+   (.button:disabled:not(...) vs .primary:disabled:not(...)), so it has to
+   come after it in source order to win the tie. */
+.primary:disabled:not([aria-busy='true']) {
+  background: var(--paper);
+  border-color: var(--green);
+  color: color-mix(in srgb, var(--green) 55%, var(--base));
+  cursor: default;
 }
 
 /* A working button keeps its color and says what is running. It does not grey

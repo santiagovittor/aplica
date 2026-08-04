@@ -4,6 +4,7 @@ import {
   MAX_CV_BYTES,
 } from '../../../core/extract-text';
 import { ProfileParseError, parseCv } from '../../../core/parse-cv';
+import { motifLine } from '../../../core/profile';
 import {
   describeApiKey,
   getDecryptedKey,
@@ -164,7 +165,15 @@ export async function POST(request: Request): Promise<Response> {
     // Every one of the seven CvExtractionCode cases is refused here, before
     // the model or the rate limit is touched (non-negotiable 4). A file that
     // is not a readable CV costs zero tokens and zero of the daily allowance.
-    const text = await extractCvText(bytes);
+    const { text, pages } = await extractCvText(bytes);
+
+    // A second `reading` event, not a new stage: the phase hasn't moved, but
+    // SLICE-20 §2.4 wants the sub-line to carry what the server actually
+    // found the moment it knows it, rather than inventing progress earlier.
+    send('stage', {
+      stage: 'reading' satisfies CvStage,
+      detail: { chars: text.length, pages },
+    });
 
     const locale = await loadLocale(user.id);
 
@@ -194,9 +203,22 @@ export async function POST(request: Request): Promise<Response> {
       },
     );
 
-    // The grounding check already ran inside parseCv; this stage marks the
-    // transition to reporting what it found, not a separate wait.
+    // The grounding check already ran inside parseCv, so parsing's and
+    // checking's real counts are both in hand at this same instant: two
+    // detail events fired back to back, honest about there being no separate
+    // wait between them, rather than invented progress in between.
+    send('stage', {
+      stage: 'parsing' satisfies CvStage,
+      detail: {
+        roles: result.profile.experience.length,
+        skills: result.profile.skills.length,
+      },
+    });
     send('stage', { stage: 'checking' satisfies CvStage });
+    send('stage', {
+      stage: 'checking' satisfies CvStage,
+      detail: { checked: result.checked, softened: result.findings.length },
+    });
     send('stage', { stage: 'saving' satisfies CvStage });
 
     await saveProfile(user.id, result.profile, bytes, text);
@@ -211,6 +233,9 @@ export async function POST(request: Request): Promise<Response> {
       roles: result.profile.experience.length,
       skills: result.profile.skills.length,
       keywords: result.profile.keywordBank.length,
+      // The motif's own material (DESIGN.md §7): a real line from this CV,
+      // already grounded -- the same discipline as droppedAnchors above.
+      motif: motifLine(result.profile),
     });
   }, failure);
 }

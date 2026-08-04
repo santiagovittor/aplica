@@ -1,23 +1,40 @@
-/* DESIGN.md §7: one object, the line. Slop is jittery and mechanical in
-   --ink-soft; human is one confident stroke in --human. --human's only two
-   other legal appearances (besides this motif) are the result reveal, which
-   is where this same component is reused. */
+/* DESIGN.md §7: one object, now a line of text. Slop and human occupy the
+   same grid cell so the transformation reads as one object changing rather
+   than two lines stacking -- the cell's own height follows whichever is
+   taller at the time, since real sentences vary in length where the old
+   fixed-viewBox SVG never had to. */
 
 .motif {
-  width: 100%;
-  max-width: 152px;
-  height: auto;
+  display: grid;
+  margin: 0;
+}
+
+.slop,
+.human {
+  grid-row: 1;
+  grid-column: 1;
 }
 
 .slop {
-  stroke: var(--ink-soft);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: var(--ink-soft);
+  text-decoration: line-through;
 }
 
+/* Apply's reveal is the one home that sits directly on --ink-deep
+   (DESIGN.md §3's fit-score exception) -- --ink-soft measures 2.4:1 there,
+   well under even the large-text floor. `[data-dark]` rather than the usual
+   body[data-stage] attribute: see Motif.tsx's own comment on why the
+   ambient one can't tell CV's (still-paper) done reveal apart from this. */
+.motif[data-dark] .slop {
+  color: var(--on-dark-soft);
+}
+
+/* --human clears AA only at large-text size (measured ~3.8-4.3:1 depending
+   on ground, DESIGN.md §5) -- --text-xl is the scale's own floor for that,
+   which is why this is the one legal size for the human line on either
+   ground, not a --dur-stage-conditional choice. */
 .human {
-  stroke: var(--human);
-  stroke-width: 2;
-  stroke-linecap: round;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--human);
 }

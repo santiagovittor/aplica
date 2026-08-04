@@ -1,8 +1,25 @@
 /* SLICE-13 decision 7: no chrome beyond a hairline. No second accent, so
-   links use --ink, never --green (DESIGN.md §5's one-accent discipline). */
+   links use --ink, never --green (DESIGN.md §5's one-primary discipline).
+   SLICE-20 §2.6: on the Stage archetype the ground goes to --ink-deep and
+   the header has to invert with it or it floats disconnected. `Header` is a
+   sibling of the page content in the root layout, not an ancestor of it, so
+   there is no prop path from a phase machine three components down inside
+   `/apply` or `/cv` to here. `body[data-stage]` is the shared ancestor both
+   sides can reach: the phase machines toggle it, this file reacts to it,
+   the same attribute-selector idiom `CvUpload`'s own `[data-drag-active]`
+   already uses for the identical "state lives elsewhere, styled here"
+   shape. Durations from --dur-stage, matching the ground transition itself. */
 
 .header {
   border-bottom: 1px solid var(--hairline);
+  transition:
+    background-color var(--dur-stage) var(--ease-soft),
+    border-color var(--dur-stage) var(--ease-soft);
+}
+
+:global(body[data-stage='true']) .header {
+  background: var(--ink-deep);
+  border-bottom-color: var(--hairline-dark);
 }
 
 .nav {
@@ -27,6 +44,7 @@
   font-weight: 500;
   color: var(--ink);
   text-decoration: none;
+  transition: color var(--dur-stage) var(--ease-soft);
 }
 
 .link:hover {
@@ -39,4 +57,12 @@
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.3em;
+}
+
+:global(body[data-stage='true']) .link {
+  color: var(--on-dark-soft);
+}
+
+:global(body[data-stage='true']) .link:hover {
+  color: var(--on-dark);
 }

@@ -81,8 +81,10 @@ async function main(): Promise<0 | 1> {
   try {
     const bytes = await readFile(file);
 
-    const text = await extractCvText(bytes);
-    console.error(`Read ${text.length} characters of text from ${file}.`);
+    const { text, pages } = await extractCvText(bytes);
+    console.error(
+      `Read ${text.length} characters of text from ${file}${pages !== undefined ? ` (${pages} pages)` : ''}.`,
+    );
 
     const { profile, findings, droppedAnchors } = await parseCv(
       createProvider(

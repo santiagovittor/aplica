@@ -1,5 +1,6 @@
 'use client';
 
+import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -69,6 +70,19 @@ interface DoneData {
   roles: number;
   skills: number;
   keywords: number;
+  /** The motif's own material (DESIGN.md §7): a real line from this CV. */
+  motif: string;
+}
+
+/** Real counts the server discovered mid-stage (SLICE-20 §2.4). Every field
+ *  is optional because a given stage only ever fills in its own. */
+interface StageDetail {
+  chars?: number;
+  pages?: number;
+  roles?: number;
+  skills?: number;
+  checked?: number;
+  softened?: number;
 }
 
 const ACCEPT =
@@ -110,7 +124,14 @@ function describeFinding(finding: GroundingFinding): string {
   return parts.join(', ');
 }
 
-export function CvUpload() {
+/**
+ * `nextHref` (SLICE-19): where the `done` state's primary link goes once a
+ * CV is parsed. Defaults to `/account`, the standalone `/cv` page's own
+ * finish, so this component still does not know it is inside onboarding
+ * (SLICE-12 decision 2) -- it only knows where "done" goes, which onboarding
+ * overrides to its own `voice` step.
+ */
+export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
   const t = useTranslations('Cv');
   const [phase, setPhase] = useState<Phase>('empty');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -119,6 +140,17 @@ export function CvUpload() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorLimit, setErrorLimit] = useState<number | undefined>(undefined);
   const [doneData, setDoneData] = useState<DoneData | null>(null);
+  const [stageDetail, setStageDetail] = useState<
+    Partial<Record<ServerStage, StageDetail>>
+  >({});
+  // When each step was entered, so a completed step can show how long it
+  // actually took (SLICE-20 §2.4) -- measured between real event arrivals,
+  // never predicted. State, not a ref: this repo's react-hooks/refs rule
+  // forbids reading a ref during render, and this is read every render to
+  // compute each step's duration.
+  const [stageStartedAt, setStageStartedAt] = useState<
+    Partial<Record<Phase, number>>
+  >({});
   const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
 
@@ -128,6 +160,30 @@ export function CvUpload() {
     },
     [],
   );
+
+  /**
+   * SLICE-20 §2.3: the Stage archetype. `body[data-stage]` is the one
+   * surface this component and `Header` (a sibling in the root layout, not
+   * an ancestor of this one) can both reach -- see Header.module.css's own
+   * comment on why a prop can't do this. `CvUpload` does not know it is
+   * inside onboarding (a standing decision, SLICE-12), so this fires there
+   * too; onboarding.module.css carries the matching dark-ground overrides
+   * for its own heading/skip-link classes for exactly that reason.
+   */
+  useEffect(() => {
+    const onStage =
+      phase === 'uploading' ||
+      STAGE_ORDER.includes(phase as ServerStage) ||
+      phase === 'done';
+    if (onStage) {
+      document.body.dataset.stage = 'true';
+    } else {
+      delete document.body.dataset.stage;
+    }
+    return () => {
+      delete document.body.dataset.stage;
+    };
+  }, [phase]);
 
   useEffect(() => {
     const working: Phase[] = ['uploading', ...STAGE_ORDER];
@@ -148,6 +204,8 @@ export function CvUpload() {
     setErrorCode(null);
     setErrorLimit(undefined);
     setDoneData(null);
+    setStageDetail({});
+    setStageStartedAt({});
   }
 
   function pick(file: File | undefined) {
@@ -169,6 +227,7 @@ export function CvUpload() {
     }
     setPhase('uploading');
     setElapsed(0);
+    setStageStartedAt({ uploading: Date.now() });
 
     const form = new FormData();
     form.set('cv', selectedFile);
@@ -230,9 +289,18 @@ export function CvUpload() {
           continue;
         }
         if (event === 'stage') {
-          setPhase(data.stage as ServerStage);
+          const stage = data.stage as ServerStage;
+          setStageStartedAt((prev) =>
+            prev[stage] === undefined ? { ...prev, [stage]: Date.now() } : prev,
+          );
+          const detail = data.detail as StageDetail | undefined;
+          if (detail) {
+            setStageDetail((prev) => ({ ...prev, [stage]: detail }));
+          }
+          setPhase(stage);
         } else if (event === 'done') {
           sawTerminal = true;
+          setStageStartedAt((prev) => ({ ...prev, done: Date.now() }));
           setDoneData(data as unknown as DoneData);
           setPhase('done');
         } else if (event === 'error') {
@@ -261,6 +329,37 @@ export function CvUpload() {
     ...STAGE_ORDER,
   ];
   const currentIndex = stageOrder.indexOf(phase as (typeof stageOrder)[number]);
+
+  /** The real, server-discovered sub-line for a stage, or none yet
+   *  (SLICE-20 §2.4: never invented, only what the server actually sent). */
+  function detailLine(stage: ServerStage): string | undefined {
+    const detail = stageDetail[stage];
+    if (!detail) {
+      return undefined;
+    }
+    switch (stage) {
+      case 'reading':
+        return detail.pages !== undefined
+          ? t('stages.reading.detailWithPages', {
+              pages: detail.pages,
+              chars: detail.chars ?? 0,
+            })
+          : t('stages.reading.detail', { chars: detail.chars ?? 0 });
+      case 'parsing':
+        return t('stages.parsing.detail', {
+          roles: detail.roles ?? 0,
+          skills: detail.skills ?? 0,
+        });
+      case 'checking':
+        return t('stages.checking.detail', {
+          checked: detail.checked ?? 0,
+          softened: detail.softened ?? 0,
+        });
+      case 'saving':
+        return undefined;
+    }
+  }
+
   const steps: Step[] = stageOrder.map((stage, index) => {
     const status =
       currentIndex === -1
@@ -270,10 +369,36 @@ export function CvUpload() {
           : index === currentIndex
             ? 'current'
             : 'incomplete';
+
+    // A completed step's own duration, measured between real event
+    // arrivals rather than predicted: the moment the next step (or, for the
+    // last one, the terminal `done` event) started is when this one ended.
+    const startedAt = stageStartedAt[stage];
+    const nextStage =
+      index + 1 < stageOrder.length ? stageOrder[index + 1] : undefined;
+    const endedAt =
+      nextStage !== undefined ? stageStartedAt[nextStage] : stageStartedAt.done;
+    const durationSeconds =
+      startedAt !== undefined && endedAt !== undefined
+        ? Math.max(0, Math.round((endedAt - startedAt) / 1000))
+        : undefined;
+
+    const meta =
+      status === 'complete' && durationSeconds !== undefined
+        ? `${t('stageStatus.complete')} · ${durationSeconds}s`
+        : status === 'current'
+          ? `← ${t('stageStatus.current')}`
+          : undefined;
+
     return {
-      label: t(`stages.${stage}`),
+      label:
+        stage === 'uploading'
+          ? t('stages.uploading')
+          : t(`stages.${stage}.label`),
       status,
       statusLabel: t(`stageStatus.${status}`),
+      meta,
+      detail: stage === 'uploading' ? undefined : detailLine(stage),
     };
   });
 
@@ -296,53 +421,59 @@ export function CvUpload() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: EASE_SOFT }}
-          className={styles.card}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={onDrop}
-          data-drag-active={dragActive || undefined}
+          className={styles.frame}
         >
-          <Motif label={t('done.heading')} />
-          <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
-          <p className={styles.emptyBody}>{t('empty.body')}</p>
+          <div className={styles.primary}>
+            <Motif human={t('empty.motifHuman')} />
+            <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
+            <p className={styles.emptyBody}>{t('empty.body')}</p>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPT}
-            className="visually-hidden"
-            onChange={(event) => pick(event.target.files?.[0])}
-          />
+            <div
+              className={styles.dropzone}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={onDrop}
+              data-drag-active={dragActive || undefined}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                accept={ACCEPT}
+                className="visually-hidden"
+                onChange={(event) => pick(event.target.files?.[0])}
+              />
 
-          {selectedFile ? (
-            <div className={styles.selected}>
-              <p className={styles.fileName}>{selectedFile.name}</p>
-              <div className={styles.row}>
-                <Button variant="primary" onClick={submit}>
-                  {t('empty.upload')}
-                </Button>
-                <Button
-                  variant="quiet"
-                  onClick={() => inputRef.current?.click()}
-                >
-                  {t('chooseAnother')}
-                </Button>
-              </div>
+              {selectedFile ? (
+                <div className={styles.selected}>
+                  <p className={styles.fileName}>{selectedFile.name}</p>
+                  <div className={styles.row}>
+                    <Button variant="primary" onClick={submit}>
+                      {t('empty.upload')}
+                    </Button>
+                    <Button
+                      variant="quiet"
+                      onClick={() => inputRef.current?.click()}
+                    >
+                      {t('chooseAnother')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.row}>
+                  <Button
+                    variant="primary"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    {t('empty.choose')}
+                  </Button>
+                  <span className={styles.dropHint}>{t('empty.dropHint')}</span>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className={styles.row}>
-              <Button
-                variant="primary"
-                onClick={() => inputRef.current?.click()}
-              >
-                {t('empty.choose')}
-              </Button>
-              <span className={styles.dropHint}>{t('empty.dropHint')}</span>
-            </div>
-          )}
+          </div>
         </motion.div>
       )}
 
@@ -360,7 +491,10 @@ export function CvUpload() {
         >
           <p className={styles.notice}>{t('notice')}</p>
           <Steps steps={steps} label={t('notice')} />
-          <p className={styles.elapsed}>{t('elapsed', { seconds: elapsed })}</p>
+          <p className={styles.elapsed}>
+            <NumberFlow value={elapsed} />
+            {t('elapsedSuffix')}
+          </p>
         </motion.div>
       )}
 
@@ -371,15 +505,17 @@ export function CvUpload() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: EASE_SOFT }}
-          className={styles.card}
+          className={styles.frame}
         >
-          <p className={styles.error} role="alert">
-            {errorMessage}
-          </p>
-          <div className={styles.row}>
-            <Button variant="primary" onClick={reset}>
-              {t('retry')}
-            </Button>
+          <div className={styles.primary}>
+            <p className={styles.error} role="alert">
+              {errorMessage}
+            </p>
+            <div className={styles.row}>
+              <Button variant="primary" onClick={reset}>
+                {t('retry')}
+              </Button>
+            </div>
           </div>
         </motion.div>
       )}
@@ -393,9 +529,11 @@ export function CvUpload() {
           variants={DONE_CONTAINER}
           className={styles.card}
         >
-          <motion.div variants={DONE_ITEM}>
-            <Motif label={t('done.heading')} />
-          </motion.div>
+          {doneData.motif && (
+            <motion.div variants={DONE_ITEM}>
+              <Motif human={doneData.motif} />
+            </motion.div>
+          )}
           <motion.h2 variants={DONE_ITEM} className={styles.doneHeading}>
             {t('done.heading')}
           </motion.h2>
@@ -456,7 +594,7 @@ export function CvUpload() {
 
           <motion.div variants={DONE_ITEM} className={styles.row}>
             <Link
-              href="/account"
+              href={nextHref}
               className={`${buttonStyles.button} ${buttonStyles.primary}`}
             >
               {t('done.next')}

@@ -108,7 +108,7 @@ function flatten(text: string): string {
 }
 
 async function textOf(file: RenderedFile): Promise<string> {
-  return extractCvText(file.bytes);
+  return (await extractCvText(file.bytes)).text;
 }
 
 describe('renderApplication', () => {

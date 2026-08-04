@@ -265,6 +265,26 @@ describe('the render route refuses', () => {
   });
 });
 
+describe('the render route ignores anything but the id', () => {
+  it('an attempted resume override in the body changes nothing', async () => {
+    // The invariant that matters: no route accepts document text from the
+    // client on a write path. RenderRequest only names applicationId, so
+    // Zod strips extra keys before this handler ever sees them -- this test
+    // pins that behavior rather than trusting the schema not to grow one.
+    const clean = await POST(post({ applicationId: APPLICATION_ID }));
+    const tampered = await POST(
+      post({
+        applicationId: APPLICATION_ID,
+        resume: 'TAMPERED: this is not the stored resume.',
+        coverLetter: 'TAMPERED.',
+      }),
+    );
+
+    expect(tampered.status).toBe(200);
+    expect(await tampered.json()).toEqual(await clean.json());
+  });
+});
+
 describe('a render failure carries no document text', () => {
   it('only the stage and which document', async () => {
     loadApplication.mockResolvedValue(

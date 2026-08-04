@@ -198,20 +198,42 @@ afterEach(() => {
 describe('the CV route streams', () => {
   it('an event per stage that ran, then done', async () => {
     const { events } = await read(await POST(post(VALID_CV)));
+    const stages = events.filter((event) => event.event === 'stage');
 
     expect(events.map((event) => event.event)).toEqual([
-      'stage',
-      'stage',
-      'stage',
-      'stage',
+      ...stages.map(() => 'stage'),
       'done',
     ]);
-    expect(events.slice(0, 4).map((event) => event.data.stage)).toEqual([
+    // reading, reading-detail, parsing, parsing-detail, checking,
+    // checking-detail, saving: SLICE-20 §2.4's honest sub-line is a second
+    // event on the same stage, fired the moment the server has real counts,
+    // not a new stage.
+    expect(stages.map((event) => event.data.stage)).toEqual([
+      'reading',
       'reading',
       'parsing',
+      'parsing',
+      'checking',
       'checking',
       'saving',
     ]);
+  });
+
+  it('real counts on the stage events that discover something', async () => {
+    const { events } = await read(await POST(post(VALID_CV)));
+    const stages = events.filter((event) => event.event === 'stage');
+
+    expect(stages[1].data.detail).toEqual({
+      chars: expect.any(Number),
+      pages: 1,
+    });
+    expect(stages[3].data.detail).toEqual({ roles: 1, skills: 1 });
+    expect(stages[5].data.detail).toEqual({
+      checked: expect.any(Number),
+      softened: 0,
+    });
+    expect(stages[0].data.detail).toBeUndefined();
+    expect(stages[6].data.detail).toBeUndefined();
   });
 
   it('as an event stream that proxies will not buffer', async () => {
@@ -233,8 +255,10 @@ describe('the CV route streams', () => {
       roles: 1,
       skills: 1,
       keywords: 0,
+      motif: 'Cut the month-end close from three days to one',
     });
-    // The profile's own claim text never appears; only the counts do.
+    // The profile's own structured fields (employer names, dates) never
+    // appear; only counts and the one motif line do (SLICE-20 §1.4).
     expect(raw).not.toContain('Cooperativa del Sur');
   });
 
