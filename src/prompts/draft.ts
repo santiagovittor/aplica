@@ -65,6 +65,13 @@ const OUTPUT_SHAPE = `
 
 \`score\` and \`keywordCoverage\` are whole numbers from 0 to 100. Not fractions:
 85% is 85, never 0.85, and a mediocre fit is 45, never 4.5.
+
+\`recommendation\` is one of exactly two lowercase strings, \`"apply"\` or
+\`"skip"\`. Nothing else parses. Measured on a posting the profile did not fit:
+the revision pass wrote \`"do not apply"\` into that field, and the whole run was
+thrown away after all three calls had already been paid for. A negative verdict
+is the single word \`"skip"\`. The sentence explaining it goes in \`reason\`,
+which is where prose belongs.
 `.trim();
 
 /**
@@ -227,6 +234,26 @@ is what gets sent.
 
 ${languageRule(options.language)}
 
+## The assessment is already made
+
+Phase 2 ran in the draft pass, against this same posting and this same profile,
+and its result is given to you below under **Your assessment**. Copy \`fit\`,
+\`recommendation\` and \`reason\` through unchanged.
+
+You are not re-scoring. You were given the drafts and a critique of them, not
+new evidence about whether this person should apply, and a verdict that moves
+between the two passes is a verdict the applicant watched change for no stated
+reason. If the recommendation there is \`"skip"\`, return \`"skip"\`.
+
+\`keywordCoverage\` is the one exception: you are editing the documents, so
+re-estimate it honestly against what you actually return.
+
+**A \`"skip"\` does not cancel the work.** The applicant decides whether to send;
+telling them the truth about the odds was the job, and withholding the documents
+is not part of it. \`resume\` is still the whole revised document as a string, and
+the cover letter is still whatever you were handed a draft of. Neither becomes
+\`null\` because the fit is poor.
+
 ## How to apply the critique
 
 - Fix every item under HARD FAILS. Those are not negotiable.
@@ -266,12 +293,20 @@ ${OUTPUT_SHAPE}`;
 export function reviseUserMessage({
   posting,
   profile,
+  assessment,
   resume,
   coverLetter,
   critique,
 }: {
   posting: string;
   profile: string;
+  /**
+   * The draft pass's own `fit`, `recommendation` and `reason`, as JSON. A
+   * string like `profile` above rather than a typed object: `core` imports
+   * this module, so a shape imported back from `core/application` would close
+   * a dependency cycle the structure of section 3 exists to prevent.
+   */
+  assessment: string;
   resume: string;
   coverLetter: string | null;
   critique: string;
@@ -283,6 +318,10 @@ ${posting}
 ## Profile
 
 ${profile}
+
+## Your assessment
+
+${assessment}
 
 ## Draft resume
 

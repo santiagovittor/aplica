@@ -251,6 +251,41 @@ describe('applyToPosting critiques and revises', () => {
     expect(calls[2].messages[0].content).toContain('## Reviewer critique');
   });
 
+  it('hands the revision pass the verdict the draft reached', async () => {
+    // Not decoration: `recommendation` is a two-value enum and a model asked to
+    // restate a negative verdict paraphrases it (`"do not apply"` was measured,
+    // and it kills the run after all three calls are paid for). Giving the
+    // revision the literal word to carry through is the fix. It also keeps
+    // `fit.score` from moving between the number published mid-run and the one
+    // on the result.
+    const { provider, calls } = recording(
+      pipeline({
+        draft: applicationJson({
+          recommendation: 'skip',
+          reason: 'They want three markets of reporting and there is one.',
+        }),
+      }),
+    );
+    await applyToPosting(provider, OPTIONS);
+
+    const sent = calls[2].messages[0].content;
+    expect(sent).toContain('## Your assessment');
+    expect(sent).toContain('"recommendation": "skip"');
+    expect(sent).toContain(
+      '"reason": "They want three markets of reporting and there is one."',
+    );
+    expect(sent).toContain('"score": 74');
+  });
+
+  it('does not hand it the draft’s coverage, which the revision may change', async () => {
+    // The revision edits the documents, so it re-estimates this one honestly
+    // rather than copying a number that described text it just rewrote.
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls[2].messages[0].content).not.toContain('keywordCoverage');
+  });
+
   it('refuses an empty critique rather than revising against nothing', async () => {
     await expect(
       applyToPosting(pipeline({ critique: '   \n  ' }), OPTIONS),

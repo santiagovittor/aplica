@@ -217,6 +217,23 @@ export async function applyToPosting(
     reviseUserMessage({
       posting,
       profile: profileText,
+      // The verdict the draft pass reached, handed back so the revision pass
+      // carries it through rather than re-deriving it. Two things ride on
+      // this. The `recommendation` field is an enum of two words and a model
+      // asked to restate a negative verdict paraphrases it -- `"do not apply"`
+      // was measured, and it fails the schema after all three calls are paid
+      // for. And `fit.score` is published mid-run from this draft object, so a
+      // revision that re-scored would show the applicant one number while the
+      // run was live and a different one at the end.
+      assessment: JSON.stringify(
+        {
+          fit: draft.fit,
+          recommendation: draft.recommendation,
+          reason: draft.reason,
+        },
+        null,
+        2,
+      ),
       resume: draft.resume,
       coverLetter: draft.coverLetter,
       critique,

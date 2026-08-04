@@ -322,6 +322,68 @@ describe('the two numbers carry their scale', () => {
   }
 });
 
+/**
+ * Measured on `gemini-3.1-flash-lite`, 4 failures in 5 runs: on a posting the
+ * profile did not fit, the draft pass correctly said `"skip"` and the revision
+ * pass restated it as the phrase `"do not apply"`. `applicationSchema`'s enum
+ * refuses that, so the run died with `generation_invalid` after all three paid
+ * calls -- on exactly the path where the product is being honest with the user.
+ *
+ * Coercing the phrase at the boundary would have hidden a prompt that is not
+ * following its own contract, so the fix is here: name the two legal values,
+ * and hand the revision pass the verdict it is meant to carry rather than
+ * asking it to restate one in its own words.
+ */
+describe('the verdict survives the revision pass', () => {
+  for (const [stage, prompt] of [
+    ['draft', draftSystemPrompt(OPTIONS)],
+    ['revise', reviseSystemPrompt(OPTIONS)],
+  ] as const) {
+    it(`gives ${stage} the two legal values and the measured failure`, () => {
+      expect(prompt).toContain(
+        '`recommendation` is one of exactly two lowercase strings',
+      );
+      expect(prompt).toContain('`"do not apply"` into that field');
+      expect(prompt).toContain('A negative verdict\nis the single word');
+    });
+  }
+
+  it('tells revise the assessment is not its to re-decide', () => {
+    const revise = reviseSystemPrompt(OPTIONS);
+    expect(revise).toContain('## The assessment is already made');
+    expect(revise).toContain('Copy `fit`,\n`recommendation` and `reason`');
+    expect(revise).toContain('If the recommendation there is `"skip"`');
+  });
+
+  // The one number the revision pass may move, because it is the one the
+  // revision pass can actually change by editing the documents.
+  it('still lets revise re-estimate coverage', () => {
+    expect(reviseSystemPrompt(OPTIONS)).toContain(
+      '`keywordCoverage` is the one exception',
+    );
+  });
+
+  /**
+   * Measured on the run that verified the fix above: with the verdict carried
+   * through, `recommendation` stopped failing and one run in five failed on
+   * `resume` instead, which `applicationSchema` requires as a string. The draft
+   * prompt has always said a skip still produces the drafts ("even though you
+   * will still produce the drafts below"); revise never restated it, and it is
+   * the pass that decides what is actually returned.
+   */
+  it('tells revise that a skip still ships the documents', () => {
+    const revise = reviseSystemPrompt(OPTIONS);
+    expect(revise).toContain('**A `"skip"` does not cancel the work.**');
+    expect(revise).toContain('Neither becomes\n`null` because the fit is poor');
+  });
+
+  it('is the same promise the draft pass already made', () => {
+    expect(draftSystemPrompt(OPTIONS)).toContain(
+      'even though you will still\nproduce the drafts below',
+    );
+  });
+});
+
 describe('tier', () => {
   // The voice rules carry general cover-letter guidance whatever the tier, so
   // this asserts on the Phase 4 instruction, which is what actually decides.
