@@ -9,9 +9,11 @@ Full scope lives in [PROJECT.md](./PROJECT.md). The design system is
 
 ## Status
 
-Step 1 of the build: the app shell. Next.js App Router, TypeScript, next-intl
-with English and Spanish, the two display fonts, and reduced-motion support.
-No product features yet.
+The golden path is built and live on `main`: sign up, add a model key
+(Anthropic, OpenAI, Google, or any OpenAI-compatible host), upload a CV, paste
+a posting, and get a tailored resume and cover letter you can download.
+Onboarding, the Applications list, account and key management, and the
+privacy/terms pages are all in place.
 
 ## Run it yourself
 
@@ -34,13 +36,11 @@ npm run build       # production build
 
 ## Your API key
 
-Aplica calls your model provider (Anthropic, OpenAI or Google) with a key you
-supply. When self-hosting, that key stays in your own database: encrypted at
-rest with AES-256-GCM, used server-side only, never sent back to the browser and
-never logged. You can delete it in one click. The details are in PROJECT.md
-section 6.
-
-Key storage arrives with the Supabase step; this scaffold stores nothing yet.
+Aplica calls your model provider (Anthropic, OpenAI, Google, or any
+OpenAI-compatible host) with a key you supply. That key stays in your own
+database: encrypted at rest with AES-256-GCM, used server-side only, never
+sent back to the browser and never logged. You can delete it in one click.
+The details are in PROJECT.md section 6.
 
 ## Uploading a CV, and Vercel's Hobby plan
 
