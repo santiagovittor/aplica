@@ -1,0 +1,68 @@
+/* One segmented control, composed into every place that needs one.
+
+   DESIGN.md §5a's accent inventory names this row by itself -- "Selected
+   segmented control | --green fill, --paper text | e.g. EN/ES" -- and the
+   product had shipped two answers to it: /apply's EN/ES filled --green, while
+   the locale switcher on onboarding and /account rendered two loose buttons
+   with the selected one wearing the paper-and-hairline secondary. Same control,
+   same decision, two skins.
+
+   So this exists at the second occurrence rather than at CLAUDE.md §4's usual
+   third, because the drift *is* the bug being fixed and a second copy would
+   only schedule it again. `composes` puts both class names on the element, so
+   the hover, selected and press rules below reach every consumer without each
+   one restating them.
+
+   The container is --paper-dim with a hairline, so an unselected option reads
+   as --ink on --paper-dim without needing a background of its own. One shared
+   --radius-sm on the container; each option gets that radius minus the
+   container's own 2px inset padding. */
+
+.group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--paper-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.option {
+  min-height: var(--target-min);
+  padding-inline: var(--space-5);
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    color var(--dur-micro) var(--ease-soft);
+}
+
+.option:hover:not([data-selected]):not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.option[data-selected] {
+  background: var(--green);
+  color: var(--paper);
+}
+
+/* The selected option is still a button, so it still answers the cursor
+   (DESIGN.md §9, zero exceptions). It deepens rather than lightens, which
+   reads as "already down" instead of offering a change that isn't one. */
+.option[data-selected]:hover:not(:disabled) {
+  background: var(--green-pressed);
+}
+
+.option:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* In flight. Not greyed out: the control still shows which language is
+   selected, and dimming it mid-switch would hide the one thing it says. */
+.option:disabled {
+  cursor: progress;
+}

@@ -77,6 +77,27 @@ by eye before any screen is built.
   /* motion */
   --dur-micro: 180ms; --dur-move: 250ms; --dur-reveal: 500ms;
   --dur-stage: 700ms;     /* the ground change between archetypes, section 3 */
+  --dur-draw: 900ms;      /* a hand-drawn annotation drawing itself, section 7 */
+  --delay-invert: 120ms;  /* when the chrome's ink crosses the ground, section 8 */
+  --dur-invert: 1ms;      /* it crosses in one frame, never by fading */
+
+  /* material (section 5a). Shadows mix from --ink, never black: black on
+     cream goes grey and dead. */
+  --grain-opacity: 0.035;
+  --shadow-raised:
+    0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent),
+    0 8px 24px -6px color-mix(in oklab, var(--ink) 10%, transparent);
+  --shadow-lifted:
+    0 2px 4px color-mix(in oklab, var(--ink) 10%, transparent),
+    0 16px 40px -8px color-mix(in oklab, var(--ink) 14%, transparent);
+  --letterpress: 0 1px 0 color-mix(in oklab, white 45%, transparent);
+
+  /* structure */
+  --rule-strong: 2px;   /* section openers */
+  --eyebrow-tracking: 0.08em;
+
+  /* motion */
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
 }
 ```
 
@@ -131,6 +152,13 @@ Assignments: /apply = Desk (then Stage for progress and result), /cv = Desk
 (then Stage for parse and grounding report), /applications = Desk,
 /account = Desk, onboarding = Column.
 
+**Onboarding is Column and is never dark.** The Stage archetype applies to
+exactly three screens, all of them post-submit: the `/cv` parse run, the
+`/apply` generation run, and the result reveal. Nowhere else. Onboarding's own
+CV step runs the same parse, and it stays on the light ground regardless: a
+guided first-run sequence is a Column screen for its whole length, and the
+ground change would land on the first screen a new user ever sees.
+
 ## 4. Typography (Bringhurst, Lupton)
 
 - Sizes only from the scale. Body 400, emphasis 500/600; Fraunces uses two
@@ -148,6 +176,11 @@ Assignments: /apply = Desk (then Stage for progress and result), /cv = Desk
 - **Two headings on the same screen may not occupy adjacent steps** on the
   scale. Page title 49, section titles 25. The 39 step is reserved for the
   result reveal and the landing hero only.
+- **The display step (61) has two homes:** the fit-score reveal and the
+  landing hero's headline. Nowhere else. A page can be made of almost nothing
+  but type and be beautiful, but only if the type is doing something; the hero
+  is the one screen whose entire job is the thesis, so it carries it at the
+  display step with `WONK` on and tight leading (1.05).
 
 ## 5. Color rules (Albers)
 
@@ -179,9 +212,34 @@ Legal text pairs, the only ones allowed:
 additionally carries the *system of choice*: focus rings, selected states,
 active step markers, inline links, and success text. It may not appear on
 more than one element that looks like a *button*. Secondary actions are ink
-outlines or plain text. Depth = paper/base shift + hairline + at most one soft
-ink shadow (0 1px 2px + 0 8px 24px, very low opacity). No glassmorphism, no
-glow, no gradients.
+outlines or plain text. Depth = paper/base shift + hairline + the two-layer
+warm shadow of section 5a. No glassmorphism, no glow.
+
+**Gradients.** Banned: decorative gradients as color statements — the
+purple/indigo hero gradient, gradient headline text, gradient borders, gradient
+buttons, any gradient whose job is to be seen.
+
+Permitted as **lighting and material**, never as color: page-edge vignette, the
+falloff under a raised surface, and the grain overlay in section 5a. These are
+invisible individually. If a reviewer can point at it and name it a gradient,
+it is the banned kind.
+
+## 5a. Material
+
+The ground is paper, not a fill. `#F3EEE5` is not paper, it is the colour of
+paper. Paper has grain, absorbs light unevenly, casts and receives shadow, and
+takes an impression from ink. Every screen carries:
+
+- **Grain.** A fixed full-viewport SVG turbulence overlay at 3-4% opacity,
+  `mix-blend-mode: multiply`, `pointer-events: none`. Tokenised as
+  `--grain-opacity`. It does not move, so reduced motion does not affect it.
+- **Edge falloff.** A radial darkening at the viewport edges, ≤4% at the
+  corners, resolving to nothing by 60% radius.
+- **Impression.** Headings on a light ground carry a 1px light letterpress
+  highlight below (`--letterpress`). Ink pressed into paper leaves an edge. On
+  the dark ground, no highlight.
+- **Weight.** Raised surfaces cast the two-layer warm `--shadow-raised`, mixed
+  from `--ink`, never from black. Black on cream goes grey and dead.
 
 Accent inventory, exhaustive:
 
@@ -239,6 +297,14 @@ Accent inventory, exhaustive:
   stage (ground change between archetypes) 700ms.
 - Enter = 8-12px translate + fade, staggered 40-60ms in groups. Nothing scales
   from zero, nothing spins.
+- **The ground change inverts the chrome by stepping, never by fading.** The
+  shell chrome's ink and the ground it sits on travel in opposite directions
+  over --dur-stage, so fading both at once walks the text through the ground's
+  own colour: measured at the worst frame, the footer links hit 1.13:1 and the
+  wordmark 1.33:1, text that vanishes and returns on every run start. The
+  chrome holds its ink until --delay-invert, then crosses in one frame
+  (--dur-invert). Verified by `checkGroundInversion`, which samples the whole
+  transition rather than its two ends; the two ends were always fine.
 - prefers-reduced-motion swaps every animation for instant states, implemented
   once in the Motion wrapper.
 - **Motion driven by a real event is always honest** and is not subject to
@@ -256,6 +322,12 @@ Accent inventory, exhaustive:
 - Hairlines 1px; thicker borders reserved for focus and selection.
 - Focus: 2px --green ring, 2px offset, on every focusable element,
   keyboard-tested. Never outline:none without a replacement.
+- **Hover and press are mandatory.** Every interactive element defines hover,
+  active, and focus. Hover is a value shift plus, where the element is a
+  surface, a 1px rise to --shadow-lifted. Press is a 1px drop and a shadow
+  reduction. Links draw their underline from left to right over --dur-micro.
+  An interface where nothing responds to the cursor reads as an image of an
+  interface.
 - Icons: few, 1.5px stroke, ink, labeled in primary flows. No Sparkles, ever.
 - Every screen designs empty, loading, and error. Empty invites and holds the
   next action (may use the motif). Loading = calm paper-value placeholders,
@@ -292,3 +364,10 @@ page doing its job, and is not precedent for a second green action anywhere else
 14. **Shape.** The screen declares its archetype in a comment at the top of
     its page component, and does not match the archetype of the screen
     that precedes it in the flow.
+15. **Material.** Grain resolves to non-zero opacity and `multiply`; the
+    footer closes the viewport when content is short; every heading on a
+    light ground carries --letterpress; every raised surface carries
+    --shadow-raised.
+16. **Hover coverage.** Every `button, a, [role="button"], input, textarea,
+    select` changes at least one of background-color, box-shadow,
+    border-color, transform or text-decoration on hover. Zero exceptions.

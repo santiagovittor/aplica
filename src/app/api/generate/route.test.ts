@@ -135,19 +135,54 @@ describe('the generation route streams', () => {
     // route writes. Nothing pretends to think.
     const { events } = await read(await POST(post(VALID)));
 
-    expect(events.map((event) => event.event)).toEqual([
-      'stage',
-      'stage',
-      'stage',
-      'stage',
-      'done',
-    ]);
-    expect(events.slice(0, 4).map((event) => event.data.stage)).toEqual([
+    const stages = events
+      .filter((event) => event.event === 'stage')
+      .filter((event) => event.data.detail === undefined)
+      .map((event) => event.data.stage);
+
+    expect(stages).toEqual(['draft', 'review', 'revise', 'saving']);
+    expect(events.at(-1)?.event).toBe('done');
+  });
+
+  it('a detail event per stage, carrying counts and never prose', async () => {
+    // SLICE-23 §5.6. Each of the three model-call stages reports what it
+    // actually found once it has found it. The route sends numbers only: the
+    // wording is the screen's, resolved through next-intl, so nothing here
+    // decides copy and no document text can reach the stream through it.
+    const { events } = await read(await POST(post(VALID)));
+
+    const details = events.filter(
+      (event) => event.event === 'stage' && event.data.detail !== undefined,
+    );
+
+    expect(details.map((event) => event.data.stage)).toEqual([
       'draft',
       'review',
       'revise',
-      'saving',
     ]);
+
+    for (const event of details) {
+      for (const value of Object.values(
+        event.data.detail as Record<string, unknown>,
+      )) {
+        expect(typeof value).toBe('number');
+      }
+    }
+  });
+
+  it('a stage before its own detail, never the other way round', async () => {
+    // "Drafting" is true while the call is in flight; "88/100 fit" is only
+    // true once it has returned. A detail that arrived with its stage would
+    // be predicting, which DESIGN.md §8 rules out.
+    const { events } = await read(await POST(post(VALID)));
+
+    const draftEvents = events
+      .map((event, index) => ({ event, index }))
+      .filter(({ event }) => event.data.stage === 'draft');
+
+    expect(draftEvents).toHaveLength(2);
+    expect(draftEvents[0].event.data.detail).toBeUndefined();
+    expect(draftEvents[1].event.data.detail).toBeDefined();
   });
 
   it('as an event stream that proxies will not buffer', async () => {

@@ -12,15 +12,30 @@
   line-height: 1;
 }
 
+/* SLICE-23 §5.5: an input is a recess, not a raised surface. --paper-dim
+   against the --paper panel or card it sits in, so the field reads as cut into
+   the sheet rather than sitting invisibly on top of it, which is what
+   --paper-on---paper looked like. The inner shadow is the same lighting idea
+   as --shadow-raised inverted: mixed from --ink, never black. */
 .control {
   width: 100%;
   min-height: var(--target-min);
   padding: var(--space-3) var(--space-4);
-  background: var(--paper);
+  background: var(--paper-dim);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   color: var(--ink);
-  transition: border-color var(--dur-micro) var(--ease-soft);
+  box-shadow: inset 0 1px 2px color-mix(in oklab, var(--ink) 6%, transparent);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    background-color var(--dur-micro) var(--ease-soft);
+}
+
+/* DESIGN.md §9: every interactive element responds to the cursor, inputs
+   included. The border firms up; the recess does not move, because a field
+   you are about to type in should not jump. */
+.control:hover:not(:disabled) {
+  border-color: var(--ink-soft);
 }
 
 /* §6 Norman: the paste box reads as paper you write on. */

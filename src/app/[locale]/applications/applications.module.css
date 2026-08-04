@@ -75,6 +75,7 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 40rem) {

@@ -84,12 +84,14 @@
   font-size: var(--text-xs);
 }
 
-.chip a {
+.chipLink {
+  composes: underline from '@/ui/Link.module.css';
   color: var(--green);
   font-weight: 500;
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
-.chip a:hover {
+.chipLink:hover {
   color: var(--green-soft);
 }
 
@@ -105,41 +107,14 @@
   border: none;
 }
 
-/* Real segmented control (SLICE-20 §2.1): the container is --paper-dim with
-   a hairline, so an unselected option reads as --ink on --paper-dim without
-   its own background, and the selected option fills --green. One shared
-   --radius-sm on the container; each option gets the radius minus the
-   container's own 2px inset padding. */
+/* Real segmented control (SLICE-20 §2.1), now the shared one -- see
+   ui/Segmented.module.css for why it moved out of here. */
 .toggle {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--paper-dim);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
+  composes: group from '../../../ui/Segmented.module.css';
 }
 
 .toggleOption {
-  min-height: var(--target-min);
-  padding-inline: var(--space-5);
-  border: none;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: transparent;
-  color: var(--ink);
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color var(--dur-micro) var(--ease-soft),
-    color var(--dur-micro) var(--ease-soft);
-}
-
-.toggleOption:hover:not([data-selected]) {
-  background: var(--surface-sunken);
-}
-
-.toggleOption[data-selected] {
-  background: var(--green);
-  color: var(--paper);
+  composes: option from '../../../ui/Segmented.module.css';
 }
 
 .tiers {
@@ -169,11 +144,23 @@
   border-top: 2px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color var(--dur-micro) var(--ease-soft);
+  box-shadow: var(--shadow-raised);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft),
+    transform var(--dur-micro) var(--ease-soft);
 }
 
+/* DESIGN.md §9: a surface rises 1px on hover and drops 1px on press. */
 .tierCard:hover {
   border-color: var(--ink-soft);
+  box-shadow: var(--shadow-lifted);
+  transform: translateY(-1px);
+}
+
+.tierCard:active {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(1px);
 }
 
 .tierCard[data-selected] {
@@ -213,6 +200,19 @@
 .research input {
   margin-top: 0.35em;
   accent-color: var(--ink);
+  /* A native checkbox has no hover state of its own on any platform this
+     ships to, so it gets one: the box scales fractionally under the cursor.
+     Its label is the real target and covers it, so this fires from anywhere
+     in the row. */
+  transition: transform var(--dur-micro) var(--ease-soft);
+}
+
+.research:hover input {
+  transform: scale(1.1);
+}
+
+.research input:active {
+  transform: scale(0.95);
 }
 
 .researchTitle {
@@ -272,6 +272,7 @@
   background: var(--paper);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 60rem) {
@@ -306,9 +307,14 @@
   margin-inline: auto;
 }
 
+/* The one heading in the product that sits directly on --ink-deep, so it is
+   the one that opts out of the global letterpress in globals.css: DESIGN.md
+   §5a grants the impression highlight to headings on a *light* ground, and a
+   white highlight under ink-deep is a glow. */
 .doneHeading {
   font-size: var(--text-2xl);
   color: var(--on-dark);
+  text-shadow: none;
 }
 
 .keywordCoverage {

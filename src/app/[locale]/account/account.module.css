@@ -1,5 +1,9 @@
-/* DESIGN.md §3: a working screen is asymmetric, 7 columns of primary and 4 of
-   secondary on the 12-column grid, with the eighth column left as the split. */
+/* DESIGN.md §3 archetype: Desk. SLICE-23 §5.5.
+
+   A 4/12 sticky rail on the left and a 7/12 content column on the right, which
+   is the asymmetric grid doing the job it was chosen for. Every section is a
+   ruled block, not a card; the one container on this screen is the --paper
+   panel the key form groups inside, where grouping *is* the information. */
 
 .shell {
   max-width: var(--content-max);
@@ -20,8 +24,9 @@
   margin-bottom: var(--space-8);
 }
 
-/* SLICE-20 §2.6 (the 1.2 heading rule): page title 49, sections 25 -- three
-   scale steps apart, so they never occupy adjacent steps (DESIGN.md §4). */
+/* Page title 49, section titles 25: three scale steps apart, so no two
+   headings here occupy adjacent steps (DESIGN.md §4). The 39 step collision
+   SLICE-23 §5.5 names is what this fixes. */
 .title {
   font-size: var(--text-4xl);
 }
@@ -29,6 +34,10 @@
 .lead {
   max-width: var(--measure);
   color: var(--ink-soft);
+}
+
+.resume {
+  font-size: var(--text-xs);
 }
 
 .grid {
@@ -43,30 +52,100 @@
     align-items: start;
   }
 
-  .primary {
-    grid-column: span 7;
+  /* The rail leads, so it sits first. The 7/12 content column starts at 5 and
+     runs to 12, leaving column 4 as the split. */
+  .aside {
+    grid-column: 1 / span 3;
   }
 
-  .aside {
-    grid-column: 9 / span 4;
+  .content {
+    grid-column: 5 / span 8;
   }
 }
 
-.aside {
+/* --- the rail ------------------------------------------------------- */
+
+@media (min-width: 60rem) {
+  .rail {
+    position: sticky;
+    /* Clear of the sticky header, which is why this is not simply 0. */
+    top: var(--space-9);
+  }
+}
+
+.railLabel {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--ink-soft);
+}
+
+.railList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  list-style: none;
+}
+
+/* The mark is a rule on the leading edge, filling --green for the current
+   section. Every item carries the rule so nothing shifts when the mark moves;
+   only its colour changes. */
+.railLink {
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding-left: var(--space-4);
+  border-left: var(--rule-strong) solid var(--hairline);
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition:
+    color var(--dur-micro) var(--ease-soft),
+    border-color var(--dur-micro) var(--ease-soft),
+    background-color var(--dur-micro) var(--ease-soft);
+}
+
+.railLink:hover {
+  color: var(--ink);
+  border-left-color: var(--ink-soft);
+  background: var(--surface-sunken);
+}
+
+.railLink[data-current] {
+  border-left-color: var(--green);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* --- the content column ---------------------------------------------- */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  /* DESIGN.md §3's hierarchy rule: between-group spacing is at least two scale
+     steps larger than within-group. 16px inside a section, 64px between. */
+  gap: var(--space-8);
 }
 
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  border-top: var(--rule-strong) solid var(--ink);
+  padding-top: var(--space-5);
+  /* Cleared of the sticky header when jumped to from the rail. */
+  scroll-margin-top: var(--space-9);
 }
 
-/* Shared by both columns' h2s: was --text-lg in the aside, one step below
-   the primary column's own section titles, until SLICE-20 §2.6 asked for
-   every section heading at the same 25px step. */
+.eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--ink-soft);
+}
+
 .sectionTitle {
   font-size: var(--text-xl);
 }
@@ -74,26 +153,54 @@
 .body {
   max-width: var(--measure);
   color: var(--ink-soft);
-  font-size: var(--text-xs);
 }
 
-/* DESIGN.md §5: --green on --paper is the legal pair for a link. */
-.body a {
+/* A simple class, applied at each call site rather than as `.body a`:
+   `composes` is only legal on a simple class selector, so a descendant rule
+   cannot carry the shared underline draw. */
+.inlineLink {
+  composes: underline from '@/ui/Link.module.css';
   color: var(--green);
   font-weight: 500;
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
-.body a:hover {
+.inlineLink:hover {
   color: var(--green-soft);
 }
 
-/* The key form's own rhythm: 32px between fields, 48px to the button, so the
-   groups read as groups (§3). */
+/* Last, and ruled in --clay so destruction reads as destruction before it is
+   read at all. The destructive action itself stays one disclosure deep
+   (DESIGN.md §6), which `DeleteAccount` handles. */
+.dangerSection {
+  border-top-color: var(--clay);
+}
+
+.dangerEyebrow {
+  color: var(--clay);
+}
+
+/* --- the key form's panel -------------------------------------------- */
+
+/* The one container on this screen. A settings form is a group of fields that
+   belong together, and a panel is how that is said; without it the inputs were
+   floating on the page ground with nothing holding them. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-2);
+  padding: var(--space-6);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+}
+
 .form {
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
-  margin-top: var(--space-4);
 }
 
 .fields {

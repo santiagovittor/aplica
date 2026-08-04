@@ -3,9 +3,22 @@
    Unlike Header, this always renders, so its border sits on top rather than
    under, closing the page instead of opening it. */
 
+/* No `margin-top` any more: SLICE-23 §5.1 made the shell a three-row grid
+   whose middle row absorbs the slack, so the footer is held at the bottom of
+   the viewport by the layout rather than pushed there by a margin that also
+   fired when content was long. */
 .footer {
   border-top: 1px solid var(--hairline);
-  margin-top: var(--space-8);
+  transition:
+    background-color var(--dur-stage) var(--ease-soft),
+    border-color var(--dur-stage) var(--ease-soft);
+}
+
+/* The Stage ground reaches the footer for the same reason it reaches the
+   header (Header.module.css): a light rule under a full-bleed dark screen
+   reads as a seam. */
+:global(body[data-stage='true']) .footer {
+  border-top-color: var(--hairline-dark);
 }
 
 .nav {
@@ -23,14 +36,37 @@
 }
 
 .link {
+  composes: underline from './Link.module.css';
   display: inline-flex;
   align-items: center;
   min-height: var(--target-min);
   font-size: var(--text-xs);
   color: var(--ink-soft);
-  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
 .link:hover {
   color: var(--ink);
+}
+
+/* Held, then stepped (tokens.css, --delay-invert). These links were the worst
+   measured case: --ink-soft on its way out and --on-dark-soft on its way in
+   are close enough in luminance that fading between them under a darkening
+   ground bottomed out at 1.16:1, which is text you cannot see. 1.82:1 is not
+   good, but it is the arithmetic ceiling for that pair of inks and it is the
+   difference between briefly dim and briefly gone. */
+:global(body[data-stage='true']) .link {
+  color: var(--on-dark-soft);
+  transition-duration: var(--dur-invert);
+  transition-delay: var(--delay-invert);
+}
+
+/* Hover keeps its own timing on the dark ground: the step above is for the
+   ground change, and a link still has to answer the cursor over --dur-micro
+   (DESIGN.md §9). The one seam left is un-hovering *during* a run, which
+   takes the rule above and so snaps rather than fades. */
+:global(body[data-stage='true']) .link:hover {
+  color: var(--on-dark);
+  transition-duration: var(--dur-micro);
+  transition-delay: 0s;
 }

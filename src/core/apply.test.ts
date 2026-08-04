@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_MODELS, PARSE_MODELS } from '../providers/defaults';
 import { createMockProvider } from '../providers/mock';
 import type { GenerateOptions, Message, Provider } from '../providers/types';
-import { APPLY_MAX_TOKENS, applyToPosting, type ApplyOptions } from './apply';
+import {
+  APPLY_MAX_TOKENS,
+  applyToPosting,
+  countFixes,
+  type ApplyOptions,
+  type ApplyStageDetail,
+} from './apply';
 import { ApplicationError } from './application';
 // The one posting and profile the render tests ground against too. Two fixture
 // profiles drifting apart is how a gate starts passing for the wrong reason.
@@ -243,6 +249,41 @@ describe('applyToPosting critiques and revises', () => {
 
     expect(calls[2].messages[0].content).toContain(CRITIQUE);
     expect(calls[2].messages[0].content).toContain('## Reviewer critique');
+  });
+
+  it('hands the revision pass the verdict the draft reached', async () => {
+    // Not decoration: `recommendation` is a two-value enum and a model asked to
+    // restate a negative verdict paraphrases it (`"do not apply"` was measured,
+    // and it kills the run after all three calls are paid for). Giving the
+    // revision the literal word to carry through is the fix. It also keeps
+    // `fit.score` from moving between the number published mid-run and the one
+    // on the result.
+    const { provider, calls } = recording(
+      pipeline({
+        draft: applicationJson({
+          recommendation: 'skip',
+          reason: 'They want three markets of reporting and there is one.',
+        }),
+      }),
+    );
+    await applyToPosting(provider, OPTIONS);
+
+    const sent = calls[2].messages[0].content;
+    expect(sent).toContain('## Your assessment');
+    expect(sent).toContain('"recommendation": "skip"');
+    expect(sent).toContain(
+      '"reason": "They want three markets of reporting and there is one."',
+    );
+    expect(sent).toContain('"score": 74');
+  });
+
+  it('does not hand it the draft’s coverage, which the revision may change', async () => {
+    // The revision edits the documents, so it re-estimates this one honestly
+    // rather than copying a number that described text it just rewrote.
+    const { provider, calls } = recording(pipeline());
+    await applyToPosting(provider, OPTIONS);
+
+    expect(calls[2].messages[0].content).not.toContain('keywordCoverage');
   });
 
   it('refuses an empty critique rather than revising against nothing', async () => {
@@ -556,5 +597,92 @@ describe('applyToPosting reports its stages', () => {
     );
 
     expect(unwatched).toEqual(watched);
+  });
+});
+
+describe('applyToPosting reports what each stage found', () => {
+  it('reports a detail per stage, each after the stage it describes', async () => {
+    // SLICE-23 §5.6. The order matters as much as the values: a detail that
+    // arrived with its stage would be describing work that has not happened.
+    const log: string[] = [];
+
+    await applyToPosting(createMockProvider(), {
+      ...OPTIONS,
+      onStage: (stage) => log.push(`stage:${stage}`),
+      onStageDetail: (detail) => log.push(`detail:${detail.stage}`),
+    });
+
+    expect(log).toEqual([
+      'stage:draft',
+      'detail:draft',
+      'stage:review',
+      'detail:review',
+      'stage:revise',
+      'detail:revise',
+    ]);
+  });
+
+  it('carries only counts the pipeline actually holds', async () => {
+    const details: ApplyStageDetail[] = [];
+
+    const result = await applyToPosting(createMockProvider(), {
+      ...OPTIONS,
+      onStageDetail: (detail) => details.push(detail),
+    });
+
+    const draft = details.find((d) => d.stage === 'draft');
+    const revise = details.find((d) => d.stage === 'revise');
+
+    // Not fixed numbers: the point is that every reported count equals
+    // something the run genuinely produced, which is what "real counts only"
+    // means and what a hardcoded expectation would stop proving.
+    expect(draft).toEqual({
+      stage: 'draft',
+      fit: expect.any(Number),
+      coverage: expect.any(Number),
+    });
+    expect(revise).toEqual({
+      stage: 'revise',
+      slop: result.slop.length,
+      ungrounded: result.ungrounded.length,
+    });
+  });
+
+  it('produces the same result with no detail callback at all', async () => {
+    const watched = await applyToPosting(providerReturning(applicationJson()), {
+      ...OPTIONS,
+      onStageDetail: () => undefined,
+    });
+    const unwatched = await applyToPosting(
+      providerReturning(applicationJson()),
+      OPTIONS,
+    );
+
+    expect(unwatched).toEqual(watched);
+  });
+});
+
+describe('countFixes', () => {
+  it('counts the reviewer’s numbered fixes', () => {
+    const critique = [
+      'FIXES (highest priority first):',
+      '1. [resume, summary] too vague -> name the system',
+      '2. [cover, opening] generic -> use their own words',
+      '',
+      'HARD FAILS (must fix before sending): none',
+      'VERDICT: ready after fixes',
+    ].join('\n');
+
+    expect(countFixes(critique)).toBe(2);
+  });
+
+  it('counts nothing when the model ignored the format', () => {
+    // 0 means no sub-line is shown at all. An honest silence beats a number
+    // that describes nothing, which is the whole rule these sub-lines follow.
+    expect(countFixes('The resume looks fine to me, honestly.')).toBe(0);
+  });
+
+  it('does not count a decimal inside a sentence', () => {
+    expect(countFixes('Coverage sits at 3.5 percent, which is low.')).toBe(0);
   });
 });

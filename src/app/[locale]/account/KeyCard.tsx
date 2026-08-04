@@ -48,7 +48,11 @@ export function KeyCard({
   const showEndpoint = provider === 'openai_compatible';
 
   return (
-    <>
+    /* SLICE-23 §5.5: the fields group inside one --paper panel. Removing the
+       card wrapper was right for `/apply`, where a card wrapped an entire
+       screen; it is wrong for a settings form, where the grouping carries the
+       information that these fields are one thing. */
+    <div className={styles.panel}>
       <div className={styles.status}>
         <p className={saved ? styles.saved : styles.none}>
           {saved ?? labels.none}
@@ -137,6 +141,6 @@ export function KeyCard({
           </Button>
         </form>
       ) : null}
-    </>
+    </div>
   );
 }

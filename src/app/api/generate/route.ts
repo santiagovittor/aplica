@@ -255,7 +255,16 @@ export async function POST(request: Request): Promise<Response> {
   return stream(async (send) => {
     const result = await applyToPosting(
       keyedProvider(user.id, stored.provider),
-      { ...options, onStage: (stage) => send('stage', { stage }) },
+      {
+        ...options,
+        onStage: (stage) => send('stage', { stage }),
+        // SLICE-23 §5.6: a real count under the step the moment the pipeline
+        // knows it. `detail` carries numbers only, never prose -- the screen
+        // resolves them through next-intl, so nothing here decides wording
+        // and nothing here can leak a document into the stream.
+        onStageDetail: ({ stage, ...detail }) =>
+          send('stage', { stage, detail }),
+      },
     );
 
     send('stage', { stage: 'saving' satisfies StreamStage });

@@ -10,10 +10,33 @@
   line-height: 1;
   text-align: center;
   cursor: pointer;
+  /* SLICE-23 §5.4: a link wearing a button costume still inherited the user
+     agent's underline, so the landing CTA read as both at once. A button's
+     label is never underlined; pick one. */
+  text-decoration: none;
   transition:
     background-color var(--dur-micro) var(--ease-soft),
     border-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft),
     transform var(--dur-micro) var(--ease-soft);
+}
+
+/* DESIGN.md §9: hover is a value shift plus a 1px rise, press is a 1px drop.
+   Declared once on the base class so a new variant cannot ship without them.
+
+   The *rise* is shared; the *shadow* is not. Elevation is hierarchy, not
+   decoration (avoid-ai-design K2): only the primary action is a raised
+   surface, and only it casts and deepens a shadow. An outline button that
+   floated made every button on the screen equally important, which is the
+   flat-hierarchy tell rather than the material DESIGN.md §5a asks for. */
+.button:hover:not(:disabled),
+.button[data-force~='hover'] {
+  transform: translateY(-1px);
+}
+
+.button:active:not(:disabled),
+.button[data-force~='active'] {
+  transform: translateY(1px);
 }
 
 /* ponytail: [data-force] mirrors each interactive selector so the styleguide can
@@ -23,9 +46,22 @@
   outline-offset: var(--focus-offset);
 }
 
+/* The one button on a screen that is a raised surface, so the one that carries
+   weight (DESIGN.md §5a, §5's one-primary discipline). */
 .primary {
   background: var(--green);
   color: var(--paper);
+  box-shadow: var(--shadow-raised);
+}
+
+.primary:hover:not(:disabled),
+.primary[data-force~='hover'] {
+  box-shadow: var(--shadow-lifted);
+}
+
+.primary:active:not(:disabled),
+.primary[data-force~='active'] {
+  box-shadow: var(--shadow-raised);
 }
 
 /* Lifts to --green-soft on hover and sinks below --green on press, so the two
@@ -80,15 +116,22 @@
   transform: translateY(1px);
 }
 
+/* The one variant that is not a surface, so it carries no weight of its own:
+   a shadow under transparent text would be a shadow cast by nothing. It still
+   responds, by taking a ground on hover. */
 .quiet {
   padding-inline: var(--space-3);
   background: transparent;
   color: var(--ink);
 }
 
+/* A quiet button is not a surface, so it does not rise: it takes a ground
+   instead, which is a real response without pretending to weight it does not
+   have. */
 .quiet:hover:not(:disabled),
 .quiet[data-force~='hover'] {
   background: var(--surface-sunken);
+  transform: none;
 }
 
 /* SLICE-20 §2.5: the only quiet button that lands directly on --ink-deep
@@ -110,10 +153,12 @@
   transform: translateY(1px);
 }
 
+/* Nothing off the ground casts a shadow. */
 .button:disabled:not([aria-busy='true']) {
   background: var(--surface-disabled);
   border-color: transparent;
   color: var(--ink-soft);
+  box-shadow: none;
   cursor: not-allowed;
 }
 

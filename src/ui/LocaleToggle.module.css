@@ -1,7 +1,19 @@
-/* Two buttons side by side. The selected one is the paper-and-hairline
-   secondary; the other is quiet. No third state and no new colour: DESIGN.md §5
-   keeps --green for the one primary action on the screen. */
+/* The same segmented control /apply's EN/ES uses, which is what DESIGN.md §5a's
+   accent inventory asks for by name. Before this it was two loose buttons with
+   the selected one wearing the paper-and-hairline secondary: the same decision
+   as /apply's, rendered a second way, and the one without the --green fill the
+   inventory specifies. */
 .group {
-  display: flex;
-  gap: var(--space-2);
+  composes: group from './Segmented.module.css';
+  /* Both callers put this inside a stretching flex column, and `inline-flex`
+     does not save a flex item from `align-items: stretch`. Without this the
+     container runs the full width of the card with its two options huddled at
+     one end, which is a segmented control drawn around nothing. /apply's sits
+     in a fieldset instead, so it hugs on its own and the shared file stays out
+     of its consumers' layout. */
+  align-self: start;
+}
+
+.option {
+  composes: option from './Segmented.module.css';
 }

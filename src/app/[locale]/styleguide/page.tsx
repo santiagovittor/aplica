@@ -54,7 +54,7 @@ const SECTIONS = [
   { id: 'color', slip: '--base --paper --ink' },
   { id: 'type', slip: '--text-xs … --text-4xl' },
   { id: 'space', slip: '--space-1 … --space-10' },
-  { id: 'depth', slip: '--radius-sm --radius-md --shadow-soft' },
+  { id: 'depth', slip: '--radius-sm --radius-md --shadow-raised' },
   { id: 'motion', slip: '--dur-micro --dur-move --ease-soft' },
   { id: 'button', slip: '--green --radius-sm --target-min' },
   { id: 'field', slip: '--paper --hairline --clay' },

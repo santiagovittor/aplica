@@ -6,8 +6,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { MotionConfig } from 'motion/react';
 import { routing } from '@/i18n/routing';
 import { currentUser } from '@/lib/session';
-import { Footer } from '@/ui/Footer';
-import { Header } from '@/ui/Header';
+import { Shell } from '@/ui/Shell';
 import '../globals.css';
 
 const display = Fraunces({
@@ -64,9 +63,7 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <MotionConfig reducedMotion="user">
-            <Header authenticated={user !== null} />
-            {children}
-            <Footer />
+            <Shell authenticated={user !== null}>{children}</Shell>
           </MotionConfig>
         </NextIntlClientProvider>
       </body>

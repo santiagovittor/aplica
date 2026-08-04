@@ -72,9 +72,13 @@ salary tools, the just-in-time micro-interview and the voice-diff loop (see 5b).
   CSS Modules + hand-authored CSS custom properties (design tokens). For accessible
   interactive parts (dialog, select, toggle) use unstyled Radix UI primitives and
   style them yourself. Zero default look to regress into.
-- **Motion:** Motion (framer-motion) for UI transitions; GSAP + Lenis reserved for
-  the landing page's signature moments. Self-host a distinctive variable display
-  font via next/font. Never Inter.
+- **Motion:** Motion (framer-motion) for all UI transitions, including the
+  landing hero's staggered motif reveal. No GSAP: Motion already covers what the
+  hero needs, and GSAP is only worth adding later if a signature moment turns
+  out to need a real timeline. No Lenis: smooth-scroll hijacking contradicts the
+  product's own "not fighting the user" premise; native `IntersectionObserver`
+  covers any scroll-triggered reveal instead. Self-host a distinctive variable
+  display font via next/font. Never Inter.
 - **i18n:** next-intl. All copy in `messages/en.json` and `messages/es.json` from
   day one. No hardcoded strings.
 - **Auth + DB + storage:** Supabase (Postgres, Auth, Storage for CV files).

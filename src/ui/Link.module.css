@@ -1,0 +1,43 @@
+/* DESIGN.md §9: "Links draw their underline from left to right over
+   --dur-micro." One implementation, composed in by every link that wants it,
+   rather than five near-copies of the same four declarations.
+
+   A real 1px rule that scales from its left edge, not an animated
+   `background-size` on a solid-colour `linear-gradient`. The gradient trick is
+   the common way to do this and it is the wrong way here: DESIGN.md §5 permits
+   a gradient only as lighting or material, and an underline is neither -- it
+   is a mark whose whole job is to be seen. `text-decoration` cannot animate
+   its draw direction at all, which is why this is a pseudo-element.
+
+   Reduced motion is handled globally (globals.css zeroes every transition
+   duration), so the rule simply appears rather than drawing. */
+
+.underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.15em;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-micro) var(--ease-soft);
+}
+
+.underline:hover::after,
+.underline:focus-visible::after,
+.underline[data-force~='hover']::after {
+  transform: scaleX(1);
+}
+
+/* The current screen keeps a permanently drawn rule: it is state, not a hover
+   response, and Header's nav uses it to say where you are. */
+.underline[aria-current='page']::after {
+  transform: scaleX(1);
+}
