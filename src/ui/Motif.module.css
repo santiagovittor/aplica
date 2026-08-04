@@ -1,40 +1,80 @@
-/* DESIGN.md §7: one object, now a line of text. Slop and human occupy the
-   same grid cell so the transformation reads as one object changing rather
-   than two lines stacking -- the cell's own height follows whichever is
-   taller at the time, since real sentences vary in length where the old
-   fixed-viewBox SVG never had to. */
+/* DESIGN.md §7: one object, a line of text, and one activity, its
+   transformation. SLICE-23 §5.3 made both halves permanent -- they stack, the
+   generic one above the human one, each under its own eyebrow, so the reader
+   sees a before and an after rather than only an after.
+
+   The two halves no longer share a grid cell the way they did when the first
+   dissolved into the second. They are two lines now, and stacking them is what
+   makes the transformation legible as a transformation. */
 
 .motif {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   margin: 0;
+  /* The measure holds here too: this is prose, and a motif that runs the full
+     width of a hero column is the same bug §4 names anywhere else. */
+  max-width: 34ch;
 }
 
-.slop,
-.human {
-  grid-row: 1;
-  grid-column: 1;
+.half {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
+/* The label that stops the pair from being ambiguous. Uppercase is legal only
+   for tiny structural labels, letterspaced (DESIGN.md §4). */
+.eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--ink-soft);
+}
+
+/* The generic line: body face, --ink-soft, and deliberately a little too even.
+   It stays on screen after the strike is drawn, dimmed rather than removed --
+   the before-state is half the argument. */
 .slop {
   color: var(--ink-soft);
-  text-decoration: line-through;
+  opacity: 0.35;
+  transition: opacity var(--dur-reveal) var(--ease-soft);
 }
 
-/* Apply's reveal is the one home that sits directly on --ink-deep
-   (DESIGN.md §3's fit-score exception) -- --ink-soft measures 2.4:1 there,
-   well under even the large-text floor. `[data-dark]` rather than the usual
-   body[data-stage] attribute: see Motif.tsx's own comment on why the
-   ambient one can't tell CV's (still-paper) done reveal apart from this. */
-.motif[data-dark] .slop {
+/* `rough-notation` wraps the annotated element, so the strike is drawn around
+   this span rather than around the paragraph's full line box. */
+.slopText {
+  display: inline;
+}
+
+/* --human clears AA only at large-text size (measured ~3.8-4.3:1 depending on
+   ground, DESIGN.md §5). --text-xl is the scale's own floor for that, which is
+   why it is the one legal size for the human line on either ground. WONK is
+   granted to display sizes (DESIGN.md §4), and this is one. */
+.human {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings:
+    'SOFT' 0,
+    'WONK' 1;
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  color: var(--human);
+  text-wrap: pretty;
+}
+
+/* Apply's reveal is the one home that sits directly on --ink-deep (DESIGN.md
+   §3's fit-score exception) -- --ink-soft measures 2.4:1 there, well under
+   even the large-text floor. `[data-dark]` rather than the usual
+   body[data-stage] attribute: see Motif.tsx on why the ambient one cannot tell
+   CV's still-paper done reveal apart from this. */
+.motif[data-dark] .eyebrow {
   color: var(--on-dark-soft);
 }
 
-/* --human clears AA only at large-text size (measured ~3.8-4.3:1 depending
-   on ground, DESIGN.md §5) -- --text-xl is the scale's own floor for that,
-   which is why this is the one legal size for the human line on either
-   ground, not a --dur-stage-conditional choice. */
-.human {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  color: var(--human);
+.motif[data-dark] .slop {
+  color: var(--on-dark-soft);
+  /* Brighter than the light ground's 35%: the same opacity against --ink-deep
+     drops the line under the 3:1 graphics floor entirely. */
+  opacity: 0.55;
 }

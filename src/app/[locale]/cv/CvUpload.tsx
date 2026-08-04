@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/ui/Button';
 import buttonStyles from '@/ui/Button.module.css';
+import { EASE_SOFT } from '@/ui/easing';
 import { Motif } from '@/ui/Motif';
 import { Steps, type Step } from '@/ui/Steps';
 import styles from './cv.module.css';
@@ -87,11 +88,6 @@ interface StageDetail {
 
 const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-// --ease-soft's own curve (DESIGN.md §8's one easing family). Motion cannot
-// read a CSS custom property, so the four numbers are copied rather than
-// referenced, same as Motif.tsx.
-const EASE_SOFT = [0.22, 0.75, 0.24, 1] as const;
 
 /**
  * The result reveal is where DESIGN.md §6 (peak-end) says the motion budget

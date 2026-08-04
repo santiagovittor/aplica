@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { detectPostingLanguage } from '@/lib/detect-language';
 import { Button } from '@/ui/Button';
 import buttonStyles from '@/ui/Button.module.css';
+import { EASE_SOFT } from '@/ui/easing';
 import { FitScore } from '@/ui/FitScore';
 import { Input } from '@/ui/Input';
 import { Motif } from '@/ui/Motif';
@@ -86,10 +87,9 @@ interface StoredFile {
   format: 'pdf' | 'docx';
 }
 
-const EASE_SOFT = [0.22, 0.75, 0.24, 1] as const;
-
 // --dur-micro and --dur-reveal, copied as literals: Motion cannot read a CSS
-// custom property (same reasoning as EASE_SOFT above).
+// custom property. --ease-soft is not copied; it lives in @/ui/easing, where
+// one test pins it against tokens.css.
 const DUR_MICRO_S = 0.18;
 const DUR_REVEAL_S = 0.5;
 

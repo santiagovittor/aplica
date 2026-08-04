@@ -2,9 +2,8 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { EASE_SOFT } from '@/ui/easing';
 import styles from '../onboarding.module.css';
-
-const EASE_SOFT = [0.22, 0.75, 0.24, 1] as const;
 
 /**
  * The apply/CV flows' AnimatePresence idiom, applied to onboarding's step

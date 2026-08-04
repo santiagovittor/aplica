@@ -1,0 +1,49 @@
+/* SLICE-23 §5.2. Everything here scales from the element's own font-size, so
+   one component serves the header at --text-lg and the hero at --text-2xl
+   without a second variant or a hardcoded pixel anywhere. */
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display), Georgia, serif;
+  /* WONK is what gives Fraunces its swashed, non-neutral character, and it is
+     off by default. DESIGN.md §4 grants it to the wordmark and display sizes
+     only -- at body sizes it reads as a wobble rather than as a voice. */
+  font-variation-settings:
+    'SOFT' 0,
+    'WONK' 1;
+  font-weight: 600;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+  text-shadow: var(--letterpress);
+  transition: color var(--dur-stage) var(--ease-soft);
+}
+
+/* The dotless stem the tick sits over. Positioned, so the stroke can be
+   placed against the letter itself rather than against the line box. */
+.stem {
+  position: relative;
+}
+
+/* Over the stem, at the height the dot would have been. The em-relative
+   numbers are optical, not from the space scale: this is a mark aligned to a
+   glyph, which DESIGN.md §3's own "optical beats mathematical" clause covers. */
+.tick {
+  position: absolute;
+  left: 50%;
+  bottom: 0.82em;
+  width: 0.62em;
+  height: 0.31em;
+  transform: translateX(-52%);
+  overflow: visible;
+}
+
+/* On the Stage ground the ink half of the mark inverts; the terracotta half
+   does not, because --human is the one thing in the mark that means something
+   and it reads on both grounds. */
+:global(body[data-stage='true']) .wordmark {
+  color: var(--on-dark);
+  text-shadow: none;
+}

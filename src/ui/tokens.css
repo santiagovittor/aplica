@@ -59,6 +59,24 @@
   --dur-move: 250ms;
   --dur-reveal: 500ms;
   --dur-stage: 700ms; /* SLICE-20 §1.5: the ground change, Column/Desk <-> Stage */
+  --dur-draw: 900ms; /* SLICE-23 §5.3: a hand-drawn annotation drawing itself */
+
+  /* material (DESIGN.md §5a). The ground is paper, not a fill: grain, edge
+     falloff, the impression ink leaves, and real weight under a raised
+     surface. Every shadow mixes from --ink, never from black, which goes grey
+     and dead on the cream. */
+  --grain-opacity: 0.035;
+  --shadow-raised:
+    0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent),
+    0 8px 24px -6px color-mix(in oklab, var(--ink) 10%, transparent);
+  --shadow-lifted:
+    0 2px 4px color-mix(in oklab, var(--ink) 10%, transparent),
+    0 16px 40px -8px color-mix(in oklab, var(--ink) 14%, transparent);
+  --letterpress: 0 1px 0 color-mix(in oklab, white 45%, transparent);
+
+  /* structure (DESIGN.md §5a, §9) */
+  --rule-strong: 2px; /* section openers */
+  --eyebrow-tracking: 0.08em;
 
   /* --- 2. Derived from DESIGN.md prose -------------------------------- */
 
@@ -74,12 +92,6 @@
      legal size for the 11-13px range the rule names. */
   --tracking-label: 0.06em;
 
-  /* §5 depth: at most one soft ink shadow. Mixed from --ink, never black,
-     which goes muddy on the cream. */
-  --shadow-soft:
-    0 1px 2px color-mix(in srgb, var(--ink) 7%, transparent),
-    0 8px 24px color-mix(in srgb, var(--ink) 6%, transparent);
-
   /* §5 tints: mixed from --base or --ink, never white/black at low opacity */
   --surface-sunken: color-mix(in srgb, var(--ink) 5%, var(--base));
   --surface-disabled: color-mix(in srgb, var(--hairline) 45%, var(--base));
@@ -92,8 +104,13 @@
   /* §6 Fitts: interactive targets ≥ 44×44px */
   --target-min: 44px;
 
-  /* §8 one easing family: soft spring, high damping, no visible overshoot */
-  --ease-soft: cubic-bezier(0.22, 0.75, 0.24, 1);
+  /* §8 one easing family: soft spring, high damping, no visible overshoot.
+     SLICE-23 §3.4 re-tuned this from (0.22, 0.75, 0.24, 1): the new curve
+     leaves and lands harder, which is what makes a drawn annotation and a
+     1px hover rise read as a physical move rather than a dissolve. The four
+     numbers are copied as literals in the components Motion drives (it cannot
+     read a custom property); `npm run test` pins that they still match. */
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* §8 enter: 8-12px translate + fade, staggered 40-60ms in groups */
   --enter-rise: 10px;

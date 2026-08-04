@@ -3,9 +3,22 @@
    Unlike Header, this always renders, so its border sits on top rather than
    under, closing the page instead of opening it. */
 
+/* No `margin-top` any more: SLICE-23 §5.1 made the shell a three-row grid
+   whose middle row absorbs the slack, so the footer is held at the bottom of
+   the viewport by the layout rather than pushed there by a margin that also
+   fired when content was long. */
 .footer {
   border-top: 1px solid var(--hairline);
-  margin-top: var(--space-8);
+  transition:
+    background-color var(--dur-stage) var(--ease-soft),
+    border-color var(--dur-stage) var(--ease-soft);
+}
+
+/* The Stage ground reaches the footer for the same reason it reaches the
+   header (Header.module.css): a light rule under a full-bleed dark screen
+   reads as a seam. */
+:global(body[data-stage='true']) .footer {
+  border-top-color: var(--hairline-dark);
 }
 
 .nav {
@@ -23,14 +36,23 @@
 }
 
 .link {
+  composes: underline from './Link.module.css';
   display: inline-flex;
   align-items: center;
   min-height: var(--target-min);
   font-size: var(--text-xs);
   color: var(--ink-soft);
-  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-soft);
 }
 
 .link:hover {
   color: var(--ink);
+}
+
+:global(body[data-stage='true']) .link {
+  color: var(--on-dark-soft);
+}
+
+:global(body[data-stage='true']) .link:hover {
+  color: var(--on-dark);
 }

@@ -269,7 +269,7 @@
 .depthRaised {
   background: var(--paper);
   border: 1px solid var(--hairline);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-raised);
 }
 
 /* --- the motif ------------------------------------------------------- */

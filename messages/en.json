@@ -4,9 +4,29 @@
     "description": "Paste a job posting, get a resume and cover letter in your real voice."
   },
   "Home": {
-    "title": "Aplica",
-    "tagline": "Paste a job posting, get a resume and cover letter in your real voice, that does not sound like AI.",
-    "status": "The shell is running. Fonts, translations and motion are wired. The design system comes next."
+    "headline": "Paste a job posting and get a resume and cover letter in your real voice, not an AI's.",
+    "cta": "Sign up",
+    "ctaAuthenticated": "Go to Apply",
+    "signInPrompt": "Already have an account?",
+    "signInAction": "Sign in",
+    "motifHuman": "Closed fourteen enterprise deals in a market where the team had closed three the year before.",
+    "sections": {
+      "writes": {
+        "eyebrow": "How it writes",
+        "title": "It starts from your words, not a template.",
+        "body": "Aplica reads your CV once and keeps the sentences you actually wrote. Every line in a draft has to trace back to something already in there. If it can’t, the line doesn’t ship."
+      },
+      "refuses": {
+        "eyebrow": "What it refuses to do",
+        "title": "It will tell you to skip a job.",
+        "body": "You get a fit score and an honest read before you spend an evening on an application that was never going to land. It never invents a skill to cover a gap."
+      },
+      "costs": {
+        "eyebrow": "What it costs",
+        "title": "Your own key, your own words.",
+        "body": "You bring an API key from Anthropic, OpenAI or Google and pay them directly, in cents. Aplica is free to use and free to host yourself, in English and Spanish."
+      }
+    }
   },
   "LocaleToggle": {
     "label": "Language",
@@ -14,7 +34,9 @@
     "es": "Spanish"
   },
   "Motif": {
-    "slop": "Results-driven professional with a proven track record of success."
+    "slopLabel": "What most tools write",
+    "slop": "Results-driven professional with a proven track record of success.",
+    "humanLabel": "What your CV actually says"
   },
   "Header": {
     "label": "Main",

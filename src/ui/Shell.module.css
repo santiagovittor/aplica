@@ -1,0 +1,77 @@
+/* SLICE-23 §5.1: one shell every route renders inside.
+
+   Two jobs, both of which were previously nobody's. First, the footer sits at
+   the bottom of the viewport when content is short -- before this, a short
+   route (the hero, an empty /applications) left the footer rule floating at
+   about 60% of viewport height with a third of the screen blank under it,
+   which reads as a stylesheet that failed to load rather than as a page.
+   Second, the material of DESIGN.md §5a is rendered here, once, rather than
+   by each screen: grain and edge falloff are properties of the paper, not of
+   any screen printed on it. */
+
+/* Three bands -- header, content, footer -- with the middle one absorbing all
+   the slack, so the footer closes the viewport when content is short.
+
+   A flex column rather than §5.1's literal `grid-template-rows: auto 1fr auto`,
+   for one concrete reason: the header is `position: sticky`, and a sticky grid
+   item is confined to its own grid area. That area is an `auto` row exactly as
+   tall as the header, so it has nowhere to stick to and the property silently
+   does nothing. In a flex column the containing block is the whole shell, so
+   the header actually sticks. Same three bands, same footer behaviour. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* The grain (DESIGN.md §5a). An SVG feTurbulence tile, fixed to the viewport
+   so it never scrolls with content and never tiles visibly, multiplied into
+   whatever ground is underneath -- which is why one overlay serves both the
+   cream and the --ink-deep Stage without a second variant.
+
+   `baseFrequency` was tuned by eye against captured screenshots, not guessed:
+   0.9 was the starting point SLICE-23 named, and at 1x it read as an even
+   sand that flattened the cream rather than lifting it. 0.65 with three
+   octaves keeps a visible tooth at 1x and survives a 2x retina downscale
+   instead of dissolving into flat grey.
+
+   It does not move, so `prefers-reduced-motion` has nothing to reduce here. */
+.shell::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Edge falloff (DESIGN.md §5a): paper absorbs light unevenly, so the corners
+   sit fractionally deeper than the centre. 4% at the corners, gone by 60%
+   radius -- individually invisible, which is the test §5's amended gradient
+   rule sets. Mixed from --ink, never black. */
+.shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  background: radial-gradient(
+    120% 90% at 50% 45%,
+    transparent 60%,
+    color-mix(in oklab, var(--ink) 4%, transparent) 100%
+  );
+}
+
+/* The content band takes every spare pixel, which is what holds the footer
+   down. `min-width: 0` so a wide child (the result reveal's PDF preview)
+   shrinks rather than widening the whole column. */
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.footerRow {
+  flex: none;
+}

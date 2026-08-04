@@ -2,6 +2,7 @@
 
 import NumberFlow from '@number-flow/react';
 import { useEffect, useState } from 'react';
+import { EASE_SOFT_CSS } from './easing';
 import styles from './FitScore.module.css';
 
 /**
@@ -27,12 +28,10 @@ import styles from './FitScore.module.css';
  * FitScore.module.css rather than replacing the defaults outright.
  */
 
-// Motion cannot read a CSS custom property and neither can NumberFlow's
-// plain-object timing prop, so these are --dur-reveal and --ease-soft's own
-// curve copied as literals -- the same tolerated duplication as EASE_SOFT in
-// ApplyForm.tsx and CvUpload.tsx.
+// NumberFlow's plain-object timing prop cannot read a CSS custom property, so
+// --dur-reveal is copied as a literal. --ease-soft is not: it lives in
+// ./easing, where one test pins it against tokens.css.
 const DUR_REVEAL_MS = 500;
-const EASE_SOFT_CSS = 'cubic-bezier(0.22, 0.75, 0.24, 1)';
 
 export interface FitScoreProps {
   /** 0-100, as `applicationSchema.fit.score` already bounds it. */

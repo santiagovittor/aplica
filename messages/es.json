@@ -4,9 +4,29 @@
     "description": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real."
   },
   "Home": {
-    "title": "Aplica",
-    "tagline": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real, que no suena a IA.",
-    "status": "El esqueleto ya corre. Las fuentes, las traducciones y el movimiento están conectados. Ahora sigue el sistema de diseño."
+    "headline": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real, no la de una IA.",
+    "cta": "Crear cuenta",
+    "ctaAuthenticated": "Ir a Postular",
+    "signInPrompt": "¿Ya tenés cuenta?",
+    "signInAction": "Iniciá sesión",
+    "motifHuman": "Cerré catorce acuerdos empresariales en un mercado donde el equipo había cerrado tres el año anterior.",
+    "sections": {
+      "writes": {
+        "eyebrow": "Cómo escribe",
+        "title": "Empieza con tus palabras, no con una plantilla.",
+        "body": "Aplica lee tu CV una vez y conserva las frases que escribiste vos. Cada línea de un borrador tiene que remontarse a algo que ya está ahí. Si no puede, esa línea no sale."
+      },
+      "refuses": {
+        "eyebrow": "Qué se niega a hacer",
+        "title": "Te va a decir que no postules.",
+        "body": "Recibís un puntaje de afinidad y una lectura honesta antes de gastar una noche en una postulación que nunca iba a prosperar. Nunca inventa una habilidad para tapar un hueco."
+      },
+      "costs": {
+        "eyebrow": "Cuánto cuesta",
+        "title": "Tu propia clave, tus propias palabras.",
+        "body": "Traés una clave de API de Anthropic, OpenAI o Google y les pagás directamente, centavos. Aplica es gratis y podés alojarlo vos mismo, en inglés y en español."
+      }
+    }
   },
   "LocaleToggle": {
     "label": "Idioma",
@@ -14,7 +34,9 @@
     "es": "Español"
   },
   "Motif": {
-    "slop": "Profesional orientado a resultados con historial comprobado de éxito."
+    "slopLabel": "Lo que escribe la mayoría de las herramientas",
+    "slop": "Profesional orientado a resultados con historial comprobado de éxito.",
+    "humanLabel": "Lo que dice tu CV en realidad"
   },
   "Header": {
     "label": "Principal",
