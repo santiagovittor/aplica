@@ -58,3 +58,6 @@ next-env.d.ts
 
 # playwright mcp scratch output
 /.playwright-mcp/
+
+# SLICE-23 §1: the screenshot harness output (npm run shots)
+/.shots/

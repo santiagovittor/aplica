@@ -487,7 +487,8 @@ export function CvUpload({ nextHref = '/account' }: { nextHref?: string }) {
         >
           <p className={styles.notice}>{t('notice')}</p>
           <Steps steps={steps} label={t('notice')} />
-          <p className={styles.elapsed}>
+          {/* See ApplyForm.tsx: read by the §6.6 liveness check. */}
+          <p className={styles.elapsed} data-elapsed>
             <NumberFlow value={elapsed} />
             {t('elapsedSuffix')}
           </p>

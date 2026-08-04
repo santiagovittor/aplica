@@ -15,7 +15,8 @@
     "test:e2e": "node --env-file-if-exists=.env.local node_modules/@playwright/test/cli.js test",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "shots": "node --env-file-if-exists=.env.local node_modules/@playwright/test/cli.js test e2e/shots.spec.ts"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.10.0",

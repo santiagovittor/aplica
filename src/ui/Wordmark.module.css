@@ -33,10 +33,10 @@
 .tick {
   position: absolute;
   left: 50%;
-  bottom: 0.82em;
-  width: 0.62em;
-  height: 0.31em;
-  transform: translateX(-52%);
+  bottom: 0.7em;
+  width: 0.58em;
+  height: 0.29em;
+  transform: translateX(-48%);
   overflow: visible;
 }
 

@@ -149,6 +149,10 @@ function useStrikeThrough(
         color: readToken(element, '--human'),
         type: 'strike-through',
         strokeWidth: 2,
+        // The generic sentence wraps in every column it renders in, and
+        // without this the library strikes the first line only, leaving the
+        // rest of the sentence standing. Verified in a capture, not assumed.
+        multiline: true,
         // The library takes milliseconds and cannot read --dur-draw; 0 is its
         // own documented way to spell "no animation", which is what reduced
         // motion asks for.

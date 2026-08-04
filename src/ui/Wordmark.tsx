@@ -41,13 +41,17 @@ export function Wordmark({ className }: { className?: string }) {
           fill="none"
           aria-hidden="true"
         >
-          {/* One quick pen stroke: entered light on the left, pressed through
-              the middle, lifted right. Drawn slightly off horizontal because a
-              hand does not draw level, which is the entire point of it. */}
+          {/* One quick pen stroke, drawn slightly off level because a hand
+              does not draw level -- which is the entire point of it.
+
+              Nearly horizontal, deliberately. An earlier version rose steeply
+              left to right and, in a capture, read as an acute accent: not a
+              hand-made dot but "Aplíca", a misspelling, which is the worst
+              possible reading for a mark on a Spanish-first product. */}
           <path
-            d="M2.5 8.6C6.2 5.9 10.4 4.1 15.1 3.2c2.1-.4 4.2-.6 6.3-.5"
+            d="M2.6 7.4c4.1-1.5 8.3-2.2 12.6-2.1 2.1 0 4.2.2 6.2.6"
             stroke="var(--human)"
-            strokeWidth="3"
+            strokeWidth="4"
             strokeLinecap="round"
           />
         </svg>

@@ -86,10 +86,16 @@
   color: var(--ink-soft);
 }
 
+/* DESIGN.md §9: the underline draws on hover rather than sitting there
+   static, the same rule every other link in the product now follows. */
 .link {
+  composes: underline from '@/ui/Link.module.css';
   color: var(--green);
-  text-decoration: underline;
-  text-underline-offset: var(--space-1);
+  transition: color var(--dur-micro) var(--ease-soft);
+}
+
+.link:hover {
+  color: var(--green-soft);
 }
 
 .note {

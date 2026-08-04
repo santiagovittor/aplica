@@ -6,11 +6,18 @@
    Content sits directly on --base; the material under it is the shell's grain
    and edge falloff, not a card. */
 
+/* A full first screen, and the content uses it rather than floating in the
+   middle of it. The headline sits at the bottom of the screen and the motif at
+   the top of the opposite column, so the composition runs on a diagonal across
+   the whole viewport -- which is the asymmetry DESIGN.md §3 asks for, and the
+   opposite of the centred block on a flat field that SLICE-23 §5.4 is a
+   correction to. Measured in a capture: centring it left ~280px of dead air
+   above the headline and read as broken. */
 .hero {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-height: 100dvh;
-  padding-block: var(--space-9);
+  padding-block: var(--space-7) var(--space-9);
 }
 
 .heroGrid {
@@ -26,18 +33,23 @@
   .heroGrid {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--gutter);
-    align-items: center;
+    align-items: stretch;
     padding-inline: var(--space-7);
   }
 
   /* Left-aligned to the grid, not centred in the viewport: the headline starts
-     at column 1 and stops at 7, so the page has a spine. */
+     at column 1 and stops at 7, so the page has a spine. Anchored to the
+     bottom of the screen, with the motif anchored to the top of the far
+     column, so the two ends of the argument sit at opposite corners. */
   .primary {
     grid-column: 1 / span 7;
+    align-self: end;
   }
 
   .aside {
     grid-column: 9 / span 4;
+    align-self: start;
+    padding-top: var(--space-8);
   }
 }
 

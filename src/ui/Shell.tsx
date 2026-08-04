@@ -22,7 +22,7 @@ export function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-shell>
       <Header authenticated={authenticated} />
       <div className={styles.main}>{children}</div>
       <div className={styles.footerRow}>

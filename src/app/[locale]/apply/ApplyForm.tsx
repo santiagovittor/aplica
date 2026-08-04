@@ -640,7 +640,10 @@ export function ApplyForm({
         >
           <p className={styles.notice}>{t('notice')}</p>
           <Steps steps={steps} label={t('notice')} />
-          <p className={styles.elapsed}>
+          {/* `data-elapsed` is read by the liveness check in e2e/shots.spec.ts,
+              which has to tell a counter tick apart from a real stage change
+              (SLICE-23 §6.6) and cannot do that from a hashed class name. */}
+          <p className={styles.elapsed} data-elapsed>
             <NumberFlow value={elapsed} />
             {t('elapsedSuffix')}
           </p>

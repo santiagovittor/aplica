@@ -52,17 +52,18 @@
 }
 
 /* The mark's own link. No underline draw on it: it is a mark, not a word in a
-   sentence, so it responds by lifting its ink instead. */
+   sentence, so it responds the way a surface does (DESIGN.md §9) -- a 1px
+   rise on hover, a 1px drop on press. */
 .home {
   display: inline-flex;
   align-items: center;
   min-height: var(--target-min);
   text-decoration: none;
-  transition: opacity var(--dur-micro) var(--ease-soft);
+  transition: transform var(--dur-micro) var(--ease-soft);
 }
 
 .home:hover {
-  opacity: 0.72;
+  transform: translateY(-1px);
 }
 
 .home:active {
