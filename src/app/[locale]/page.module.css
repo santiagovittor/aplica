@@ -1,147 +1,411 @@
-/* DESIGN.md §3 archetype: Desk. SLICE-23 §5.4.
+/* Register Editorial, archetype Spread (DESIGN.md §2, §3). See page.tsx.
 
-   The asymmetric 7/12 + 4/12 split every other Desk screen already uses, and
-   deliberately not the centered-hero-plus-three-cards template
-   (avoid-ai-design catalog L1, PROJECT.md §8's enforced never-do list).
-   Content sits directly on --base; the material under it is the shell's grain
-   and edge falloff, not a card. */
+   The layers of §7, in its order: ground -> image -> scrim -> type. The
+   photograph is the ground's surface rather than an object standing on it, so
+   there is no image tile, no --radius-lg, and no second column for one to sit
+   in. A first pass had it as a 413x396 tile in a right-hand column at 1920 --
+   8.9% of the viewport, a thumbnail illustrating the page instead of the paper
+   the page is printed on.
 
-/* A full first screen, and the content uses it rather than floating in the
-   middle of it. The headline sits at the bottom of the screen and the motif at
-   the top of the opposite column, so the composition runs on a diagonal across
-   the whole viewport -- which is the asymmetry DESIGN.md §3 asks for, and the
-   opposite of the centred block on a flat field that SLICE-23 §5.4 is a
-   correction to. Measured in a capture: centring it left ~280px of dead air
-   above the headline and read as broken. */
+   What replaced what: this was a Desk screen on --base, a 7/12 headline column
+   beside a 4/12 sidebar, no photography and a single ground. Measured at 1920
+   after SLICE-24 it was 1646px tall over 115 nodes with zero images and one
+   box-shadow, and item 11 passed on it only because nothing had ever measured
+   item 11 (`checkValueRange` now does, and reports the old page as one ground
+   covering 100% of the viewport). D8 is the post-mortem. */
+
+/* The band. --ink-deep here is the fallback the frame is painted on, not the
+   face of the screen: it is what shows while the image is arriving and what a
+   browser that refuses the image is left with.
+
+   Square-cornered and full bleed, which §7 permits the hero and nothing else.
+   It starts at y=0, under the chrome rather than below it, which is the whole
+   difference between a hero and a section: the header is out of flow on this
+   route to allow that (Header.module.css, `[data-ground='dark']`), and this
+   band's top padding is the clearance for it, --space-8 against a header that
+   measures 68px.
+
+   85svh, so the cream ground breaks the fold rather than waiting under a full
+   screen of photograph. What breaks it is the ground change and not the first
+   tile's copy any more: the tiles below start a whole viewport-fraction lower
+   than the old sections did, and the arithmetic that put them there is item
+   11's rather than anybody's taste (see `.tiles`). `overflow: clip` rather
+   than `hidden` for the reason the parallax below spells out. */
 .hero {
+  position: relative;
+  overflow: clip;
+  background: var(--ink-deep);
+  min-height: 85svh;
   display: flex;
-  align-items: stretch;
-  min-height: 100dvh;
-  padding-block: var(--space-7) var(--space-9);
+  align-items: center;
+  padding-block: var(--space-8) var(--space-6);
 }
 
+/* The frame is the whole band. --paper-dim is the placeholder §7 asks for: the
+   box is painted and sized before a byte of the photograph arrives, which is
+   what makes the layout shift zero rather than small. */
+.heroFrame {
+  position: absolute;
+  inset: 0;
+  background: var(--paper-dim);
+}
+
+/* §7: every photograph passes --image-grade. An ungraded image is a bug -- the
+   filter is what makes a sourced asset belong to this palette rather than to
+   whoever shot it.
+
+   Taller than its frame and offset, so the parallax has somewhere to travel:
+   120% with a -10% top keeps the band covered at both ends of a 12% move.
+   Cropped to its foot, because that is where this photograph is darkest and
+   the type has to live somewhere. */
+.heroImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 100%;
+  filter: var(--image-grade);
+}
+
+@keyframes hero-parallax {
+  from {
+    translate: 0 -6%;
+  }
+  to {
+    translate: 0 6%;
+  }
+}
+
+/* Parallax, §8's Editorial clause, capped at 12% travel.
+ *
+ * **No duration, deliberately.** This is progress-driven, not time-driven: a
+ * view-progress timeline's clock is the scroll position, so an
+ * `animation-duration` here would be a declaration that does nothing.
+ * --dur-scene governs the time-driven Editorial reveals instead.
+ *
+ * The whole declaration sits inside a no-preference query because of that.
+ * globals.css answers `prefers-reduced-motion` by collapsing every duration to
+ * 0.01ms, and an animation with no duration to collapse would have walked
+ * straight through the one rule written to stop it: §8 removes parallax
+ * entirely, it does not shorten it. `checkParallax` measures both halves.
+ *
+ * The `overflow: clip` on the band above is load-bearing here: `hidden` would
+ * make it a scroll container, and `view()` resolves against the nearest
+ * scrollport -- so the timeline would have measured a box that never scrolls
+ * and the image would have sat perfectly still. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .heroImage {
+      height: 120%;
+      top: -10%;
+      animation-name: hero-parallax;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+    }
+  }
+}
+
+/* §7's second pass, for an image that still fights the page after the grade:
+   --image-tint as a `multiply` layer rather than folded into the filter. It is
+   here for a measured reason and not for the look of it -- with the grade
+   alone the type over the lit half of the frame sat at 4.19:1, under its 4.5
+   floor. The tint takes the photograph's brightest regions down without
+   touching the scrim's own falloff. */
+.tint {
+  position: absolute;
+  inset: 0;
+  background: var(--image-tint);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* §7: text over an image always sits on a scrim, never on raw photography, and
+   the scrim is shaped to where the type actually is.
+
+   Two shapes, composed. --scrim-dark seats the foot of the frame into the band
+   below it and is what carries the action; --scrim-dark-left is the one that
+   answers the type, which runs down the left of the frame rather than sitting
+   at its foot. With the bottom scrim alone the headline measured 1.59:1 over
+   the lit walnut of the desk, because that gradient is fully transparent by
+   72% up and the headline is nowhere near the bottom.
+
+   Both are the lighting kind of gradient §5 permits. The left one resolves to
+   transparent by 62% of the frame, so the photograph's subject -- the hand,
+   the pen, the page being written on -- is never under it. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-dark);
+  pointer-events: none;
+}
+
+.scrimLeft {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-dark-left);
+  pointer-events: none;
+}
+
+/* Below 60rem the type is not in a column any more, it spans the frame -- so a
+   scrim that resolves at 62% of the width leaves the end of every wrapped line
+   on raw photography, which measured 2.34-3.42:1 there against floors of 3 and
+   4.5. The token's shape is stretched rather than swapped: the same falloff,
+   scaled until its transparent end is off the right edge of the frame, so the
+   whole width keeps at least the 49% the gradient still has at its midpoint.
+   §7 asks the scrim to be shaped to where the type is, and at this width the
+   type is everywhere. */
+@media (max-width: 59.999rem) {
+  .scrimLeft {
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+  }
+}
+
+/* One column, on the content grid: the same measure and the same inline
+   padding as the header bar, so the wordmark and the headline share a left
+   edge. The ground runs to the viewport edges and the type stands in the
+   measure; a page where nothing shares an edge with anything reads as parts
+   that arrived separately. */
 .heroGrid {
+  position: relative;
   width: 100%;
   max-width: var(--content-max);
   margin-inline: auto;
   padding-inline: var(--margin-outer);
-  display: grid;
-  gap: var(--space-8);
 }
 
 @media (min-width: 60rem) {
   .heroGrid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: var(--gutter);
-    align-items: stretch;
     padding-inline: var(--space-7);
   }
 
-  /* Left-aligned to the grid, not centred in the viewport: the headline starts
-     at column 1 and stops at 7, so the page has a spine. Anchored to the
-     bottom of the screen, with the motif anchored to the top of the far
-     column, so the two ends of the argument sit at opposite corners. */
-  .primary {
-    grid-column: 1 / span 7;
-    align-self: end;
-  }
+  /* No right column: §3 gives this page Spread, and the 7/12 + 4/12 split it
+     used to carry is the Desk rule for working screens.
 
-  .aside {
-    grid-column: 9 / span 4;
-    align-self: start;
-    padding-top: var(--space-8);
+     46% of the measure is where the type stops, and it is the scrim's number
+     rather than a fraction of the grid: it puts the type's right edge at half
+     the viewport at 1200, 1440 and 1920 alike, which is where
+     --scrim-dark-left still holds 86% and a long way inside where it resolves.
+     The headline sets three lines at --text-hero in it rather than two, and
+     three lines of that size is a hero rather than a banner. */
+  .heroType {
+    max-width: 46%;
   }
 }
 
-.primary {
+/* Four blocks, spaced by what they mean rather than by one uniform gap (§3):
+   the headline and its deck are one statement, and the proof and the action
+   are each their own group at three scale steps larger. */
+.heroType {
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  align-items: flex-start;
 }
 
-/* The display step, granted to this headline and the fit-score reveal and
-   nowhere else (DESIGN.md §4). WONK is what stops Fraunces reading as a
-   default serif; tight leading is what makes three lines read as one block. */
+/* The one home of --text-hero (§4). WONK is what stops Fraunces reading as a
+   default serif at display size; 1.0 leading is what makes two lines read as
+   one block rather than as two sentences.
+
+   No --letterpress: §6 gives the impression to headings on a light ground and
+   explicitly not to headings on dark. The global h1-h6 rule sets it, so this
+   is an opt-out by name, the same way apply.module.css's done heading is. */
 .headline {
-  font-size: var(--text-3xl);
+  font-size: var(--text-hero);
   font-variation-settings:
     'SOFT' 0,
     'WONK' 1;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--on-dark);
+  text-shadow: none;
 }
 
-@media (min-width: 48rem) {
-  .headline {
-    font-size: var(--text-4xl);
+.line {
+  display: block;
+}
+
+@keyframes hero-line {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-rise));
   }
 }
 
-@media (min-width: 60rem) {
-  .headline {
-    font-size: var(--text-display);
+/* The per-line reveal (§8): --enter-rise and a fade, staggered by --stagger.
+   The resting state is the visible one and the animation is what departs from
+   it, which is the shape SLICE-25 §A settled -- `backwards` holds each line at
+   its start value through its own delay without that value ever being the
+   element's own, so nothing ships at opacity 0 in the server's bytes.
+
+   --dur-move, not --dur-reveal, and that is a measurement rather than taste:
+   `backwards` means each line is invisible for its delay plus its duration,
+   and this is the largest type on the page. At 500ms the last line arrived
+   2299ms after load under `checkReveal`'s 6x CPU throttle. A half-second fade
+   on a 132px headline reads as a slow page, not as a considered entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  .line {
+    animation: hero-line var(--dur-move) var(--ease-soft) backwards;
+    animation-delay: calc(var(--line) * var(--stagger));
   }
 }
 
+/* The standfirst. --on-dark rather than --on-dark-soft, and that is arithmetic
+   rather than emphasis: every run of type here sits on a photograph, and the
+   near-white ink is the one that holds its floor over the lit parts of it. */
+.deck {
+  font-size: var(--text-lg);
+  max-width: var(--measure);
+  color: var(--on-dark);
+  margin-block-start: var(--space-5);
+}
+
+/* The button and the line under it are one group at --space-5, inside a column
+   whose groups are --space-7 apart (§3). */
 .actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-5);
-  flex-wrap: wrap;
+  margin-block-start: var(--space-7);
 }
 
 .signIn {
-  color: var(--ink-soft);
+  color: var(--on-dark-soft);
 }
 
+/* --green is illegal on this ground (1.6:1) and is the accent for the primary
+   action beside it in any case, so the secondary link answers in the dark
+   ground's own ink and says so by drawing its rule.
+
+   The whole pair sits at --on-dark-soft: with the motif gone there are three
+   things over this photograph, and the sign-in line is the least of them. It
+   takes full-strength --on-dark on hover, which is also what answers the
+   cursor (§10). */
 .signInLink {
   composes: underline from '@/ui/Link.module.css';
-  color: var(--green);
+  color: var(--on-dark-soft);
   font-weight: 500;
   transition: color var(--dur-micro) var(--ease-soft);
 }
 
 .signInLink:hover {
-  color: var(--green-soft);
+  color: var(--on-dark);
 }
 
-/* Below the fold: ruled sections, never cards. DESIGN.md §3's hierarchy rule
-   is what sets the gaps -- between sections is two full steps larger than
-   anything inside one. */
-.sections {
+/* Below the fold the ground steps back to --base in one edge, no fade (§8,
+   /docs D1), and the argument continues in tiles.
+ *
+ * What replaced what: three sections of identical structure -- hairline rule,
+ * caps eyebrow, serif headline, three-line paragraph -- measured at 181px,
+ * 181px and 156px, all 1024px wide, all on the one ground. Read down the page
+ * that is a list of paragraphs with rules between them, which is what §3 means
+ * by a Spread being the answer and a document being the failure. Five tiles
+ * now, and no two adjacent ones share both a ground and a size (§3):
+ *
+ *   argument   12 cols, tallest      --ink-deep
+ *   words       7 cols, tall         --paper
+ *   score       4 cols, short        --ink-deep
+ *   image       9 cols, medium       the photograph itself
+ *   costs       5 cols, short        --paper
+ *
+ * **The top padding is measured, not chosen.** Checklist item 11 is read at
+ * 1440x900 with the page at rest, and at that size the hero's 85svh ends at
+ * exactly 765px, leaving six of `checkValueRange`'s forty sample rows below it
+ * -- 15% of the viewport, which is the floor a ground has to clear to count at
+ * all. Those six rows are the only thing keeping a light ground in the reading:
+ * put the first tile's --ink-deep under any of them and the screen is a dark
+ * photograph over a dark panel, two grounds a tenth of a luminance apart, and
+ * the item fails on a page that looks fine. The lowest row is sampled at
+ * y=888.75; --space-10 puts the first tile's edge at 893. */
+.tiles {
   max-width: var(--content-max);
   margin-inline: auto;
-  padding: 0 var(--margin-outer) var(--space-10);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-9);
+  padding: var(--space-10) var(--margin-outer) var(--space-9);
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-8) var(--gutter);
+}
+
+/* One column until there is room for a composition. Below 60rem the tiles keep
+   their unequal grounds and their unequal heights and lose only their unequal
+   widths, which is the one of the three a phone cannot carry. */
+.cell {
+  grid-column: 1 / -1;
 }
 
 @media (min-width: 60rem) {
-  .sections {
+  .tiles {
     padding-inline: var(--space-7);
   }
+
+  /* Asymmetric by default (§3), and the empty column between `words` and
+     `score` is doing the same work the hero's does: a gap the eye reads as a
+     decision rather than as a gutter. `image` starts at 4 so its left edge
+     lines up with nothing above it, which is what keeps the stack from
+     resolving into a two-column grid. */
+  .argumentCell {
+    grid-column: 1 / -1;
+  }
+
+  .wordsCell {
+    grid-column: 1 / span 7;
+  }
+
+  .scoreCell {
+    grid-column: 9 / -1;
+  }
+
+  .imageCell {
+    grid-column: 4 / -1;
+  }
+
+  .costsCell {
+    grid-column: 1 / span 5;
+  }
+}
+
+/* Every tile is a surface laid on the ground, so every tile carries the weight
+   §6 gives one. The three radii allow --radius-lg for image tiles and editorial
+   panels, which is both of the shapes here.
+
+   The gaps are the hierarchy rule (§3) at three levels: 12px inside a label
+   group, 32px between the blocks of a tile, 64px between tiles. Each is at
+   least two scale steps above the one inside it, so nothing on this page has to
+   be read to know what belongs to what. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-raised);
 }
 
 @media (min-width: 60rem) {
-  .sectionWrap {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: var(--gutter);
+  .tile {
+    padding: var(--space-7);
   }
 
-  .section {
-    grid-column: 1 / span 7;
+  /* First and largest, and largest by more than its span: the motif spent the
+     old hero in a 4/12 sidebar and §9 is explicit that it needs a ground of
+     its own to land on. A deeper block is what stops a full-width tile from
+     reading as a band the eye crosses on the way somewhere else. */
+  .argumentTile {
+    padding-block: var(--space-8);
   }
 }
 
-.section {
+.tile[data-ground='dark'] {
+  background: var(--ink-deep);
+}
+
+.copy {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  border-top: var(--rule-strong) solid var(--ink);
-  padding-top: var(--space-5);
+  gap: var(--space-3);
 }
 
 .eyebrow {
@@ -152,13 +416,122 @@
   color: var(--ink-soft);
 }
 
-/* 25px section titles against a 61px page headline: three scale steps apart,
-   so no two headings on this screen occupy adjacent steps (DESIGN.md §4). */
-.sectionTitle {
+/* 25px tile titles under a hero that runs to 132px, and the argument tile's at
+   39px: two steps clear of its neighbours, which is what §4 asks of two
+   headings on one screen. */
+.title {
   font-size: var(--text-xl);
 }
 
-.sectionBody {
+.argumentTitle {
+  font-size: var(--text-3xl);
+}
+
+.body {
   max-width: var(--measure);
   color: var(--ink-soft);
+}
+
+/* §6 gives the impression to headings on a light ground and explicitly not to
+   headings on dark, so the tiles that carry their own dark ground opt out by
+   name, the way the hero headline does. */
+.tile[data-ground='dark'] .eyebrow {
+  color: var(--on-dark-soft);
+}
+
+.tile[data-ground='dark'] .title {
+  color: var(--on-dark);
+  text-shadow: none;
+}
+
+/* The motif's own ceiling is 46ch, tuned for the card it usually sits in. Here
+   it is the tile, so the cap is the Editorial prose cap itself -- and 65ch of
+   the figure's own 16px is the widest it may legally go, because the generic
+   line is set at that size and it is the line that would break the rule first.
+   The human line above it is 25px, so the same box is a 37ch measure for it:
+   two lines of display type instead of the four it set in the hero's corner. */
+.motif {
+  max-width: var(--measure);
+}
+
+/* The paper fragment runs off the tile rather than sitting inside it, so the
+   crop is the tile's own edge and the document reads as continuing past it.
+   The pull is the tile's padding, exactly, at both breakpoints. */
+.words {
+  overflow: hidden;
+}
+
+.fragmentBleed {
+  margin-inline-end: calc(-1 * var(--space-5));
+  margin-block-end: calc(-1 * var(--space-5));
+}
+
+@media (min-width: 60rem) {
+  .fragmentBleed {
+    margin-inline-end: calc(-1 * var(--space-7));
+    margin-block-end: calc(-1 * var(--space-7));
+  }
+}
+
+/* The supporting photograph (§7). No type over it and no scrim under any:
+   §7 rations type over a photograph to a headline, a line and an action, and
+   this tile is carrying none of the three -- the argument is made in the tiles
+   around it. --paper-dim is the placeholder that holds the box before the
+   bytes arrive, and the grade is what makes a sourced photograph belong to this
+   palette rather than to whoever shot it.
+ *
+ * It is a long way from the hero: §7 allows one photographic subject per
+ * viewport, and at 1440x900 the hero's image is out of frame more than a
+ * screen before this one arrives. */
+.imageTile {
+  padding: 0;
+  overflow: hidden;
+  background: var(--paper-dim);
+  aspect-ratio: 16 / 9;
+}
+
+.tileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: var(--image-grade);
+}
+
+/* The page's other end. Until now it stopped on a paragraph about API keys and
+   a two-link footer, with the only way in sitting 1600px above at the top of
+   the hero -- a reader who had just been convinced had nothing to press.
+ *
+ * --ink-deep and full bleed, which answers the hero across the length of the
+ * page: the argument opens and closes on the dark ground and is made on the
+ * cream between them. One primary action here and one in the hero, never both
+ * in a viewport (§5). */
+.closing {
+  background: var(--ink-deep);
+  padding-block: var(--space-9);
+}
+
+.closingInner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--margin-outer);
+}
+
+@media (min-width: 60rem) {
+  .closingInner {
+    padding-inline: var(--space-7);
+  }
+}
+
+/* --text-display is the fit-score reveal and section openers (§4), and this is
+   the second kind. Two steps clear of the 25px tile titles it shares a scroll
+   with, and no impression on the dark ground. */
+.closingTitle {
+  max-width: var(--measure);
+  font-size: var(--text-display);
+  color: var(--on-dark);
+  text-shadow: none;
 }

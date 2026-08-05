@@ -18,7 +18,7 @@ export type Step = {
 };
 
 /**
- * The honest progress list (DESIGN.md §2, §8): one row per stage the server is
+ * The honest progress list (DESIGN.md §8): one row per stage the server is
  * actually running, live rather than static.
  *
  * `auto-animate` (SLICE-23 §4) handles the enter and move of the sub-lines. A

@@ -233,7 +233,7 @@ export async function POST(request: Request): Promise<Response> {
       roles: result.profile.experience.length,
       skills: result.profile.skills.length,
       keywords: result.profile.keywordBank.length,
-      // The motif's own material (DESIGN.md §7): a real line from this CV,
+      // The motif's own material (DESIGN.md §9): a real line from this CV,
       // already grounded -- the same discipline as droppedAnchors above.
       motif: motifLine(result.profile),
     });

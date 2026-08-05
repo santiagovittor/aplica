@@ -7,7 +7,7 @@
   border-radius: var(--radius-md);
 }
 
-/* §9: an empty state invites and holds the next action, so it is centred and
+/* §10: an empty state invites and holds the next action, so it is centred and
    roomier than the working card. */
 .empty {
   display: flex;
@@ -18,7 +18,7 @@
   text-align: center;
 }
 
-/* §9: loading is calm paper-value placeholders, never a spinner. Static, because
+/* §10: loading is calm paper-value placeholders, never a spinner. Static, because
    there is no long-loop duration in the scale to invent one from. */
 .placeholder {
   display: flex;

@@ -6,7 +6,7 @@ import styles from './Wordmark.module.css';
  *
  * Fraunces with `WONK` on, tight tracking, `--ink`, and exactly one terracotta
  * event -- the dot of the `i` replaced by a short hand-drawn `--human` stroke,
- * which ties the mark to the motif (DESIGN.md §7) and so to the product's whole
+ * which ties the mark to the motif (DESIGN.md §9) and so to the product's whole
  * argument: the machine line is mechanical, the human line is not.
  *
  * **Deviation from §5.2, stated rather than smuggled.** §5.2 asks for this set

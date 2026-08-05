@@ -1,11 +1,11 @@
 /* One segmented control, composed into every place that needs one.
 
-   DESIGN.md §5a's accent inventory names this row by itself -- "Selected
-   segmented control | --green fill, --paper text | e.g. EN/ES" -- and the
-   product had shipped two answers to it: /apply's EN/ES filled --green, while
-   the locale switcher on onboarding and /account rendered two loose buttons
-   with the selected one wearing the paper-and-hairline secondary. Same control,
-   same decision, two skins.
+   DESIGN.md §5's accent inventory names this row by itself -- `--green` is
+   the fill of a "selected segmented control", and /docs D3 is why one strip
+   fills where a row of cards does not. The product had shipped two answers to
+   it: /apply's EN/ES filled --green, while the locale switcher on onboarding
+   and /account rendered two loose buttons with the selected one wearing the
+   paper-and-hairline secondary. Same control, same decision, two skins.
 
    So this exists at the second occurrence rather than at CLAUDE.md §4's usual
    third, because the drift *is* the bug being fixed and a second copy would
@@ -51,7 +51,7 @@
 }
 
 /* The selected option is still a button, so it still answers the cursor
-   (DESIGN.md §9, zero exceptions). It deepens rather than lightens, which
+   (DESIGN.md §10, zero exceptions). It deepens rather than lightens, which
    reads as "already down" instead of offering a change that isn't one. */
 .option[data-selected]:hover:not(:disabled) {
   background: var(--green-pressed);

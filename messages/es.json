@@ -4,28 +4,46 @@
     "description": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real."
   },
   "Home": {
-    "headline": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real, no la de una IA.",
+    "headline": {
+      "first": "Tu CV,",
+      "second": "con tu voz,",
+      "third": "no la de una IA."
+    },
+    "deck": "Pegá una oferta de trabajo y recibí un CV y una carta de presentación con tu voz real.",
+    "heroAlt": "Una mano escribiendo a la luz de una lámpara en la página de un cuaderno abierto, sobre un escritorio de madera junto a una pila de papeles.",
     "cta": "Crear cuenta",
     "ctaAuthenticated": "Ir a Postular",
     "signInPrompt": "¿Ya tenés cuenta?",
     "signInAction": "Iniciá sesión",
     "motifHuman": "Cerré catorce acuerdos empresariales en un mercado donde el equipo había cerrado tres el año anterior.",
-    "sections": {
+    "tiles": {
+      "argument": {
+        "eyebrow": "La diferencia",
+        "title": "La mejor frase ya está en tu CV."
+      },
       "writes": {
         "eyebrow": "Cómo escribe",
         "title": "Empieza con tus palabras, no con una plantilla.",
-        "body": "Aplica lee tu CV una vez y conserva las frases que escribiste vos. Cada línea de un borrador tiene que remontarse a algo que ya está ahí. Si no puede, esa línea no sale."
+        "body": "Aplica lee tu CV una vez y conserva las frases que escribiste vos. Cada línea de un borrador tiene que remontarse a algo que ya está ahí. Si no puede, esa línea no sale.",
+        "fragmentCaption": "El comienzo de un currículum que escribió Aplica en una corrida real, recortado."
       },
       "refuses": {
         "eyebrow": "Qué se niega a hacer",
         "title": "Te va a decir que no postules.",
-        "body": "Recibís un puntaje de afinidad y una lectura honesta antes de gastar una noche en una postulación que nunca iba a prosperar. Nunca inventa una habilidad para tapar un hueco."
+        "fitLabel": "Puntaje de encaje",
+        "verdict": "Un analista de reportes postulando a un puesto senior de iOS. Nada en el CV cubre ese stack."
+      },
+      "image": {
+        "alt": "Alguien de noche en la mesa de la cocina, bajo una sola lámpara, revisando una pila de avisos de trabajo impresos."
       },
       "costs": {
         "eyebrow": "Cuánto cuesta",
         "title": "Tu propia clave, tus propias palabras.",
         "body": "Traés una clave de API de Anthropic, OpenAI o Google y les pagás directamente, centavos. Aplica es gratis y podés alojarlo vos mismo, en inglés y en español."
       }
+    },
+    "closing": {
+      "title": "Empezá con el CV que ya tenés."
     }
   },
   "LocaleToggle": {
@@ -34,7 +52,7 @@
     "es": "Español"
   },
   "Motif": {
-    "slopLabel": "Lo que escribe la mayoría de las herramientas",
+    "slopLabel": "Lo que escribe una IA",
     "slop": "Profesional orientado a resultados con historial comprobado de éxito.",
     "humanLabel": "Lo que dice tu CV en realidad"
   },
@@ -120,13 +138,6 @@
       "language": "Idioma",
       "session": "Sesión",
       "danger": "Eliminar"
-    },
-    "sections": {
-      "key": "Credenciales",
-      "cv": "Material de origen",
-      "language": "Interfaz",
-      "session": "Sesión",
-      "danger": "Irreversible"
     },
     "key": {
       "title": "Tu clave del modelo",
@@ -238,7 +249,8 @@
     "empty": {
       "invite": "Todavía no hay postulaciones",
       "body": "Generá la primera y va a aparecer acá.",
-      "cta": "Empezar una postulación"
+      "cta": "Empezar una postulación",
+      "motifHuman": "Bajé la espera de la cola de soporte de dos días a mismo día, y la sostuve un año."
     },
     "row": {
       "roleUnknown": "Puesto sin registrar",
@@ -436,6 +448,21 @@
         "droppedBody": "No es una cita exacta de tu CV, así que se dejó afuera en vez de parafrasearlo:"
       },
       "next": "Ir a tu cuenta"
+    }
+  },
+  "Errors": {
+    "notFound": {
+      "status": "Error 404",
+      "title": "Esa página no está acá.",
+      "body": "La dirección está mal, o lo que estaba ahí se movió. No es un problema tuyo, y no se perdió nada de lo que tenías guardado.",
+      "action": "Volver al inicio"
+    },
+    "server": {
+      "status": "Error 500",
+      "title": "Algo se rompió de nuestro lado.",
+      "body": "No fue culpa tuya y no se tocó nada de lo que tenías guardado. Probá de nuevo; si sigue pasando, dejalo unos minutos y volvé.",
+      "action": "Probar de nuevo",
+      "home": "Volver al inicio"
     }
   },
   "Privacy": {

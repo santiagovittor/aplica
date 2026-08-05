@@ -50,7 +50,7 @@ export const APPLY_MAX_TOKENS = 16_384;
  *
  * These are the three calls this function actually makes, and nothing else. A
  * stage that named work no call is doing would be the progress bar that
- * pretends to think, which DESIGN.md section 2 rules out.
+ * pretends to think, which DESIGN.md section 8 rules out.
  */
 export type ApplyStage = 'draft' | 'review' | 'revise';
 

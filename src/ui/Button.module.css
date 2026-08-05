@@ -21,14 +21,14 @@
     transform var(--dur-micro) var(--ease-soft);
 }
 
-/* DESIGN.md §9: hover is a value shift plus a 1px rise, press is a 1px drop.
+/* DESIGN.md §10: hover is a value shift plus a 1px rise, press is a 1px drop.
    Declared once on the base class so a new variant cannot ship without them.
 
    The *rise* is shared; the *shadow* is not. Elevation is hierarchy, not
    decoration (avoid-ai-design K2): only the primary action is a raised
    surface, and only it casts and deepens a shadow. An outline button that
    floated made every button on the screen equally important, which is the
-   flat-hierarchy tell rather than the material DESIGN.md §5a asks for. */
+   flat-hierarchy tell rather than the material DESIGN.md §6 asks for. */
 .button:hover:not(:disabled),
 .button[data-force~='hover'] {
   transform: translateY(-1px);
@@ -47,7 +47,7 @@
 }
 
 /* The one button on a screen that is a raised surface, so the one that carries
-   weight (DESIGN.md §5a, §5's one-primary discipline). */
+   weight (DESIGN.md §5's accent inventory and one-primary discipline). */
 .primary {
   background: var(--green);
   color: var(--paper);
@@ -177,7 +177,7 @@
 }
 
 /* A working button keeps its color and says what is running. It does not grey
-   out and it does not spin: DESIGN.md §2, nothing pretends to think. */
+   out and it does not spin: DESIGN.md §8, nothing pretends to think. */
 .button[aria-busy='true'] {
   cursor: progress;
 }

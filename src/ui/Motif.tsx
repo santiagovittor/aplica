@@ -1,13 +1,12 @@
 'use client';
 
-import { motion, useReducedMotion } from 'motion/react';
+import { useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
-import { EASE_SOFT } from './easing';
 import styles from './Motif.module.css';
 
 /**
- * The brand's one signature (DESIGN.md §7): a generic sentence struck through
+ * The brand's one signature (DESIGN.md §9): a generic sentence struck through
  * and replaced by a real one from the user's own document, one clause at a
  * time. Three homes only -- the landing hero, `/cv`'s empty state (a fixed
  * demo pair, since no document exists yet), and the result reveals, where
@@ -30,17 +29,21 @@ import styles from './Motif.module.css';
  *
  * Plays once per mount rather than looping: a looping transformation would
  * read as decoration running for its own sake.
+ *
+ * **The end state does not depend on JavaScript** (SLICE-25 §A). The human
+ * line's arrival was a Motion `initial={{ opacity: 0 }}`, which Motion writes
+ * into the server-rendered markup as an inline style -- so the sentence that
+ * carries this component's entire argument was invisible until the bundle
+ * hydrated, and permanently invisible if it never did. Both halves of the
+ * sequence now live in Motif.module.css, gated on `scripting: enabled`, and a
+ * reader without JS gets the finished motif rather than half of one. The
+ * sequence's timings live there too, and are read back out of the cascade
+ * below, because `rough-notation` takes a number.
  */
-
-/** The strike finishes before the human line starts writing, so the two read
- *  as cause and effect rather than as two things happening at once. */
-const STRIKE_DELAY_MS = 400;
-const DUR_DRAW_MS = 900;
-const CLAUSE_STAGGER_S = 0.15;
 
 /**
  * Splits at commas, so the reveal can stagger "one clause at a time"
- * (DESIGN.md §7) without a real grammar parser. A sentence with no commas is
+ * (DESIGN.md §9) without a real grammar parser. A sentence with no commas is
  * one clause -- it still arrives complete, just without an internal stagger,
  * which is honest rather than invented.
  */
@@ -49,8 +52,8 @@ function clausesOf(sentence: string): string[] {
 }
 
 /**
- * `dark`: whether this instance sits directly on --ink-deep (DESIGN.md §3's
- * fit-score exception, apply's reveal only) rather than on --paper/--base. An
+ * `dark`: whether this instance sits directly on --ink-deep (the fit-score
+ * exception of /docs D7, apply's reveal only) rather than on --paper/--base. An
  * explicit prop, not the ambient `body[data-stage]` attribute: that attribute
  * is true for CV's done reveal too, which stays on its --paper card, so it
  * cannot tell the two apart. Each call site already knows its own ground and
@@ -59,9 +62,21 @@ function clausesOf(sentence: string): string[] {
 export function Motif({
   human,
   dark = false,
+  className,
 }: {
   human: string;
   dark?: boolean;
+  /**
+   * Merged onto the figure, for the one caller that owns more room than the
+   * 46ch ceiling in Motif.module.css assumes.
+   *
+   * That ceiling is tuned for a card and is a ceiling rather than a width, so
+   * every other home stays exactly as it was. The landing's argument tile is
+   * the case it was not written for: the motif is the whole tile there rather
+   * than a note inside a working screen, and the widest it may legally go is
+   * the Editorial prose cap itself, which is what the landing passes in.
+   */
+  className?: string;
 }) {
   const t = useTranslations('Motif');
   const clauses = clausesOf(human);
@@ -71,7 +86,12 @@ export function Motif({
   useStrikeThrough(slopRef, reduced === true);
 
   return (
-    <figure className={styles.motif} data-dark={dark || undefined}>
+    <figure
+      className={
+        className === undefined ? styles.motif : `${styles.motif} ${className}`
+      }
+      data-dark={dark || undefined}
+    >
       <div className={styles.half}>
         <p className={styles.eyebrow}>{t('slopLabel')}</p>
         <p className={styles.slop}>
@@ -85,21 +105,16 @@ export function Motif({
         <p className={styles.eyebrow}>{t('humanLabel')}</p>
         <p className={styles.human}>
           {clauses.map((clause, index) => (
-            <motion.span
+            <span
               key={index}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.3,
-                delay:
-                  (STRIKE_DELAY_MS + DUR_DRAW_MS) / 1000 +
-                  index * CLAUSE_STAGGER_S,
-                ease: EASE_SOFT,
-              }}
+              className={styles.clause}
+              // The stagger's only variable. The delay itself is composed in
+              // the stylesheet, so the timings stay in one file.
+              style={{ '--clause': index } as React.CSSProperties}
             >
               {clause}
               {index < clauses.length - 1 ? ' ' : ''}
-            </motion.span>
+            </span>
           ))}
         </p>
       </div>
@@ -123,6 +138,12 @@ function readToken(element: Element, name: string): string {
   return getComputedStyle(element).getPropertyValue(name).trim();
 }
 
+/** A duration token as a number of milliseconds, for the one consumer that
+ *  cannot take a custom property. */
+function readMs(element: Element, name: string): number {
+  return parseFloat(readToken(element, name)) || 0;
+}
+
 function useStrikeThrough(
   ref: React.RefObject<HTMLSpanElement | null>,
   reduced: boolean,
@@ -135,6 +156,11 @@ function useStrikeThrough(
 
     let annotation: { show: () => void; remove: () => void } | null = null;
     let cancelled = false;
+
+    // Read before the dynamic import, so both halves of the sequence are taken
+    // from the same stylesheet the CSS half is timed by.
+    const strikeDelay = readMs(element, '--motif-strike-delay');
+    const drawDuration = readMs(element, '--dur-draw');
 
     void import('rough-notation').then(({ annotate }) => {
       if (cancelled) {
@@ -156,7 +182,7 @@ function useStrikeThrough(
         // The library takes milliseconds and cannot read --dur-draw; 0 is its
         // own documented way to spell "no animation", which is what reduced
         // motion asks for.
-        animationDuration: reduced ? 0 : DUR_DRAW_MS,
+        animationDuration: reduced ? 0 : drawDuration,
         iterations: 1,
         padding: 2,
       });
@@ -169,7 +195,7 @@ function useStrikeThrough(
         if (!cancelled) {
           annotation?.show();
         }
-      }, STRIKE_DELAY_MS);
+      }, strikeDelay);
     });
 
     return () => {

@@ -67,7 +67,7 @@ function truncate(line: string): string {
 }
 
 /**
- * The motif's own material on the apply result reveal (DESIGN.md §7,
+ * The motif's own material on the apply result reveal (DESIGN.md §9,
  * SLICE-20 §1.4): a real sentence pulled from the resume just written, never
  * invented. `resume` is markdown, so this strips the furniture (headings,
  * bullet markers) and takes the longest surviving line -- the cheapest

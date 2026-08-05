@@ -13,7 +13,7 @@ type SelectProps = Omit<
 };
 
 /**
- * The native select, wearing the field styling. DESIGN.md §6 (Jakob): novel
+ * The native select, wearing the field styling. DESIGN.md §10 (Jakob): novel
  * skin, conventional bones. A hand-built listbox would be a keyboard and screen
  * reader liability for a control the platform already ships.
  */

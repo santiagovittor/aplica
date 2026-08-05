@@ -131,9 +131,13 @@
   }
 }
 
-/* Selection reads by weight and a rule, never a second green control
-   (DESIGN.md §5 one-primary discipline) -- the same technique Steps uses for
-   current/complete. */
+/* Selection reads by weight and a rule, never a second green control -- the
+   same technique Steps uses for current/complete. This used to cite §5's
+   one-primary discipline against the accent inventory, which named "tier" in
+   the segmented-control row; SLICE-24 §3.1 settled it in the document rather
+   than leaving a stylesheet arguing with it, and the settlement now lives in
+   /docs D3: the test is the object, not the choice. One strip fills; three
+   cards are three objects, and filling one green is a second primary. */
 .tierCard {
   display: flex;
   flex-direction: column;
@@ -151,7 +155,7 @@
     transform var(--dur-micro) var(--ease-soft);
 }
 
-/* DESIGN.md §9: a surface rises 1px on hover and drops 1px on press. */
+/* DESIGN.md §10: a surface rises 1px on hover and drops 1px on press. */
 .tierCard:hover {
   border-color: var(--ink-soft);
   box-shadow: var(--shadow-lifted);
@@ -259,8 +263,8 @@
 /* --- working: the Stage's one paper object --------------------------------
    SLICE-20 §2.3: "one paper object centred on it" -- capped well short of
    --content-max so it reads as a discrete object on the dark stage rather
-   than another edge-to-edge bar. The waiting state only: DESIGN.md §3's
-   fit-score exception takes the reveal off this card entirely (`.reveal`
+   than another edge-to-edge bar. The waiting state only: the fit-score
+   exception of /docs D7 takes the reveal off this card entirely (`.reveal`
    below). */
 .card {
   display: flex;
@@ -294,9 +298,9 @@
 }
 
 /* --- done: directly on --ink-deep -------------------------------------------
-   DESIGN.md §6 peak-end: the polish budget goes here. Same footprint as
+   DESIGN.md §10 peak-end: the polish budget goes here. Same footprint as
    `.card` (42rem, centred) so the working->done handoff doesn't jump width,
-   but no paper, no border: DESIGN.md §3's fit-score exception. Every color
+   but no paper, no border: the fit-score exception of /docs D7. Every color
    below is measured against --ink-deep, not assumed -- see the CSS comments
    on the values that needed a specific one. */
 .reveal {
@@ -309,7 +313,7 @@
 
 /* The one heading in the product that sits directly on --ink-deep, so it is
    the one that opts out of the global letterpress in globals.css: DESIGN.md
-   §5a grants the impression highlight to headings on a *light* ground, and a
+   §6 grants the impression highlight to headings on a *light* ground, and a
    white highlight under ink-deep is a glow. */
 .doneHeading {
   font-size: var(--text-2xl);
@@ -341,7 +345,7 @@
    which stays on --base and keeps plain --clay): --clay measures 2.4:1 on
    --ink-deep, well under AA even for large text, and DESIGN.md §5 has no
    dark-ground pairing for it yet. Composed from tokens rather than a new
-   named color -- see DESIGN.md §5's clay-on-ink-deep note (measured 4.7:1). */
+   named color -- see /docs D5 on clay over ink-deep (measured 4.7:1). */
 .revealError {
   max-width: var(--measure);
   color: color-mix(in srgb, var(--clay) 70%, var(--paper) 30%);

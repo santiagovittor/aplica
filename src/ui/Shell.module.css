@@ -5,7 +5,7 @@
    route (the hero, an empty /applications) left the footer rule floating at
    about 60% of viewport height with a third of the screen blank under it,
    which reads as a stylesheet that failed to load rather than as a page.
-   Second, the material of DESIGN.md §5a is rendered here, once, rather than
+   Second, the material of DESIGN.md §6 is rendered here, once, rather than
    by each screen: grain and edge falloff are properties of the paper, not of
    any screen printed on it. */
 
@@ -24,7 +24,7 @@
   min-height: 100dvh;
 }
 
-/* The grain (DESIGN.md §5a). An SVG feTurbulence tile, fixed to the viewport
+/* The grain (DESIGN.md §6). An SVG feTurbulence tile, fixed to the viewport
    so it never scrolls with content and never tiles visibly, multiplied into
    whatever ground is underneath -- which is why one overlay serves both the
    cream and the --ink-deep Stage without a second variant.
@@ -47,7 +47,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Edge falloff (DESIGN.md §5a): paper absorbs light unevenly, so the corners
+/* Edge falloff (DESIGN.md §6): paper absorbs light unevenly, so the corners
    sit fractionally deeper than the centre. 4% at the corners, gone by 60%
    radius -- individually invisible, which is the test §5's amended gradient
    rule sets. Mixed from --ink, never black. */

@@ -77,7 +77,7 @@ interface DoneResult {
   reason: string;
   keywordCoverage: number;
   flags: string[];
-  /** The motif's own material (DESIGN.md §7): a real line from the resume
+  /** The motif's own material (DESIGN.md §9): a real line from the resume
    *  just written. */
   motif: string;
 }
@@ -123,7 +123,7 @@ const WORKING_VARIANTS = {
   },
 };
 
-/** DESIGN.md §6 peak-end: the result reveal gets the motion budget. Staggered
+/** DESIGN.md §10 peak-end: the result reveal gets the motion budget. Staggered
  *  60ms per SLICE-20 §2.5, starting the instant the working card has
  *  dissolved (`delayChildren` matches its exit duration above) so the two
  *  read as one move rather than a fade-out-then-fade-in. */

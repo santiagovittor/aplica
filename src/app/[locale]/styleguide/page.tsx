@@ -366,7 +366,7 @@ export default async function StyleguidePage({
               <div className={styles.group}>
                 <p className={styles.stateLabel}>{t('states.empty')}</p>
                 <Card empty>
-                  {/* DESIGN.md §7: the machine line above, the human line below. One
+                  {/* DESIGN.md §9: the machine line above, the human line below. One
                       of the motif's three legal homes. Still, not yet animated. */}
                   <svg
                     className={styles.motif}

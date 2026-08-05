@@ -71,7 +71,7 @@ interface DoneData {
   roles: number;
   skills: number;
   keywords: number;
-  /** The motif's own material (DESIGN.md §7): a real line from this CV. */
+  /** The motif's own material (DESIGN.md §9): a real line from this CV. */
   motif: string;
 }
 
@@ -90,7 +90,7 @@ const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 /**
- * The result reveal is where DESIGN.md §6 (peak-end) says the motion budget
+ * The result reveal is where DESIGN.md §10 (peak-end) says the motion budget
  * goes: "a beautiful settings page with a flat reveal is a failed
  * allocation." Every other phase gets one flat fade; `done` staggers its
  * children in at --stagger (50ms) apart, each rising --enter-rise (10px),
@@ -528,7 +528,7 @@ export function CvUpload({
             <p className={styles.error} role="alert">
               {errorMessage}
             </p>
-            <div className={styles.row}>
+            <div className={`${styles.row} ${styles.errorRow}`}>
               <Button variant="primary" onClick={reset}>
                 {t('retry')}
               </Button>

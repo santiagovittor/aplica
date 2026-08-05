@@ -4,28 +4,46 @@
     "description": "Paste a job posting, get a resume and cover letter in your real voice."
   },
   "Home": {
-    "headline": "Paste a job posting and get a resume and cover letter in your real voice, not an AI's.",
+    "headline": {
+      "first": "Your CV,",
+      "second": "in your voice,",
+      "third": "not an AI’s."
+    },
+    "deck": "Paste a job posting and get a resume and cover letter in your real voice.",
+    "heroAlt": "A hand writing by lamplight on the page of an open notebook, on a wooden desk beside a stack of papers.",
     "cta": "Sign up",
     "ctaAuthenticated": "Go to Apply",
     "signInPrompt": "Already have an account?",
     "signInAction": "Sign in",
     "motifHuman": "Closed fourteen enterprise deals in a market where the team had closed three the year before.",
-    "sections": {
+    "tiles": {
+      "argument": {
+        "eyebrow": "The difference",
+        "title": "Your CV already has the better sentence in it."
+      },
       "writes": {
         "eyebrow": "How it writes",
         "title": "It starts from your words, not a template.",
-        "body": "Aplica reads your CV once and keeps the sentences you actually wrote. Every line in a draft has to trace back to something already in there. If it can’t, the line doesn’t ship."
+        "body": "Aplica reads your CV once and keeps the sentences you actually wrote. Every line in a draft has to trace back to something already in there. If it can’t, the line doesn’t ship.",
+        "fragmentCaption": "The opening of a resume Aplica wrote in a real run, shown cropped."
       },
       "refuses": {
         "eyebrow": "What it refuses to do",
         "title": "It will tell you to skip a job.",
-        "body": "You get a fit score and an honest read before you spend an evening on an application that was never going to land. It never invents a skill to cover a gap."
+        "fitLabel": "Fit score",
+        "verdict": "A reporting analyst applying to a senior iOS role. Nothing in the CV covers the stack."
+      },
+      "image": {
+        "alt": "Someone at a kitchen table late at night, under a single lamp, working through a spread of printed job postings."
       },
       "costs": {
         "eyebrow": "What it costs",
         "title": "Your own key, your own words.",
         "body": "You bring an API key from Anthropic, OpenAI or Google and pay them directly, in cents. Aplica is free to use and free to host yourself, in English and Spanish."
       }
+    },
+    "closing": {
+      "title": "Start with the CV you already have."
     }
   },
   "LocaleToggle": {
@@ -120,13 +138,6 @@
       "language": "Language",
       "session": "Session",
       "danger": "Delete"
-    },
-    "sections": {
-      "key": "Credentials",
-      "cv": "Source material",
-      "language": "Interface",
-      "session": "Session",
-      "danger": "Irreversible"
     },
     "key": {
       "title": "Your model key",
@@ -238,7 +249,8 @@
     "empty": {
       "invite": "No applications yet",
       "body": "Run your first one and it will show up here.",
-      "cta": "Start an application"
+      "cta": "Start an application",
+      "motifHuman": "Took the support queue from a two-day wait to same day, and held it there for a year."
     },
     "row": {
       "roleUnknown": "Role not recorded",
@@ -436,6 +448,21 @@
         "droppedBody": "Not an exact quote from your CV, so it was left out rather than paraphrased:"
       },
       "next": "Go to your account"
+    }
+  },
+  "Errors": {
+    "notFound": {
+      "status": "Error 404",
+      "title": "That page is not here.",
+      "body": "The address is wrong, or whatever used to be at it has moved. Nothing on your side is broken, and nothing you were working on was lost.",
+      "action": "Back to the start"
+    },
+    "server": {
+      "status": "Error 500",
+      "title": "Something broke on our side.",
+      "body": "You did not cause this and nothing you had saved was touched. Try again; if it keeps happening, leave it a few minutes and come back.",
+      "action": "Try again",
+      "home": "Back to the start"
     }
   },
   "Privacy": {

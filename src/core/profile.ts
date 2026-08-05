@@ -153,7 +153,7 @@ export type Profile = z.infer<typeof profileSchema>;
 const MAX_MOTIF_CHARS = 240;
 
 /**
- * The motif's own material on the CV parse reveal (DESIGN.md §7, SLICE-20
+ * The motif's own material on the CV parse reveal (DESIGN.md §9, SLICE-20
  * §1.4): a real sentence pulled from the user's own document, never
  * invented. A voice anchor is the strongest candidate available -- it is
  * already a verbatim quote, checked by `groundProfile` -- so it wins

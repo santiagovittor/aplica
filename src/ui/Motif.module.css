@@ -1,4 +1,4 @@
-/* DESIGN.md §7: one object, a line of text, and one activity, its
+/* DESIGN.md §9: one object, a line of text, and one activity, its
    transformation. SLICE-23 §5.3 made both halves permanent -- they stack, the
    generic one above the human one, each under its own eyebrow, so the reader
    sees a before and an after rather than only an after.
@@ -8,12 +8,24 @@
    makes the transformation legible as a transformation. */
 
 .motif {
+  /* SLICE-25 §A: the sequence's timings, declared once, here. `rough-notation`
+     takes a number of milliseconds and cannot read a custom property, so
+     Motif.tsx reads these two off the cascade the same way it already reads
+     --human. Before this they were TS constants that happened to agree with
+     --dur-draw, which is a duplicate waiting to drift rather than a token. */
+  --motif-strike-delay: 400ms; /* the strike waits, so the two halves read as
+                                  cause and effect rather than as two things
+                                  happening at once */
+  --motif-clause-stagger: var(--stagger);
+  /* The human line starts writing once the strike has finished drawing. */
+  --motif-sequence: calc(var(--motif-strike-delay) + var(--dur-draw));
+
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   margin: 0;
   /* The measure holds here too: this is prose, and a motif that runs the full
-     width of its container is the same bug DESIGN.md §4 names anywhere else.
+     width of its container is the same bug DESIGN.md §3 names anywhere else.
 
      46ch rather than the 65ch of body prose, because the human line is set at
      --text-xl and a long measure at display size reads as a paragraph instead
@@ -54,6 +66,61 @@
   display: inline;
 }
 
+/* SLICE-25 §A: the motif's no-JS state is its *end* state -- both lines
+   present, the generic one already struck. The drawn animation is how a reader
+   gets there when JS exists; it is not what makes it true. Without the strike
+   the two halves have no stated relationship and the page's entire thesis is
+   missing, which is a worse failure on this screen than anywhere else in the
+   product, because this screen is the argument.
+
+   A plain line-through rather than the drawn one, for the obvious reason:
+   `rough-notation` is JavaScript. It arrives instantly and perfectly straight,
+   which is exactly what Motif.tsx says the drawn strike is not -- and that
+   trade is the right way round here. A machine-straight rule still says
+   "this sentence is wrong"; nothing at all says nothing. Coloured and weighted
+   to match the drawn one so the two are the same mark. */
+@media (scripting: none) {
+  .slopText {
+    text-decoration: line-through;
+    text-decoration-color: var(--human);
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Each clause of the human line, arriving after the strike has finished.
+
+   The delay is real and deliberate: for the length of the sequence the page
+   argues against itself, which is the point of a before and an after. What was
+   wrong was where the delay lived. As `initial={{ opacity: 0 }}` on a Motion
+   span it shipped in the SSR markup as an inline style, so the line was
+   invisible until hydration *plus* the sequence -- measured at 1500ms idle and
+   2015ms under a 6x CPU throttle, and forever with the bundle blocked.
+
+   In CSS the resting state is the visible one and the animation is gated on
+   `scripting: enabled`, so the two readers get the two correct answers: with
+   JS, the sequence; without it, the end state above, immediately. `backwards`
+   is what holds the clause at its start value through the delay without that
+   value ever being the element's own. */
+.clause {
+  display: inline;
+}
+
+@keyframes motif-clause {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .clause {
+    animation: motif-clause var(--dur-move) var(--ease-soft) backwards;
+    animation-delay: calc(
+      var(--motif-sequence) + var(--clause) * var(--motif-clause-stagger)
+    );
+  }
+}
+
 /* --human clears AA only at large-text size (measured ~3.8-4.3:1 depending on
    ground, DESIGN.md §5). --text-xl is the scale's own floor for that, which is
    why it is the one legal size for the human line on either ground. WONK is
@@ -69,8 +136,8 @@
   text-wrap: pretty;
 }
 
-/* Apply's reveal is the one home that sits directly on --ink-deep (DESIGN.md
-   §3's fit-score exception) -- --ink-soft measures 2.4:1 there, well under
+/* Apply's reveal is the one home that sits directly on --ink-deep (the fit-score
+   exception, /docs D7) -- --ink-soft measures 2.4:1 there, well under
    even the large-text floor. `[data-dark]` rather than the usual
    body[data-stage] attribute: see Motif.tsx on why the ambient one cannot tell
    CV's still-paper done reveal apart from this. */

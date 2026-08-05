@@ -54,11 +54,20 @@
 }
 
 /* --- empty / error ---------------------------------------------------------
-   `.frame` is a plain block, not a grid. `grid-column: 1 / -1` still claims
-   the full width of whatever ancestor this lands in: a no-op inside /cv's
-   own plain-block `.shell`, load-bearing inside onboarding's `.shell`
-   (onboarding.module.css), which is itself a 12-col grid -- without it this
-   would auto-place as a single 1-of-12 track. */
+   `.frame` is a plain block, not a grid. The `grid-column` below is a no-op
+   inside /cv's own plain-block `.shell` and load-bearing inside onboarding's
+   `.shell` (onboarding.module.css), which is a 12-col grid -- without it this
+   would auto-place as a single 1-of-12 track.
+
+   SLICE-24 §2.3: it claims columns 3 to 10 rather than the full row, and
+   `.primary` no longer centres itself inside whatever it lands in. Captured
+   for the first time, both /cv and onboarding's CV step were putting their
+   heading on one spine and everything under it on another -- "Your CV" at the
+   page margin and the motif, the invite and the drop target 330px to its
+   right, which reads as two columns that failed to line up rather than as one
+   screen. Onboarding's own heading and card already sit at 3 / span 8, and
+   /cv's `.shell` is a plain block, so one rule aligns both: the content starts
+   where the title starts. */
 
 .frame {
   display: flex;
@@ -67,7 +76,7 @@
 
 @media (min-width: 60rem) {
   .frame {
-    grid-column: 1 / -1;
+    grid-column: 3 / span 8;
   }
 }
 
@@ -76,7 +85,6 @@
   flex-direction: column;
   gap: var(--space-6);
   max-width: 46rem;
-  margin-inline: auto;
 }
 
 .emptyInvite {
@@ -88,7 +96,7 @@
   color: var(--ink-soft);
 }
 
-/* The drop target itself reads as paper you write on (DESIGN.md §6 Norman),
+/* The drop target itself reads as paper you write on (DESIGN.md §6, material),
    the same discipline /apply's textarea already uses -- an input becomes
    --paper precisely because the ground under it is --base, not more paper. */
 .dropzone {
@@ -149,8 +157,17 @@
   color: var(--clay);
 }
 
+/* The error's own action. `.row` centres, which is right inside the drop
+   target (a centred panel) and wrong here, where the only other thing on the
+   screen is a sentence starting at the left edge of the column: SLICE-24 §2.3
+   captured this state for the first time and the button was sitting 300px to
+   the right of the words it answers. */
+.errorRow {
+  justify-content: flex-start;
+}
+
 /* --- working / done: the Stage's one paper object -------------------------
-   DESIGN.md §6 peak-end: the polish budget goes here. §5: --human appears
+   DESIGN.md §10 peak-end: the polish budget goes here. §5: --human appears
    in this reveal and nowhere outside the motif. */
 
 /* SLICE-20 §2.3: "one paper object centred on it" -- capped well short of

@@ -6,7 +6,9 @@ rules. Read only what the current task needs; never load the whole repo.
 **Context router (read on demand, not by default):**
 - Product scope, architecture, security spec -> `PROJECT.md`
 - Any UI work (screens, components, styling, motion, copy) -> `DESIGN.md`,
-  in full. Its tokens are the only pixel/color values allowed in UI code.
+  in full. Token values live in `src/ui/tokens.css` and are the only pixel,
+  colour and easing values allowed in UI code; DESIGN.md indexes them.
+  Settled design debates -> `/docs/design-decisions.md`, only when reopening one.
 - Prompt work -> the file in `src/prompts/` being changed, nothing else.
 - Deep detail as it accumulates -> `/docs`. Link to it, do not paste it.
 

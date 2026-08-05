@@ -61,3 +61,6 @@ next-env.d.ts
 
 # SLICE-23 §1: the screenshot harness output (npm run shots)
 /.shots/
+
+# design preview renders, working scratch (graded stills, mock compositions)
+/.design-preview/

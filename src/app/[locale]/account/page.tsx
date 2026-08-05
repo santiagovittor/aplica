@@ -22,6 +22,21 @@ import { signOut } from './actions';
  *
  * "Apply to a job" is gone. It was a nav item wearing a section heading, which
  * is why the page appeared to have three competing titles.
+ *
+ * SLICE-24 §2.5: the five uppercase eyebrows are gone too. The test they had
+ * to pass was to say something the heading beneath them did not, and none of
+ * them could: "Session" sat above "Signed in" and "Irreversible" above a body
+ * whose last sentence is "It cannot be undone", while "Credentials" and
+ * "Interface" each repeated the first line of their own section. The closest
+ * to earning it was "Source material" over the CV block, and what it says --
+ * that every draft is built from this file -- is an argument the landing and
+ * /cv both make in full sentences, not a caption for a row that exists to say
+ * whether a file is on record. A label above
+ * every section labels nothing and becomes texture (the `avoid-ai-design`
+ * catalog's T5, uniform uppercase micro-label). What names each section is the
+ * rail, which is this page's one structural label, and the 2px rule with the
+ * title under it; the danger section keeps the clay rule, which is the part
+ * that was carrying the warning anyway.
  */
 
 const SECTIONS = ['key', 'cv', 'language', 'session', 'danger'] as const;
@@ -96,7 +111,6 @@ export default async function AccountPage({
 
         <div className={styles.content}>
           <section id="key" className={styles.section}>
-            <p className={styles.eyebrow}>{t('sections.key')}</p>
             <h2 className={styles.sectionTitle}>{t('key.title')}</h2>
             <p className={styles.body}>{t('key.body')}</p>
 
@@ -152,7 +166,6 @@ export default async function AccountPage({
           </section>
 
           <section id="cv" className={styles.section}>
-            <p className={styles.eyebrow}>{t('sections.cv')}</p>
             <h2 className={styles.sectionTitle}>{t('cv.title')}</h2>
             <p className={styles.body}>
               {hasProfile ? t('cv.onFile') : t('cv.none')}{' '}
@@ -163,14 +176,12 @@ export default async function AccountPage({
           </section>
 
           <section id="language" className={styles.section}>
-            <p className={styles.eyebrow}>{t('sections.language')}</p>
             <h2 className={styles.sectionTitle}>{t('language.title')}</h2>
             <p className={styles.body}>{t('language.body')}</p>
             <LocaleToggle />
           </section>
 
           <section id="session" className={styles.section}>
-            <p className={styles.eyebrow}>{t('sections.session')}</p>
             <h2 className={styles.sectionTitle}>{t('session.title')}</h2>
             <p className={styles.body}>{t('session.body')}</p>
             <form action={signOut}>
@@ -187,9 +198,6 @@ export default async function AccountPage({
             id="danger"
             className={`${styles.section} ${styles.dangerSection}`}
           >
-            <p className={`${styles.eyebrow} ${styles.dangerEyebrow}`}>
-              {t('sections.danger')}
-            </p>
             <h2 className={styles.sectionTitle}>{t('danger.title')}</h2>
             <p className={styles.body}>{t('danger.body')}</p>
             <DeleteAccount
