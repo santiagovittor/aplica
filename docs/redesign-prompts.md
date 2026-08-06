@@ -6,7 +6,7 @@ Do not send prompt 3 until the hero image is in `public/`.
 Asset needed before prompt 3 only. Prompts 1, 2, 4, 5 need nothing.
 
 **State these assume.** SLICE-24 is applied but uncommitted in the working tree.
-Everything below was measured on the rendered page *after* it, so nothing here is
+Everything below was measured on the rendered page _after_ it, so nothing here is
 already fixed. DESIGN.md has since been rewritten (225 lines, tokens indexed from
 `src/ui/tokens.css`) and the settled debates moved to `docs/design-decisions.md`
 as D1-D8 — including the two SLICE-24 §3 settled, which survive as D2 and D3.
@@ -44,6 +44,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > DESIGN.md §10 requires `404` and `500` to be designed Editorial screens.
 >
 > Checkable outcomes:
+>
 > - A new `checkReveal` in `e2e/audit.ts`, wired into `npm run shots`, asserting
 >   that on load and after network idle no text-bearing element in `main` has
 >   computed opacity below 1. It must sample over time, not once, and must survive
@@ -74,15 +75,22 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > --text-hero: clamp(56px, 8.2vw, 132px);
 > --radius-lg: 20px;
 > --dur-scene: 1200ms;
-> --shadow-float: 0 4px 8px color-mix(in oklab, var(--ink) 12%, transparent),
->                 0 32px 64px -12px color-mix(in oklab, var(--ink) 22%, transparent);
+> --shadow-float:
+>   0 4px 8px color-mix(in oklab, var(--ink) 12%, transparent),
+>   0 32px 64px -12px color-mix(in oklab, var(--ink) 22%, transparent);
 > --image-grade: saturate(0.72) sepia(0.14) contrast(1.04) brightness(0.99);
 > --image-tint: color-mix(in oklab, var(--green) 16%, transparent);
-> --scrim-dark: linear-gradient(to top,
+> --scrim-dark: linear-gradient(
+>   to top,
 >   color-mix(in oklab, var(--ink-deep) 90%, transparent) 0%,
->   color-mix(in oklab, var(--ink-deep) 45%, transparent) 38%, transparent 72%);
-> --scrim-paper: linear-gradient(to top,
->   color-mix(in oklab, var(--base) 92%, transparent) 0%, transparent 60%);
+>   color-mix(in oklab, var(--ink-deep) 45%, transparent) 38%,
+>   transparent 72%
+> );
+> --scrim-paper: linear-gradient(
+>   to top,
+>   color-mix(in oklab, var(--base) 92%, transparent) 0%,
+>   transparent 60%
+> );
 > ```
 >
 > Also make `--text-display` fluid: `clamp(49px, 4.4vw, 72px)`. It is currently a
@@ -98,6 +106,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > is now D3. Sweep the citations and correct them.
 >
 > Checkable outcomes:
+>
 > - Every token named in DESIGN.md §1 resolves to a non-empty computed value on
 >   `document.documentElement`. Add a check that parses the token names out of
 >   DESIGN.md and asserts each exists in `tokens.css`, so the index and the
@@ -152,6 +161,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > guard applies.
 >
 > Checkable outcomes:
+>
 > - Checklist item 11 passes honestly: backgrounds of elements each covering >=15%
 >   of the viewport span >=0.35 relative luminance. It currently passes only
 >   because a 44px green button counts as a background.
@@ -202,6 +212,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > page is in the hero.
 >
 > Checkable outcomes:
+>
 > - No two adjacent tiles share both ground and size.
 > - Checklist items 10 (material), 11 (value range) and 13 (imagery) pass measured.
 > - Still exactly one element that looks like a primary button per viewport.
@@ -221,6 +232,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > allocation." That budget is currently unspent.
 >
 > Also fix, on `/es/apply` (Desk):
+>
 > - The form column and the settings rail scroll independently, leaving the right
 >   side as dead air below the fold.
 > - "Adaptar mi postulación" — the button the entire product exists for — is a
@@ -237,6 +249,7 @@ SLICE-24 closed its escape hatch. New checks should assume the same traps.
 > the run screen for its tallest state so the check can be turned back on.
 >
 > Checkable outcomes:
+>
 > - `checkFooter` runs on the mid-run captures with no exemption, and passes.
 > - The reveal sequences: score, then verdict, then flags, then downloads, using
 >   honest motion only (DESIGN.md §8) — nothing that predicts or performs thinking.

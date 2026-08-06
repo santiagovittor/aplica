@@ -353,105 +353,111 @@ export async function checkReveal(
 
   try {
     await page.goto(path);
-    const measured = await page.evaluate(async ({ giveUp, budget }) => {
-      const effective = (element: Element): number => {
-        let value = 1;
-        let node: Element | null = element;
-        while (node !== null) {
-          value *= Number(getComputedStyle(node).opacity);
-          node = node.parentElement;
-        }
-        return value;
-      };
+    const measured = await page.evaluate(
+      async ({ giveUp, budget }) => {
+        const effective = (element: Element): number => {
+          let value = 1;
+          let node: Element | null = element;
+          while (node !== null) {
+            value *= Number(getComputedStyle(node).opacity);
+            node = node.parentElement;
+          }
+          return value;
+        };
 
-      const onScreen = (): Element[] => {
-        const main = document.querySelector('main');
-        if (main === null) return [];
-        return [...main.querySelectorAll('*')].filter((element) => {
-          const carries = [...element.childNodes].some(
-            (n) =>
-              n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim(),
-          );
-          if (!carries) return false;
+        const onScreen = (): Element[] => {
+          const main = document.querySelector('main');
+          if (main === null) return [];
+          return [...main.querySelectorAll('*')].filter((element) => {
+            const carries = [...element.childNodes].some(
+              (n) =>
+                n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim(),
+            );
+            if (!carries) return false;
+            const style = getComputedStyle(element);
+            if (style.display === 'none' || style.visibility === 'hidden') {
+              return false;
+            }
+            const rect = element.getBoundingClientRect();
+            if (rect.width < 1 || rect.height < 1) return false;
+            // Screen-reader-only text is not painted, so it has no opacity worth
+            // reading: `.visually-hidden` keeps a 1x1 box and clips it away.
+            if (
+              style.clipPath !== 'none' &&
+              rect.width <= 2 &&
+              rect.height <= 2
+            ) {
+              return false;
+            }
+            return rect.top < window.innerHeight && rect.bottom > 0;
+          });
+        };
+
+        /**
+         * The milliseconds an element's own stylesheet says it will be
+         * invisible: the longest delay-plus-duration it declares. Both
+         * properties can carry a list, so they are zipped; a negative delay
+         * (an animation starting part-way through) counts as none.
+         */
+        const declared = (element: Element): number => {
           const style = getComputedStyle(element);
-          if (style.display === 'none' || style.visibility === 'hidden') {
-            return false;
-          }
-          const rect = element.getBoundingClientRect();
-          if (rect.width < 1 || rect.height < 1) return false;
-          // Screen-reader-only text is not painted, so it has no opacity worth
-          // reading: `.visually-hidden` keeps a 1x1 box and clips it away.
-          if (
-            style.clipPath !== 'none' &&
-            rect.width <= 2 &&
-            rect.height <= 2
-          ) {
-            return false;
-          }
-          return rect.top < window.innerHeight && rect.bottom > 0;
-        });
-      };
+          if (style.animationName === 'none') return 0;
+          const ms = (value: string) =>
+            value
+              .split(',')
+              .map(
+                (part) =>
+                  (parseFloat(part) || 0) * (/ms/.test(part) ? 1 : 1000),
+              );
+          const delays = ms(style.animationDelay);
+          const durations = ms(style.animationDuration);
+          return Math.max(
+            0,
+            ...durations.map(
+              (duration, index) =>
+                Math.max(0, delays[index] ?? delays[0] ?? 0) + duration,
+            ),
+          );
+        };
 
-      /**
-       * The milliseconds an element's own stylesheet says it will be
-       * invisible: the longest delay-plus-duration it declares. Both
-       * properties can carry a list, so they are zipped; a negative delay
-       * (an animation starting part-way through) counts as none.
-       */
-      const declared = (element: Element): number => {
-        const style = getComputedStyle(element);
-        if (style.animationName === 'none') return 0;
-        const ms = (value: string) =>
-          value
-            .split(',')
-            .map((part) => (parseFloat(part) || 0) * (/ms/.test(part) ? 1 : 1000));
-        const delays = ms(style.animationDelay);
-        const durations = ms(style.animationDuration);
-        return Math.max(
-          0,
-          ...durations.map(
-            (duration, index) =>
-              Math.max(0, delays[index] ?? delays[0] ?? 0) + duration,
-          ),
-        );
-      };
+        let counted = 0;
+        for (;;) {
+          const now = performance.now();
+          const list = onScreen();
+          counted = Math.max(counted, list.length);
 
-      let counted = 0;
-      for (;;) {
-        const now = performance.now();
-        const list = onScreen();
-        counted = Math.max(counted, list.length);
-
-        const invisible = list.filter((element) => effective(element) < 0.01);
-        const late = invisible
-          .map((element) => ({
-            text: (element.textContent ?? '').trim().slice(0, 40),
-            where: `${element.tagName.toLowerCase()}.${String(element.className).split(' ')[0]}`,
-            opacity: Math.round(effective(element) * 1000) / 1000,
-            allowance: Math.round(budget + declared(element)),
-          }))
-          .filter((item) => now > item.allowance);
-
-        if (late.length > 0) return { counted, at: now, late, gaveUp: false };
-        if (invisible.length === 0) {
-          return { counted, at: now, late: [], gaveUp: false };
-        }
-        if (now > giveUp) {
-          return {
-            counted,
-            at: now,
-            late: invisible.map((element) => ({
+          const invisible = list.filter((element) => effective(element) < 0.01);
+          const late = invisible
+            .map((element) => ({
               text: (element.textContent ?? '').trim().slice(0, 40),
               where: `${element.tagName.toLowerCase()}.${String(element.className).split(' ')[0]}`,
               opacity: Math.round(effective(element) * 1000) / 1000,
               allowance: Math.round(budget + declared(element)),
-            })),
-            gaveUp: true,
-          };
+            }))
+            .filter((item) => now > item.allowance);
+
+          if (late.length > 0) return { counted, at: now, late, gaveUp: false };
+          if (invisible.length === 0) {
+            return { counted, at: now, late: [], gaveUp: false };
+          }
+          if (now > giveUp) {
+            return {
+              counted,
+              at: now,
+              late: invisible.map((element) => ({
+                text: (element.textContent ?? '').trim().slice(0, 40),
+                where: `${element.tagName.toLowerCase()}.${String(element.className).split(' ')[0]}`,
+                opacity: Math.round(effective(element) * 1000) / 1000,
+                allowance: Math.round(budget + declared(element)),
+              })),
+              gaveUp: true,
+            };
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-    }, { giveUp: REVEAL_GIVE_UP_MS, budget: REVEAL_BUDGET_MS });
+      },
+      { giveUp: REVEAL_GIVE_UP_MS, budget: REVEAL_BUDGET_MS },
+    );
 
     // The vacuity guard. Every other clause here is satisfied by an empty set,
     // so the set has to be asserted non-empty in its own right.
@@ -998,7 +1004,8 @@ export async function checkGroundInversion(page: Page): Promise<Finding[]> {
         (el) =>
           el.closest('main') === null &&
           [...el.childNodes].some(
-            (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim(),
+            (n) =>
+              n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim(),
           ),
       );
       return {
@@ -1118,7 +1125,9 @@ export async function checkValueRange(page: Page): Promise<Finding[]> {
 
   const measured = await page.evaluate(
     async ({ columns, rows, shot }) => {
-      const parse = (value: string): [number, number, number, number] | null => {
+      const parse = (
+        value: string,
+      ): [number, number, number, number] | null => {
         const match = /rgba?\(([^)]+)\)/.exec(value);
         if (match === null) return null;
         const parts = match[1].split(',').map((p) => Number(p.trim()));
@@ -1245,7 +1254,8 @@ export async function checkValueRange(page: Page): Promise<Finding[]> {
     ];
   }
 
-  const span = qualifying[0].luminance - qualifying[qualifying.length - 1].luminance;
+  const span =
+    qualifying[0].luminance - qualifying[qualifying.length - 1].luminance;
   return span >= VALUE_RANGE_MIN_SPAN
     ? []
     : [
@@ -1427,9 +1437,7 @@ export async function checkComposite(
         0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 
       return list.map((subject) => {
-        const parts = (
-          /rgba?\(([^)]+)\)/.exec(subject.color)?.[1] ?? '0,0,0'
-        )
+        const parts = (/rgba?\(([^)]+)\)/.exec(subject.color)?.[1] ?? '0,0,0')
           .split(',')
           .map((p) => Number(p.trim()));
         const ink = lum(parts[0], parts[1], parts[2]);
@@ -1643,9 +1651,7 @@ export async function checkImageStability(
       height: image.getAttribute('height'),
       alt: image.getAttribute('alt'),
       placeholder:
-        frame === null
-          ? null
-          : getComputedStyle(frame).backgroundColor,
+        frame === null ? null : getComputedStyle(frame).backgroundColor,
       wanted: getComputedStyle(document.documentElement)
         .getPropertyValue('--paper-dim')
         .trim(),
@@ -1654,9 +1660,7 @@ export async function checkImageStability(
   });
 
   if (measured === null) {
-    return [
-      { check: 'image', detail: `no <img> in <main> on ${path}` },
-    ];
+    return [{ check: 'image', detail: `no <img> in <main> on ${path}` }];
   }
 
   const findings: Finding[] = [];

@@ -51,7 +51,7 @@ of surfaces, it selects by weight and a 2px `--ink` rule.
 already refused a green tier card in a stylesheet comment citing one-primary. Both
 could not be right.
 
-A segmented control is *one* object — a single strip in which exactly one option is
+A segmented control is _one_ object — a single strip in which exactly one option is
 lit — and the fill is what says which. Three tier cards are three objects; filling
 the selected one green puts a second thing that looks like a primary button on a
 screen that already has "Tailor my application". The test is the object, not the

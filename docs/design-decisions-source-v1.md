@@ -6,9 +6,9 @@ easing that is not in this file is a bug, not a choice. When a screen looks
 wrong, the answer is almost never "add something." It is "which rule did we
 break."
 
-Distilled from: Rams (*Less and More*), Bringhurst (*Typographic Style*),
-Albers (*Interaction of Color*), Yablonski (*Laws of UX*), Leborg (*Visual
-Grammar*), Müller-Brockmann (*Grid Systems*), Tufte, Norman, Lupton.
+Distilled from: Rams (_Less and More_), Bringhurst (_Typographic Style_),
+Albers (_Interaction of Color_), Yablonski (_Laws of UX_), Leborg (_Visual
+Grammar_), Müller-Brockmann (_Grid Systems_), Tufte, Norman, Lupton.
 
 ## 0. Who this is for (the psychology the palette serves)
 
@@ -37,49 +37,63 @@ by eye before any screen is built.
 ```css
 :root {
   /* color */
-  --base: #F3EEE5;        /* page background, warm oat */
-  --paper: #FBF8F1;       /* cards, inputs, raised surfaces */
-  --ink: #26221B;         /* text, near-black warm */
-  --ink-soft: #5C554A;    /* secondary text on paper/base */
-  --green: #3F5A3C;       /* THE accent: primary action, links, success */
-  --green-soft: #5C7355;  /* green for large text 20px+, icons, graphics */
-  --human: #B65C3F;       /* terracotta: motif + result reveal ONLY */
-  --clay: #8F3D2E;        /* errors, calm */
-  --hairline: #DED7C9;    /* 1px separators, borders */
+  --base: #f3eee5; /* page background, warm oat */
+  --paper: #fbf8f1; /* cards, inputs, raised surfaces */
+  --ink: #26221b; /* text, near-black warm */
+  --ink-soft: #5c554a; /* secondary text on paper/base */
+  --green: #3f5a3c; /* THE accent: primary action, links, success */
+  --green-soft: #5c7355; /* green for large text 20px+, icons, graphics */
+  --human: #b65c3f; /* terracotta: motif + result reveal ONLY */
+  --clay: #8f3d2e; /* errors, calm */
+  --hairline: #ded7c9; /* 1px separators, borders */
 
   /* dark ground: the desk's tools, not a dark mode. A named surface used on
      specific screens (the Stage archetype, section 3), always, in both
      future themes. This is NOT dark mode; section 9's "no dark mode in v1"
      stands and is unrelated. */
-  --ink-deep:     #1C1913;  /* full-bleed dark ground: stage screens, header */
-  --ink-raised:   #2A251D;  /* raised surface on ink-deep */
-  --on-dark:      #EDE6D8;  /* body text on ink-deep / ink-raised */
-  --on-dark-soft: #A79E8D;  /* secondary text on ink-deep / ink-raised */
-  --hairline-dark:#3D362B;  /* 1px separators on ink-deep */
+  --ink-deep: #1c1913; /* full-bleed dark ground: stage screens, header */
+  --ink-raised: #2a251d; /* raised surface on ink-deep */
+  --on-dark: #ede6d8; /* body text on ink-deep / ink-raised */
+  --on-dark-soft: #a79e8d; /* secondary text on ink-deep / ink-raised */
+  --hairline-dark: #3d362b; /* 1px separators on ink-deep */
 
   /* recessed surface on light ground (inputs inside cards) */
-  --paper-dim:    #EFE9DD;
+  --paper-dim: #efe9dd;
 
   /* type scale, major third 1.25 */
-  --text-xs: 13px; --text-base: 16px; --text-lg: 20px;
-  --text-xl: 25px; --text-2xl: 31px; --text-3xl: 39px; --text-4xl: 49px;
-  --text-display: 61px;   /* the display step above the scale (section 4) */
+  --text-xs: 13px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 25px;
+  --text-2xl: 31px;
+  --text-3xl: 39px;
+  --text-4xl: 49px;
+  --text-display: 61px; /* the display step above the scale (section 4) */
 
   /* space, 8px base */
-  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
-  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
-  --space-9: 96px; --space-10: 128px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
 
   /* radii: two values, ever */
-  --radius-sm: 6px;   /* inputs, buttons */
-  --radius-md: 10px;  /* cards, dialogs */
+  --radius-sm: 6px; /* inputs, buttons */
+  --radius-md: 10px; /* cards, dialogs */
 
   /* motion */
-  --dur-micro: 180ms; --dur-move: 250ms; --dur-reveal: 500ms;
-  --dur-stage: 700ms;     /* the ground change between archetypes, section 3 */
-  --dur-draw: 900ms;      /* a hand-drawn annotation drawing itself, section 7 */
-  --delay-invert: 120ms;  /* when the chrome's ink crosses the ground, section 8 */
-  --dur-invert: 1ms;      /* it crosses in one frame, never by fading */
+  --dur-micro: 180ms;
+  --dur-move: 250ms;
+  --dur-reveal: 500ms;
+  --dur-stage: 700ms; /* the ground change between archetypes, section 3 */
+  --dur-draw: 900ms; /* a hand-drawn annotation drawing itself, section 7 */
+  --delay-invert: 120ms; /* when the chrome's ink crosses the ground, section 8 */
+  --dur-invert: 1ms; /* it crosses in one frame, never by fading */
 
   /* material (section 5a). Shadows mix from --ink, never black: black on
      cream goes grey and dead. */
@@ -93,7 +107,7 @@ by eye before any screen is built.
   --letterpress: 0 1px 0 color-mix(in oklab, white 45%, transparent);
 
   /* structure */
-  --rule-strong: 2px;   /* section openers */
+  --rule-strong: 2px; /* section openers */
   --eyebrow-tracking: 0.08em;
 
   /* motion */
@@ -108,6 +122,7 @@ or system defaults.
 ## 2. The ethos (Rams, applied)
 
 Every element must be **useful, honest, and as little design as possible.**
+
 - Useful: if removing it loses nothing, remove it. Decoration has one budget:
   the motif (section 7). Nothing else decorates.
 - Honest: progress states show the stages actually running (the SSE stream).
@@ -190,6 +205,7 @@ on white in isolation. The palette is closed; no new hues. Tints mix from
 cream (it goes muddy).
 
 Legal text pairs, the only ones allowed:
+
 - --ink on --paper / --base: body.
 - --ink-soft on --paper / --base: secondary text.
 - --green on --paper / --base: links, emphasized UI text, success.
@@ -209,9 +225,9 @@ Legal text pairs, the only ones allowed:
 
 **One-primary discipline (Von Restorff):** one primary action per screen
 (section 6 Hick already says this; that was always the real rule). --green
-additionally carries the *system of choice*: focus rings, selected states,
+additionally carries the _system of choice_: focus rings, selected states,
 active step markers, inline links, and success text. It may not appear on
-more than one element that looks like a *button*. Secondary actions are ink
+more than one element that looks like a _button_. Secondary actions are ink
 outlines or plain text. Depth = paper/base shift + hairline + the two-layer
 warm shadow of section 5a. No glassmorphism, no glow.
 
@@ -243,23 +259,23 @@ takes an impression from ink. Every screen carries:
 
 Accent inventory, exhaustive:
 
-| Use | Token | Notes |
-|---|---|---|
-| Primary button fill | --green | one per screen |
-| Selected segmented control | --green fill, --paper text | EN/ES, and any other control built as one strip |
-| Selected card in a set | weight and a 2px --ink rule, no fill | the tier cards; see below |
-| Focus ring | --green | unchanged |
-| Active progress step | --green | the 1px rule fills in --green |
-| Inline link | --green | unchanged |
-| Fit score number | --human | its home is the result reveal |
-| Motif stroke / struck-through line | --human | its homes are section 7 |
-| Display text on --ink-deep | --human | >=25px only, verified by measurement |
-| Errors, destructive action | --clay | see section 6 |
+| Use                                | Token                                | Notes                                           |
+| ---------------------------------- | ------------------------------------ | ----------------------------------------------- |
+| Primary button fill                | --green                              | one per screen                                  |
+| Selected segmented control         | --green fill, --paper text           | EN/ES, and any other control built as one strip |
+| Selected card in a set             | weight and a 2px --ink rule, no fill | the tier cards; see below                       |
+| Focus ring                         | --green                              | unchanged                                       |
+| Active progress step               | --green                              | the 1px rule fills in --green                   |
+| Inline link                        | --green                              | unchanged                                       |
+| Fit score number                   | --human                              | its home is the result reveal                   |
+| Motif stroke / struck-through line | --human                              | its homes are section 7                         |
+| Display text on --ink-deep         | --human                              | >=25px only, verified by measurement            |
+| Errors, destructive action         | --clay                               | see section 6                                   |
 
 **A segmented control is not a set of cards, and the difference decides the
 accent.** This row used to read "e.g. EN/ES, tier", and `/apply` had already
 refused it in a stylesheet comment citing the one-primary rule two sections up.
-Both could not be right, so: a segmented control is *one* object, a single
+Both could not be right, so: a segmented control is _one_ object, a single
 strip in which exactly one option is lit, and the --green fill is what says
 which. Three tier cards are three objects; filling the selected one green puts
 a second thing that looks like a primary button on a screen that already has
@@ -339,8 +355,8 @@ it is a row of surfaces, it rules.
   the restraint rules above, which govern decorative motion only. A step
   marker filling when its SSE event arrives, a counter incrementing, a
   status line replacing another when the server says so — these report the
-  truth as it arrives. The ban is on motion that *predicts* (a bar filling
-  over an estimated duration) or that *performs thinking* (pulsing,
+  truth as it arrives. The ban is on motion that _predicts_ (a bar filling
+  over an estimated duration) or that _performs thinking_ (pulsing,
   shimmering, spinners). Absence of motion during real work is not honesty,
   it is a dead screen.
 
@@ -397,5 +413,5 @@ page doing its job, and is not precedent for a second green action anywhere else
     light ground carries --letterpress; every raised surface carries
     --shadow-raised.
 16. **Hover coverage.** Every `button, a, [role="button"], input, textarea,
-    select` changes at least one of background-color, box-shadow,
+select` changes at least one of background-color, box-shadow,
     border-color, transform or text-decoration on hover. Zero exceptions.
