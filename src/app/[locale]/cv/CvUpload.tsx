@@ -178,12 +178,18 @@ export function CvUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
 
-  useEffect(
-    () => () => {
+  // Both halves, not just the teardown. See ApplyForm.tsx's copy of this
+  // effect for the full account: `useRef(true)` runs once per instance, an
+  // effect's teardown runs on every tear-down, and StrictMode (on in
+  // `next dev`, off in a production build) adds one mount/teardown/remount
+  // cycle before any user action. Teardown alone latched this to false and
+  // every stream event was then read and discarded in silence.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
       mounted.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   /**
    * The Stage archetype's ground. `body[data-stage]` is the one surface this

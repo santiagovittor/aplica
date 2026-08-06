@@ -240,12 +240,21 @@ export function ApplyForm({
   const [stageStartedAt, setStageStartedAt] = useState<
     Partial<Record<Phase, number>>
   >({});
-  useEffect(
-    () => () => {
+  // Both halves, not just the teardown. `useRef(true)` runs once per component
+  // instance, but an effect's teardown runs every time the effect is torn down
+  // -- and React's StrictMode, which `next dev` turns on and a production build
+  // does not, mounts, tears down, and remounts every effect on purpose. With
+  // only the teardown here, that development-only extra cycle latched
+  // `mounted` to false before the first click, every guard below became a
+  // silent `return`, and a whole run's stream events were read off the wire and
+  // thrown away: the screen sat on its first step forever while the server
+  // finished the work and the user was told nothing.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
       mounted.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   /**
    * SLICE-20 §2.3: the Stage archetype. `body[data-stage]` is the one
