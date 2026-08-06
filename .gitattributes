@@ -1,0 +1,24 @@
+# Every text file is LF, in the repository and in the working tree.
+#
+# The repository half was already true: before this file existed, all 225 text
+# blobs were LF and not one was CRLF. What was not true was the working tree.
+# `core.autocrlf` is true on the machine this is developed on, so checkout wrote
+# CRLF to disk and commit converted it back, and the round trip was invisible in
+# every diff.
+#
+# It was not invisible to Prettier, whose `endOfLine` default is `lf`. A local
+# `npm run format:check` reported 53 files that CI reads as clean, which is a
+# gate that cannot be used: the real failures are in the noise. Two of them
+# reached CI on #19 for exactly that reason.
+#
+# `eol=lf` rather than `text=auto` alone, because `text=auto` normalises the
+# blob and leaves the working copy to `core.autocrlf`, which is the half that
+# was already fine and the half that was broken respectively.
+* text=auto eol=lf
+
+# The four files that are not text. `text=auto` infers this from content and
+# would leave them alone anyway; saying it outright means a byte sequence that
+# happens to look textual can never corrupt one of them.
+*.png binary
+*.ico binary
+*.pdf binary
