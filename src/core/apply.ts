@@ -17,6 +17,7 @@ import type { Application } from './application';
 import { groundDraft, type GroundingFinding } from './grounding';
 import type { Profile } from './profile';
 import { findBannedWords, findEmDashes, type SlopFinding } from './slop';
+import { owesCoverLetter } from './tiers';
 
 /**
  * One posting plus one profile becomes one validated application
@@ -346,7 +347,50 @@ async function generate(
     );
   }
 
+  checkTier(stage, result.data, options.tier);
+
   return result.data;
+}
+
+/**
+ * The one part of the contract `applicationSchema` cannot check: it validates
+ * one application and never learns which plan was bought, so `coverLetter` is
+ * nullable there for all three tiers. Only this function has both.
+ *
+ * Caught in anger 2026-08-06. On a posting the profile did not fit, the model
+ * returned `recommendation: "skip"` and, reasonably enough, no cover letter --
+ * nothing in `draft.ts` had ever told it the letter is owed either way. The
+ * schema passed it, the row was written, the result screen rendered its score
+ * and its flags, and only `renderApplication` refused, because the standard
+ * tier owes a letter it did not have. By then all three calls were paid for and
+ * the download was a dead end no retry could clear: re-rendering re-reads the
+ * same stored row. The same posting on an earlier run had produced a letter
+ * alongside the same `skip`, so it failed intermittently, which is worse.
+ *
+ * `draft.ts` now says it outright, which is the actual fix. This is the guard
+ * that keeps a model's mood from reaching storage: it fires on the draft, so
+ * the review and revise calls are never spent on an application that cannot be
+ * delivered, and it makes `renderApplication`'s own check the unreachable
+ * backstop its comment already claims to be.
+ */
+function checkTier(
+  stage: 'draft' | 'revise',
+  { coverLetter }: Application,
+  tier: ApplyOptions['tier'],
+): void {
+  if (owesCoverLetter(tier) && coverLetter === null) {
+    throw new ApplicationError(
+      stage,
+      `the ${tier} tier owes a cover letter and none was written`,
+    );
+  }
+
+  if (!owesCoverLetter(tier) && coverLetter !== null) {
+    throw new ApplicationError(
+      stage,
+      `the ${tier} tier is resume only and a cover letter was written`,
+    );
+  }
 }
 
 function toJson(stage: 'draft' | 'revise', response: string): unknown {

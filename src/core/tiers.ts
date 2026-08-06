@@ -40,3 +40,16 @@ export const TIER_FILES: Record<
     ['cover-letter', 'docx'],
   ],
 };
+
+/**
+ * Whether a plan owes a cover letter, read off the file list above rather than
+ * written out a second time, so the two can never disagree.
+ *
+ * `applicationSchema` cannot answer this: it validates one application and has
+ * no idea which plan was bought, so `coverLetter` is nullable there for every
+ * tier. The tier is only in hand in `core/apply.ts`, which is where this is
+ * enforced -- see the comment on `checkTier` there for the run this cost.
+ */
+export function owesCoverLetter(tier: Tier): boolean {
+  return TIER_FILES[tier].some(([kind]) => kind === 'cover-letter');
+}

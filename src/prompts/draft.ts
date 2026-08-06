@@ -369,10 +369,26 @@ function dimensionRules(options: DraftOptions): string {
 function coverLetterRule(tier: DraftOptions['tier']): string {
   if (tier === 'basic') {
     return `This tier is resume only. Set \`"coverLetter"\` to \`null\` and do not
-write one.`;
+write one. This holds whatever \`recommendation\` you reached.`;
   }
 
-  return `One page, four short paragraphs at most.
+  // The sentence below is load-bearing, and it is here because it was missing.
+  // Measured against a posting the profile did not fit: the model returned
+  // `recommendation: "skip"` and `"coverLetter": null`, having read the verdict
+  // as permission not to write one. Nothing here had said otherwise. The tier
+  // is what the applicant chose, not a reward for a good score, and `skip` is
+  // advice they are free to overrule -- which they cannot do with no letter.
+  //
+  // `reviseSystemPrompt` above has said exactly this for a while ("A `"skip"`
+  // does not cancel the work"). The lesson was learned on the pass that carries
+  // the verdict and never applied to the pass that reaches it first, so revise
+  // dutifully carried a `null` through.
+  return `This tier owes a cover letter. Write one even when you recommend
+\`"skip"\`: the recommendation is advice, the applicant decides, and they cannot
+act against your advice with an empty document. \`"coverLetter"\` is never
+\`null\` on this tier.
+
+One page, four short paragraphs at most.
 
 - Open with something concrete about them or the role, not about the applicant.
 - Anchor the middle in one real project or result that maps to their need. Show,

@@ -486,6 +486,72 @@ describe('a critique that demands a fabrication', () => {
   });
 });
 
+/**
+ * The contract `applicationSchema` cannot hold, because it validates one
+ * application and never learns which plan was bought.
+ *
+ * Caught in anger 2026-08-06 on a real run: a `"skip"` verdict came back with
+ * `"coverLetter": null` on the standard tier, the schema passed it, the row was
+ * stored, and only `renderApplication` refused -- after all three calls were
+ * paid for, and with no retry that could ever clear it, since re-rendering
+ * re-reads the same stored row. `draft.ts` now says the letter is owed whatever
+ * the verdict; this is the guard that keeps the next mood swing out of storage.
+ */
+describe('applyToPosting holds the tier to its files', () => {
+  it('refuses a standard application with no cover letter', async () => {
+    await expect(
+      applyToPosting(
+        providerReturning(
+          applicationJson({ recommendation: 'skip', coverLetter: null }),
+        ),
+        OPTIONS,
+      ),
+    ).rejects.toThrow(ApplicationError);
+  });
+
+  it('refuses a full application with no cover letter', async () => {
+    await expect(
+      applyToPosting(
+        providerReturning(applicationJson({ coverLetter: null })),
+        { ...OPTIONS, tier: 'full' },
+      ),
+    ).rejects.toThrow(ApplicationError);
+  });
+
+  it('refuses a basic application that carries one anyway', async () => {
+    await expect(
+      applyToPosting(providerReturning(applicationJson()), {
+        ...OPTIONS,
+        tier: 'basic',
+      }),
+    ).rejects.toThrow(ApplicationError);
+  });
+
+  it('accepts a basic application with no cover letter', async () => {
+    const { application } = await applyToPosting(
+      providerReturning(applicationJson({ coverLetter: null })),
+      { ...OPTIONS, tier: 'basic' },
+    );
+
+    expect(application.coverLetter).toBeNull();
+  });
+
+  // The whole point of checking at the draft rather than at the download: the
+  // review and revise calls are never spent on an application that could not
+  // have been delivered.
+  it('stops at the draft, before the review and revise calls are paid for', async () => {
+    const { calls, provider } = recording(
+      providerReturning(applicationJson({ coverLetter: null })),
+    );
+
+    await expect(applyToPosting(provider, OPTIONS)).rejects.toThrow(
+      ApplicationError,
+    );
+
+    expect(calls).toHaveLength(1);
+  });
+});
+
 describe('applyToPosting rejects', () => {
   it('a response that is not JSON', async () => {
     await expect(
