@@ -15,6 +15,19 @@ export type Step = {
   /** A real, server-discovered sub-line under the label. Never predicted:
    *  absent until the caller actually has something to report. */
   detail?: string;
+  /**
+   * Whether this stage reports a `detail` at all, which the caller knows and
+   * this component cannot: `starting` and `saving` have nothing to count,
+   * `draft` and `parsing` do.
+   *
+   * It reserves the sub-line's height before the sub-line exists, so the row
+   * is its final size from the first frame. Not a prediction -- nothing is
+   * drawn, no progress is claimed, and the space stays empty if the stage
+   * turns out to have nothing to say. What it removes is the card growing a
+   * line under the reader every time a count lands, which pushed the whole
+   * run screen past the viewport partway through a run (SLICE-24 §2.1).
+   */
+  expectsDetail?: boolean;
 };
 
 /**
@@ -50,7 +63,7 @@ export function Steps({ steps, label }: { steps: Step[]; label: string }) {
                 <span className={styles.label}>{step.label}</span>
                 {step.meta && <span className={styles.meta}>{step.meta}</span>}
               </div>
-              {step.detail && (
+              {(step.detail ?? step.expectsDetail) && (
                 <p key={step.detail} className={styles.detail}>
                   {step.detail}
                 </p>

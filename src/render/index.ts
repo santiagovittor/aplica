@@ -1,5 +1,10 @@
 import type { Application } from '../core/application';
-import type { ApplyOptions } from '../core/apply';
+import {
+  type DocumentKind,
+  type Format,
+  type Tier,
+  TIER_FILES,
+} from '../core/tiers';
 import { type Block, parseMarkdown, type RenderFinding } from './markdown';
 import { renderDocx } from './docx';
 import { renderPdf } from './pdf';
@@ -19,11 +24,10 @@ import { renderPdf } from './pdf';
 
 export type { RenderFinding } from './markdown';
 
-/** The tier as `core` defines it, so the two can never drift apart. */
-export type Tier = ApplyOptions['tier'];
-
-export type DocumentKind = 'resume' | 'cover-letter';
-export type Format = 'pdf' | 'docx';
+/** Re-exported so this module's own callers keep importing these from the
+ *  seam they already use. The definitions moved to `core/tiers.ts`, where
+ *  `/apply`'s plan cards can read the same file list this renders from. */
+export type { DocumentKind, Format, Tier } from '../core/tiers';
 
 export interface RenderedFile {
   readonly kind: DocumentKind;
@@ -48,24 +52,6 @@ export interface RenderOptions {
   /** Goes in the filename when it is known. The columns are nullable. */
   readonly company?: string;
 }
-
-/**
- * PROJECT.md section 9, written out because it is the thing that gets
- * miscounted. Order is the order the files come back in.
- */
-const TIER_FILES: Record<Tier, readonly (readonly [DocumentKind, Format])[]> = {
-  basic: [['resume', 'pdf']],
-  standard: [
-    ['resume', 'pdf'],
-    ['cover-letter', 'pdf'],
-  ],
-  full: [
-    ['resume', 'pdf'],
-    ['cover-letter', 'pdf'],
-    ['resume', 'docx'],
-    ['cover-letter', 'docx'],
-  ],
-};
 
 const LABELS: Record<DocumentKind, string> = {
   resume: 'Resume',

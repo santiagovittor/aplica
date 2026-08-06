@@ -40,8 +40,37 @@
   color: var(--on-dark);
 }
 
+/* --- the Stage's own measurements ------------------------------------------
+   §3 says the Stage is "full-bleed --ink-deep, one paper object centred", and
+   until now this screen kept the form screen's chrome and rhythm underneath
+   that object: the page lead, a 64/128 block padding, a --space-8 gap under
+   the heading. Measured at 1440x900 the run screen came to 1079px against a
+   900px viewport, so it scrolled -- by 107px at its shortest and 179px at its
+   tallest, and `/cv`'s equivalent by 91px at its shortest.
+
+   91px is the number that matters. `checkFooter` fails a page that scrolls by
+   *less* than its own footer's height (93px here), because there is nothing
+   down there to reach but the thing that should have closed the viewport. So
+   the run screens were not merely tall, they drifted in and out of that band
+   as each stage reported a count, which is why the check could only be turned
+   off rather than fixed. Sized to fit at their tallest, they scroll by 0 in
+   every state and the question stops being timing-dependent.
+
+   The lead goes first, and Rams is the whole argument (checklist item 14):
+   "Pegá el aviso..." instructs a form that is no longer on screen. */
 :global(body[data-stage='true']) .lead {
-  color: var(--on-dark-soft);
+  display: none;
+}
+
+:global(body[data-stage='true']) .shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-block: var(--space-7);
+}
+
+:global(body[data-stage='true']) .heading {
+  margin-bottom: var(--space-6);
 }
 
 /* --- form (empty / error): the Desk grid ---------------------------------- */
@@ -73,10 +102,59 @@
   gap: var(--space-7);
 }
 
+/* The rail travels with the form instead of ending 700px above it.
+   Measured before this: the form column ran to 1171px and the rail stopped at
+   about 453px, so two thirds of the right-hand side of the screen was empty
+   for the whole scroll -- and "Adaptar mi postulación", the one button this
+   product exists for, sat at y=1127 on a 900px viewport, 227px below the fold
+   behind a textarea and three cards.
+
+   Sticky rather than a second scroll container: the settings and the action
+   they configure stay together, the flow ends somewhere you can see, and the
+   column keeps one scrollbar. `top` clears the sticky header (Header.module.css)
+   plus a gutter of air. */
 .aside {
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
+}
+
+@media (min-width: 60rem) {
+  .aside {
+    position: sticky;
+    /* --space-9 (96px) clears the 69px sticky header, measured, with a gutter
+       of air left over. A token rather than that measurement: the header's
+       height is its own business and may change, and the next step down
+       (--space-8, 64px) would not clear it at all. */
+    top: var(--space-9);
+  }
+}
+
+/* The action closes the rail, so it also closes the flow (§10: the primary
+   button is the largest target and sits where the flow ends). Its own group,
+   set off by a rule rather than by more of the same gap -- everything above it
+   describes the run, this starts it. */
+.submit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+/* The largest target on the screen, and the full width of its column. */
+.submitButton {
+  width: 100%;
+  min-height: calc(var(--target-min) + var(--space-2));
+  font-size: var(--text-lg);
+}
+
+/* What is missing, next to the control that is waiting for it (§10: nothing
+   is disabled without saying why, and the reason sits where the cursor
+   already is). */
+.missing {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
 }
 
 .chip {
@@ -125,9 +203,14 @@
   margin: 0;
 }
 
+/* `start`, not the default `stretch`: the three cards carry one, two and four
+   files, so left to stretch they all took the tallest one's height and became
+   three identical rectangles again. Their own heights are the difference
+   between the plans, drawn to scale. */
 @media (min-width: 40rem) {
   .tiers {
     grid-template-columns: repeat(3, 1fr);
+    align-items: start;
   }
 }
 
@@ -189,9 +272,69 @@
   color: var(--ink);
 }
 
-.tierDescription {
+/* SLICE-27: the three cards used to carry a prose line each -- "Currículum, en
+   PDF." / "Currículum y carta de presentación, en PDF." / "... en PDF y Word."
+   -- set in the same size, weight and colour, inside three boxes measured at
+   185x128 apiece. Three identical rectangles differing by a clause you have to
+   read to the end of.
+
+   What actually differs is the files: one, two, four (render/index.ts's
+   TIER_FILES, which is the whole definition of a tier). So the card lists them.
+   The three are now one, two and four lines tall, which is the difference
+   itself rather than a description of it, and it is legible before it is read.
+   Still no fill and no colour: selection stays weight plus the 2px --ink rule
+   (/docs D3). */
+.tierFiles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+/* Normal inline flow, not a flex row: as a flex row the document name and its
+   format were two flex items, so in a 185px card the name took the free space
+   and pushed "PDF" to the far edge, away from the document it belongs to. The
+   two are one phrase and wrap as one. */
+.tierFile {
+  position: relative;
+  padding-left: var(--space-4);
   color: var(--ink-soft);
   font-size: var(--text-xs);
+}
+
+/* The same drawn mark as the reveal's flags (FitScore.module.css): a rule, not
+   a glyph, so no stylesheet-shaped character can appear in UI copy. Out of
+   flow, so a name that wraps to a second line stays aligned under the first. */
+.tierFile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: var(--space-2);
+  height: 1px;
+  background: var(--hairline);
+}
+
+.tierCard[data-selected] .tierFile {
+  color: var(--ink);
+}
+
+.tierCard[data-selected] .tierFile::before {
+  background: var(--ink-soft);
+}
+
+/* The format reads as a stamp on the document rather than as more of its
+   name: §4's uppercase micro-label, which is what it is. `white-space: nowrap`
+   so "PDF" never breaks off the end of a wrapped name. */
+.tierFormat {
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  color: var(--ink-soft);
+}
+
+.tierCard[data-selected] .tierFormat {
+  color: var(--ink-soft);
 }
 
 .research {
@@ -248,11 +391,6 @@
   color: var(--clay);
 }
 
-.hint {
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-}
-
 .row {
   display: flex;
   gap: var(--space-4);
@@ -283,6 +421,16 @@
   .card {
     padding: var(--space-7);
   }
+}
+
+/* "One paper object centred" (§3), now that the shell is the height of the
+   stage rather than the height of its contents. Auto margins rather than
+   `justify-content: center`: if the card ever does outgrow the space -- a
+   longer locale, a stage label that wraps -- auto margins resolve to zero and
+   it scrolls from the top, where centring would put its head above the
+   scrollable area and make the first line unreachable. */
+:global(body[data-stage='true']) .card {
+  margin-block: auto;
 }
 
 .notice {
@@ -358,21 +506,42 @@
   color: var(--on-dark-soft);
 }
 
+/* The download sheet: /docs D7's "one --paper object in that moment, the
+   brightest thing on screen", made literal.
+
+   It used to be a bordered group on the stage holding two objects -- a 32rem
+   iframe of a white PDF page, then a 52px row of --paper buttons under it. On
+   a --ink-deep ground the iframe was by far the brightest and by far the
+   largest thing on the screen, so D7's one paper object was the preview and
+   the downloads were a footnote beneath it. Measured on the old reveal, the
+   buttons sat at y=1533 on a 900px viewport.
+
+   Now the sheet itself is the paper, the two buttons are at its head, and the
+   preview is a pane inside it: one object, brightest, with the action at the
+   top of it. --shadow-float rather than --shadow-raised because this is the
+   one surface in the product that floats over a full-bleed dark ground rather
+   than lifting off paper (DESIGN.md §6). */
 .results {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  margin-top: var(--space-2);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--hairline-dark);
+  padding: var(--space-6);
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
 }
 
+/* Recessed into the sheet, the way an input is (§5's --paper-dim is the
+   sunken surface on a light ground), so it reads as a pane of the object
+   rather than as a second object sitting on it. Shorter than the 32rem it
+   was: it is the proof the documents are real, not a reader, and the tallest
+   run screen's whole budget went into getting the action above the fold. */
 .preview {
   width: 100%;
-  height: 32rem;
-  border: 1px solid var(--hairline-dark);
-  border-radius: var(--radius-md);
-  background: var(--base);
+  height: 22rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--paper-dim);
 }
 
 .downloads {
@@ -381,12 +550,14 @@
   flex-wrap: wrap;
 }
 
-/* SLICE-20 §2.5: "high contrast, large targets... the brightest object on
-   the screen." buttonStyles.secondary is already --paper on --ink-deep --
-   16.5:1, measured -- so only size grows here, on top of the shared variant
-   rather than forking it (this is the one place downloads read this large). */
+/* SLICE-20 §2.5: "high contrast, large targets." Only the border changes from
+   the shared variant: `secondary` is --paper on a --hairline border, and now
+   that the sheet under it is also --paper the hairline is not enough to draw
+   an edge. The ground stays paper -- these are the bright object, not a
+   recess in it -- and the variant's own hover and press are untouched. */
 .downloadButton {
   min-height: calc(var(--target-min) + var(--space-2));
   padding-inline: var(--space-6);
   font-size: var(--text-base);
+  border-color: var(--ink-soft);
 }

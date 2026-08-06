@@ -7,6 +7,15 @@
   gap: var(--space-2);
 }
 
+/* The number and its bar, wrapped so they enter as one (FitScore.tsx: they are
+   two readings of a single value). The wrapper re-states `.score`'s own gap
+   for the pair, which the extra element would otherwise have swallowed. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .headline {
   line-height: 1;
 }

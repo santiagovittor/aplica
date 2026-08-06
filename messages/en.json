@@ -291,16 +291,13 @@
     "tier": {
       "label": "Choose a tier",
       "basic": {
-        "title": "Basic",
-        "description": "Resume, as a PDF."
+        "title": "Basic"
       },
       "standard": {
-        "title": "Standard",
-        "description": "Resume and cover letter, as PDFs."
+        "title": "Standard"
       },
       "full": {
-        "title": "Full",
-        "description": "Resume and cover letter, as PDF and Word."
+        "title": "Full"
       }
     },
     "research": {
@@ -311,7 +308,6 @@
       }
     },
     "generate": "Tailor my application",
-    "hint": "Paste a posting to start.",
     "notice": "Writing something worth sending takes about a minute. Here is what is happening the whole way.",
     "elapsedSuffix": "s so far",
     "stages": {
@@ -372,7 +368,11 @@
       "streamInterrupted": "We lost the connection before hearing back. Wait a moment, then try again."
     },
     "retry": "Try again",
-    "retryRender": "Try the download again"
+    "retryRender": "Try the download again",
+    "missing": {
+      "posting": "The posting is missing. Paste it, or a link to it.",
+      "model": "The model name is missing. Add one under Model."
+    }
   },
   "Cv": {
     "title": "Your CV",

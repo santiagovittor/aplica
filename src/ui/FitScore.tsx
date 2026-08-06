@@ -1,8 +1,9 @@
 'use client';
 
 import NumberFlow from '@number-flow/react';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { EASE_SOFT_CSS } from './easing';
+import { EASE_SOFT, EASE_SOFT_CSS } from './easing';
 import styles from './FitScore.module.css';
 
 /**
@@ -32,6 +33,38 @@ import styles from './FitScore.module.css';
 // --dur-reveal is copied as a literal. --ease-soft is not: it lives in
 // ./easing, where one test pins it against tokens.css.
 const DUR_REVEAL_MS = 500;
+// --stagger, likewise copied: Motion cannot read a custom property either.
+const STAGGER_S = 0.05;
+/** --enter-rise. §8: enter is an 8-12px translate plus a fade, never a scale. */
+const RISE = 10;
+
+/**
+ * The entrance for one of the three parts, `i` steps into the sequence, or
+ * nothing at all when the caller has not asked for one.
+ *
+ * Three parts and not one, because the reveal has an order to say: the score
+ * lands, then the sentence explaining it, then the caveats on that sentence
+ * (SLICE-27). Read as one block, the flags arrive as loudly as the number and
+ * the reader has no idea which to look at first.
+ *
+ * Honest by DESIGN.md §8's test: every value is already known when the
+ * sequence starts, so nothing here predicts anything or performs thinking. It
+ * is a group of elements entering in the order they should be read, which is
+ * the same thing the working card's own list does.
+ */
+function enter(base: number | undefined, i: number) {
+  return base === undefined
+    ? {}
+    : {
+        initial: { opacity: 0, y: RISE },
+        animate: { opacity: 1, y: 0 },
+        transition: {
+          duration: DUR_REVEAL_MS / 1000,
+          delay: base + i * STAGGER_S,
+          ease: EASE_SOFT,
+        },
+      };
+}
 
 export interface FitScoreProps {
   /** 0-100, as `applicationSchema.fit.score` already bounds it. */
@@ -54,6 +87,13 @@ export interface FitScoreProps {
    * for this. Each call site knows its own ground; none of them changes it.
    */
   dark?: boolean;
+  /**
+   * Seconds after mount at which the first of the three parts enters, which
+   * also turns the sequence on. Absent (the Applications row, the landing
+   * tile) means no entrance of its own: those two arrive with whatever is
+   * around them and have no reveal to stage.
+   */
+  enterDelay?: number;
 }
 
 export function FitScore({
@@ -63,6 +103,7 @@ export function FitScore({
   label,
   flagsLabel,
   dark = false,
+  enterDelay,
 }: FitScoreProps) {
   const bounded = Math.min(100, Math.max(0, Math.round(score)));
 
@@ -82,24 +123,35 @@ export function FitScore({
       data-landed={landed || undefined}
       data-dark={dark || undefined}
     >
-      <div className={styles.headline}>
-        <NumberFlow
-          value={landed ? bounded : 0}
-          transformTiming={{ duration: DUR_REVEAL_MS, easing: EASE_SOFT_CSS }}
-          className={styles.number}
-        />
-        <span className="visually-hidden">{`${label}: ${bounded}`}</span>
-      </div>
-      <div className={styles.bar} role="presentation">
-        <div
-          className={styles.fill}
-          style={{ width: landed ? `${bounded}%` : '0%' }}
-        />
-      </div>
-      {verdict && <p className={styles.verdict}>{verdict}</p>}
+      {/* One: the number and the bar, which are two readings of one value and
+          so arrive together. */}
+      <motion.div className={styles.group} {...enter(enterDelay, 0)}>
+        <div className={styles.headline}>
+          <NumberFlow
+            value={landed ? bounded : 0}
+            transformTiming={{ duration: DUR_REVEAL_MS, easing: EASE_SOFT_CSS }}
+            className={styles.number}
+          />
+          <span className="visually-hidden">{`${label}: ${bounded}`}</span>
+        </div>
+        <div className={styles.bar} role="presentation">
+          <div
+            className={styles.fill}
+            style={{ width: landed ? `${bounded}%` : '0%' }}
+          />
+        </div>
+      </motion.div>
 
+      {/* Two: what the number means. */}
+      {verdict && (
+        <motion.p className={styles.verdict} {...enter(enterDelay, 1)}>
+          {verdict}
+        </motion.p>
+      )}
+
+      {/* Three: what it does not mean. */}
       {flags.length > 0 && (
-        <div className={styles.flags}>
+        <motion.div className={styles.flags} {...enter(enterDelay, 2)}>
           {flagsLabel && <p className={styles.flagsLabel}>{flagsLabel}</p>}
           <ul className={styles.flagsList}>
             {flags.map((flag, index) => (
@@ -109,7 +161,7 @@ export function FitScore({
               </li>
             ))}
           </ul>
-        </div>
+        </motion.div>
       )}
     </div>
   );

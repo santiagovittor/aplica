@@ -49,8 +49,36 @@
   color: var(--on-dark);
 }
 
+/* --- the Stage's own measurements ------------------------------------------
+   The same sizing as `/apply`, for the same measured reason and with the same
+   arithmetic: see the long comment in apply.module.css. This screen was the
+   one that actually failed -- 1063px against a 900px viewport, so 91px of
+   scroll at its shortest, which is less than the footer's own 93px and so
+   exactly the defect `checkFooter` reports. It reached 163px once every stage
+   had reported a count, which is why the check passed or failed according to
+   which instant the capture landed on.
+
+   `CvUpload` is also embedded in onboarding, which is a Column screen and
+   never sets `body[data-stage]` (/docs D4), so none of this reaches it. */
 :global(body[data-stage='true']) .lead {
-  color: var(--on-dark-soft);
+  display: none;
+}
+
+:global(body[data-stage='true']) .shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-block: var(--space-7);
+}
+
+:global(body[data-stage='true']) .heading {
+  margin-bottom: var(--space-6);
+}
+
+/* "One paper object centred" (§3). Auto margins, so a card that ever outgrows
+   the stage scrolls from the top rather than losing its head above it. */
+:global(body[data-stage='true']) .card {
+  margin-block: auto;
 }
 
 /* --- empty / error ---------------------------------------------------------

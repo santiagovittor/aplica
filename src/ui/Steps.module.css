@@ -92,7 +92,12 @@
   color: var(--ink-soft);
 }
 
+/* `1lh` rather than a pixel value on purpose: the height being held is one
+   line of this paragraph's own text, so the element states it in terms of
+   itself and there is no number here to drift from the type scale. An empty
+   one holds the space a count is about to land in (Steps.tsx, `expectsDetail`). */
 .detail {
+  min-height: 1lh;
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
