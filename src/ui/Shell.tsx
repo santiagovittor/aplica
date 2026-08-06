@@ -10,7 +10,7 @@ import styles from './Shell.module.css';
  * Shell.module.css on why this is a flex column rather than the grid §5.1
  * writes out.
  *
- * The grain and edge falloff of DESIGN.md §5a live on this element's own
+ * The grain and edge falloff of DESIGN.md §6 live on this element's own
  * pseudo-elements, so they are rendered once for the whole app rather than
  * per screen, and cover the Stage ground as readily as the cream one.
  */

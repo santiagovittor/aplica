@@ -18,7 +18,7 @@ import styles from './Header.module.css';
  * Onboarding is deliberately excluded even though it is authenticated:
  * SLICE-12 built that flow as a guided, minimal-chrome sequence, and a
  * persistent way to wander off mid-step would undo it (Zeigarnik, DESIGN.md
- * §6). The wordmark alone still renders there, because a first-run screen with
+ * §10). The wordmark alone still renders there, because a first-run screen with
  * no mark on it is the one screen that most needs to say whose product it is.
  */
 export function Header({ authenticated }: { authenticated: boolean }) {
@@ -27,6 +27,28 @@ export function Header({ authenticated }: { authenticated: boolean }) {
   const lifted = useScrolledPast(24);
 
   const onboarding = pathname.startsWith('/onboarding');
+  /**
+   * SLICE-26: the landing opens on a full-bleed --ink-deep hero that starts at
+   * the top of the viewport, so this chrome arrives already sitting on the
+   * dark ground and has to be inked for it (Header.module.css).
+   *
+   * A static decision from the route, not an observer on the hero. The SSR
+   * markup is the painted state, so anything toggled after hydration would
+   * mean dark ink on a dark ground for the length of the bundle -- and, with
+   * the bundle blocked, forever. That is the defect SLICE-25 §A removed from
+   * this page and it is not coming back in the chrome.
+   *
+   * Named for the ground rather than for the register, because they are not
+   * the same axis: `/404` and `/500` are Editorial too (DESIGN.md §10) and
+   * both sit on --base, where this ink would be invisible.
+   *
+   * The lift is suppressed with it. `lifted` is a scroll listener, so with JS
+   * off it never fires and the resting state is the only state -- which is
+   * correct over the hero and wrong the moment the reader scrolls onto the
+   * cream below it. Dropping out of flow (rather than sticking) is what settles
+   * that: the header leaves with the hero it was inked for.
+   */
+  const darkGround = pathname === '/';
 
   const links = [
     { href: '/apply', label: t('apply') },
@@ -35,7 +57,11 @@ export function Header({ authenticated }: { authenticated: boolean }) {
   ] as const;
 
   return (
-    <header className={styles.header} data-lifted={lifted || undefined}>
+    <header
+      className={styles.header}
+      data-ground={darkGround ? 'dark' : undefined}
+      data-lifted={(lifted && !darkGround) || undefined}
+    >
       <div className={styles.bar}>
         <Link href={authenticated ? '/apply' : '/'} className={styles.home}>
           <Wordmark />

@@ -283,7 +283,7 @@ export async function POST(request: Request): Promise<Response> {
     // never change, regardless of what any route's own `done`/response body
     // happens to carry. That is a different question from what this
     // read-only event may *display* -- sending one line down for the motif
-    // to show (DESIGN.md §7) is not the resume coming back as an editable
+    // to show (DESIGN.md §9) is not the resume coming back as an editable
     // body, since nothing downstream ever accepts it as input again. The
     // motif line is bounded and plain text (see application.ts's own
     // `motifLine`), never the full resume.

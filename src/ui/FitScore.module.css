@@ -1,4 +1,4 @@
-/* DESIGN.md §7 (Tufte): a large tabular number, one thin hairline bar, one
+/* DESIGN.md §9 (Tufte): a large tabular number, one thin hairline bar, one
    line verdict. Nothing here is a gauge, a ring, or a gradient meter. */
 
 .score {
@@ -35,13 +35,23 @@
   color: var(--ink-soft);
 }
 
-/* SLICE-20 §2.5 / DESIGN.md §3's fit-score exception: the apply result
-   reveal only. --human clears AA at this size (measured ~3.8:1 on
-   --ink-deep, DESIGN.md §5) but not below it, which is why this whole block
-   is scoped to the one context large enough to use it. Fraunces needs
+/* SLICE-20 §2.5 and the fit-score exception (/docs D7): the loud reading, for
+   an instance sitting directly on --ink-deep. --human clears AA at this size
+   (measured ~3.8:1 on --ink-deep, DESIGN.md §5) but not below it, which is why
+   this whole block is scoped rather than being the default. Fraunces needs
    'wght'/'SOFT' registered in the layout's font call for the bloom below to
-   do anything. */
-:global(body[data-stage='true']) .number {
+   do anything.
+
+   Two selectors per rule, one ground. `body[data-stage]` is the apply reveal,
+   where the whole page is the dark ground for the length of a run;
+   `[data-dark]` is a component that is on --ink-deep while the page around it
+   is not, which is the landing's fit tile (DESIGN.md §3, a Spread's tiles do
+   not share a ground). The flag rules further down carry the pair too even
+   though the landing passes none: a component that answers "you are on the
+   dark ground" and then renders --ink flags on it would be broken for the next
+   caller, not minimal. */
+:global(body[data-stage='true']) .number,
+.score[data-dark] .number {
   font-size: var(--text-display);
   color: var(--human);
   font-variation-settings:
@@ -51,7 +61,8 @@
   transition: font-variation-settings var(--dur-reveal) var(--ease-soft);
 }
 
-:global(body[data-stage='true']) .score[data-landed='true'] .number {
+:global(body[data-stage='true']) .score[data-landed='true'] .number,
+.score[data-dark][data-landed='true'] .number {
   --fit-wght: 600;
   --fit-soft: 40;
 }
@@ -64,16 +75,19 @@
    3.5:1. The fill and track are close in lightness (~1.1:1 apart) even so:
    the number and verdict already carry the score, so the bar stays a
    secondary, redundant reading rather than the only one. */
-:global(body[data-stage='true']) .bar {
+:global(body[data-stage='true']) .bar,
+.score[data-dark] .bar {
   background: color-mix(in srgb, var(--on-dark-soft) 65%, var(--ink-deep));
 }
 
-:global(body[data-stage='true']) .fill {
+:global(body[data-stage='true']) .fill,
+.score[data-dark] .fill {
   background: var(--human);
   transition: width var(--dur-reveal) var(--ease-soft);
 }
 
-:global(body[data-stage='true']) .verdict {
+:global(body[data-stage='true']) .verdict,
+.score[data-dark] .verdict {
   color: var(--on-dark);
   font-size: var(--text-lg);
 }
@@ -118,14 +132,17 @@
   background: var(--ink-soft);
 }
 
-:global(body[data-stage='true']) .flagsLabel {
+:global(body[data-stage='true']) .flagsLabel,
+.score[data-dark] .flagsLabel {
   color: var(--on-dark-soft);
 }
 
-:global(body[data-stage='true']) .flag {
+:global(body[data-stage='true']) .flag,
+.score[data-dark] .flag {
   color: var(--on-dark-soft);
 }
 
-:global(body[data-stage='true']) .marker {
+:global(body[data-stage='true']) .marker,
+.score[data-dark] .marker {
   background: var(--on-dark-soft);
 }

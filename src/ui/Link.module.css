@@ -1,4 +1,4 @@
-/* DESIGN.md §9: "Links draw their underline from left to right over
+/* DESIGN.md §10: "Links draw their underline from left to right over
    --dur-micro." One implementation, composed in by every link that wants it,
    rather than five near-copies of the same four declarations.
 

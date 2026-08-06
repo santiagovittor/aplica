@@ -4,7 +4,7 @@ import styles from './Card.module.css';
 type CardProps = HTMLAttributes<HTMLElement> & {
   children: ReactNode;
   /* An empty card invites the next action, so it centres its content and
-     breathes more than a working card. DESIGN.md §9. */
+     breathes more than a working card. DESIGN.md §10. */
   empty?: boolean;
 };
 
@@ -26,7 +26,7 @@ export function Card({
 }
 
 /* The loading state for anything card-shaped: static paper-value bars that hold
-   the shape of the content that is coming. DESIGN.md §9. */
+   the shape of the content that is coming. DESIGN.md §10. */
 export function Placeholder({
   lines = 3,
   label,

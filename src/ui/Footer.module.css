@@ -63,8 +63,18 @@
 
 /* Hover keeps its own timing on the dark ground: the step above is for the
    ground change, and a link still has to answer the cursor over --dur-micro
-   (DESIGN.md §9). The one seam left is un-hovering *during* a run, which
-   takes the rule above and so snaps rather than fades. */
+   (DESIGN.md §10). The one seam left is un-hovering *during* a run: leaving
+   hover lands on the rule above, so the colour steps in one frame instead of
+   fading over 180ms.
+
+   SLICE-24 §4 looked at fixing it and did not. CSS has one rule for both
+   changes -- the resting dark state is the destination of the ground change
+   and of un-hovering alike -- so the only way to time them differently is to
+   put them on different properties, and every version of that costs real
+   machinery: two @property-registered numbers feeding one colour-mix, or
+   hover answering with opacity, which is a blend this palette does not have a
+   token for. A one-frame step between --on-dark and --on-dark-soft, on a
+   footer link, only while a run is on screen, is not worth either. */
 :global(body[data-stage='true']) .link:hover {
   color: var(--on-dark);
   transition-duration: var(--dur-micro);

@@ -138,14 +138,6 @@
   scroll-margin-top: var(--space-9);
 }
 
-.eyebrow {
-  font-size: var(--text-xs);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: var(--eyebrow-tracking);
-  color: var(--ink-soft);
-}
-
 .sectionTitle {
   font-size: var(--text-xl);
 }
@@ -171,13 +163,11 @@
 
 /* Last, and ruled in --clay so destruction reads as destruction before it is
    read at all. The destructive action itself stays one disclosure deep
-   (DESIGN.md §6), which `DeleteAccount` handles. */
+   (DESIGN.md §10), which `DeleteAccount` handles. Since SLICE-24 §2.5 took the
+   eyebrows off this page, the rule is the whole of that signal, which is what
+   it was doing anyway. */
 .dangerSection {
   border-top-color: var(--clay);
-}
-
-.dangerEyebrow {
-  color: var(--clay);
 }
 
 /* --- the key form's panel -------------------------------------------- */

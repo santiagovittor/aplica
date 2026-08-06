@@ -7,7 +7,7 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   variant?: Variant;
   children: ReactNode;
   /* While loading the button reports what is actually running, rather than
-     spinning. DESIGN.md §2 and §6: honest, and acknowledged within 400ms. */
+     spinning. DESIGN.md §8 and §10: honest, and acknowledged within 400ms. */
   loading?: boolean;
   loadingLabel?: ReactNode;
   /* ponytail: styleguide-only, forces a visual state so hover/focus/press can be

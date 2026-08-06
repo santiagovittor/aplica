@@ -1,0 +1,59 @@
+/* DESIGN.md §8's enter, on a scroll timeline in CSS rather than in JS.
+
+   SLICE-25 §B: this was a Motion component with `initial={{ opacity: 0 }}`, and
+   Motion serialises `initial` into the server-rendered markup as an inline
+   style attribute. `opacity: 0` was therefore the state the document *painted*,
+   and the only thing that ever raised it was hydration -- so a visitor whose
+   bundle was slow, blocked, or still parsing got a landing page whose entire
+   body below the hero was invisible. Measured with JavaScript disabled: all
+   three sections at `opacity:0;transform:translateY(12px)`, permanently, on the
+   one screen in this product whose job is to be read by a stranger.
+
+   CSS has no such state to leak. The resting value below is what the server
+   paints, what a browser without scroll timelines keeps, and what a reader who
+   asked for reduced motion gets; the animation is layered on top of it, never
+   underneath it. `prefers-reduced-motion` is honoured in the cascade rather
+   than through a JS wrapper, which is DESIGN.md §8's own wording, and the whole
+   thing costs no bundle.
+
+   The range is `entry`: the fade completes once the element's bottom edge
+   reaches the viewport's bottom edge, which is a long way above the vertical
+   centre that DESIGN.md §8 sets as the deadline for scroll-linked opacity. An
+   element already in view on arrival is past the end of its own range, so it
+   paints at the resting state with nothing to wait for -- that is what makes
+   this correct on first paint as well as on scroll.
+
+   `linear`, and it is not an exception to the one-easing rule. On a scroll
+   timeline the reader's own scrolling is the timing function; putting
+   --ease-soft on top of it would make the fade lag the scroll that is driving
+   it, which is the decoupling §8's easing rule exists to prevent, not an
+   instance of it.
+
+   No stagger, unlike a group enter. These are ruled sections most of a screen
+   apart, each crossing its own range at its own scroll position, so they
+   already arrive in sequence. A delay on top would be holding back an arrival
+   the reader triggered themselves. */
+
+.reveal {
+  /* The resting state, and the whole point of this file: the server paints it. */
+  opacity: 1;
+}
+
+@keyframes reveal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-rise));
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation-name: reveal-enter;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}

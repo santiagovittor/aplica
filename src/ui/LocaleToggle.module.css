@@ -1,8 +1,8 @@
-/* The same segmented control /apply's EN/ES uses, which is what DESIGN.md §5a's
-   accent inventory asks for by name. Before this it was two loose buttons with
-   the selected one wearing the paper-and-hairline secondary: the same decision
-   as /apply's, rendered a second way, and the one without the --green fill the
-   inventory specifies. */
+/* The same segmented control /apply's EN/ES uses, which is what DESIGN.md §5's
+   accent inventory asks for: one strip, the selected option filled (/docs D3).
+   Before this it was two loose buttons with the selected one wearing the
+   paper-and-hairline secondary: the same decision as /apply's, rendered a
+   second way, and the one without the --green fill the inventory specifies. */
 .group {
   composes: group from './Segmented.module.css';
   /* Both callers put this inside a stretching flex column, and `inline-flex`

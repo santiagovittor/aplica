@@ -198,7 +198,7 @@ describe('the generation route streams', () => {
     // accepts an applicationId and re-reads the stored row (route.ts's own
     // comment, pinned on the write side by render/route.test.ts). This event
     // is read-only and may display one bounded line for the motif
-    // (DESIGN.md §7) -- so the guard here is not "no resume text ever",
+    // (DESIGN.md §9) -- so the guard here is not "no resume text ever",
     // it is "no resume text beyond that one line".
     const { raw, events } = await read(await POST(post(VALID)));
     const done = events.at(-1);

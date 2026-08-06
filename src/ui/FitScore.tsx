@@ -6,7 +6,7 @@ import { EASE_SOFT_CSS } from './easing';
 import styles from './FitScore.module.css';
 
 /**
- * DESIGN.md section 7 (Tufte), verbatim brief: "a large tabular number, one
+ * DESIGN.md section 9 (Tufte), verbatim brief: "a large tabular number, one
  * thin hairline bar, one-line verdict. No gauge, no ring, no gradient meter.
  * Honest flags are plain text with a small marker, never traffic-light
  * pills." Shared rather than apply-specific markup (SLICE-13 decision 6):
@@ -16,11 +16,11 @@ import styles from './FitScore.module.css';
  *
  * The bar's fill is neutral ink, not colour-coded by score or
  * recommendation. Colour-coding it would be a third encoding of the same
- * value on top of the number and the bar's own length, which section 7's own
+ * value on top of the number and the bar's own length, which section 9's own
  * "never encode one value more than twice" rules out.
  *
  * SLICE-20 §2.5: on the apply result reveal specifically (`body[data-stage]`
- * true, DESIGN.md §3's fit-score exception), the number, bar and verdict get
+ * true, the fit-score exception of /docs D7), the number, bar and verdict get
  * a second, louder reading -- --text-display, --human, a Fraunces weight/SOFT
  * bloom, a bar that draws in. A future light-ground row (the Applications
  * list this component is already shared for) keeps today's quiet defaults;
@@ -43,6 +43,17 @@ export interface FitScoreProps {
   label: string;
   /** Heading over the flags list. Only rendered when there are flags. */
   flagsLabel?: string;
+  /**
+   * Whether this instance sits directly on --ink-deep, which is what turns on
+   * the loud reading described below.
+   *
+   * The same prop, for the same reason, as `Motif`'s: `body[data-stage]` is
+   * the ambient signal and it answers a different question. It is true for the
+   * length of a run on `/apply` and `/cv` alike, and false on a landing page
+   * that is not running anything at all, so a dark tile there could never ask
+   * for this. Each call site knows its own ground; none of them changes it.
+   */
+  dark?: boolean;
 }
 
 export function FitScore({
@@ -51,6 +62,7 @@ export function FitScore({
   flags,
   label,
   flagsLabel,
+  dark = false,
 }: FitScoreProps) {
   const bounded = Math.min(100, Math.max(0, Math.round(score)));
 
@@ -65,7 +77,11 @@ export function FitScore({
   }, []);
 
   return (
-    <div className={styles.score} data-landed={landed || undefined}>
+    <div
+      className={styles.score}
+      data-landed={landed || undefined}
+      data-dark={dark || undefined}
+    >
       <div className={styles.headline}>
         <NumberFlow
           value={landed ? bounded : 0}

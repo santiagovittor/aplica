@@ -53,3 +53,14 @@
   transition-duration: var(--dur-invert);
   transition-delay: var(--delay-invert);
 }
+
+/* SLICE-26: the same inversion, on the Editorial ground rather than the Stage
+   one. The mark is the only chrome an unauthenticated visitor sees, so on the
+   landing it is the whole of what would otherwise be dark ink on a dark hero.
+   No transition and no delay here: that pair times a ground that is *moving*
+   (tokens.css, --delay-invert), and this ground does not move -- it is the
+   route's own, painted before anything is on screen to cross. */
+:global(header[data-ground='dark']) .wordmark {
+  color: var(--on-dark);
+  text-shadow: none;
+}

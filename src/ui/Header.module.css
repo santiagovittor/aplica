@@ -35,6 +35,33 @@
   border-bottom-color: var(--hairline-dark);
 }
 
+/* SLICE-26, the Editorial ground. On the landing this chrome sits on the hero's
+   own --ink-deep rather than on the body's --base, so it is inked for it from
+   the first paint (Header.tsx, `darkGround`).
+
+   Out of the flow, not sticky. A sticky header still occupies a band of its
+   own -- it stops moving, it does not stop taking up room -- so leaving it in
+   flow would push the hero down and put a strip of cream above it: a band of
+   paper, a band of ink, a band of paper, which reads as three sections rather
+   than as a hero. Taken out, the hero starts at y=0 and this rides over it.
+
+   It scrolls away rather than following, and that is the point: the ink here
+   is right for the ground it was placed on, and the only way to be wrong is to
+   still be on screen once that ground is gone. */
+.header[data-ground='dark'] {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+}
+
+.header[data-ground='dark'] .link {
+  color: var(--on-dark-soft);
+}
+
+.header[data-ground='dark'] .link:hover {
+  color: var(--on-dark);
+}
+
 .bar {
   display: flex;
   align-items: center;
@@ -52,7 +79,7 @@
 }
 
 /* The mark's own link. No underline draw on it: it is a mark, not a word in a
-   sentence, so it responds the way a surface does (DESIGN.md §9) -- a 1px
+   sentence, so it responds the way a surface does (DESIGN.md §10) -- a 1px
    rise on hover, a 1px drop on press. */
 .home {
   display: inline-flex;

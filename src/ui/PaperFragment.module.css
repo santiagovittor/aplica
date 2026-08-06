@@ -1,0 +1,106 @@
+/* DESIGN.md §7's paper fragment: a real document, cropped, lying on a surface.
+   See PaperFragment.tsx for what is being rendered and why it is not markup
+   somebody wrote to look like a resume. */
+
+/* The window the page is seen through. It clips, so the crop is a cut edge
+   rather than a fade: a gradient here would be the kind §5 bans, a thing a
+   reviewer can point at and name.
+
+   --paper-dim is the desk under the sheet. The tile around this is --paper and
+   so is the document, which is what real paper on real paper looks like: the
+   float shadow separates them, and this recessed step is what stops the two
+   whites from being one shape when the shadow falls on the sheet's own colour.
+
+   The ratio, rather than a height: this sits at the foot of a tile whose width
+   answers the grid, and a fixed height would crop a different amount of
+   document at every breakpoint for no reason anybody chose. */
+.frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: var(--paper-dim);
+  margin: 0;
+}
+
+/* The page itself, pinned rather than laid out: it is taller than the window on
+   purpose, and a document that pushed its frame open would not be a crop.
+   --shadow-float is the weight DESIGN.md §6 keeps for a thing in front of
+   another material rather than resting on it. */
+.sheet {
+  position: absolute;
+  inset-block-start: var(--space-5);
+  inset-inline-start: var(--space-5);
+  width: 40ch;
+  padding: var(--space-5);
+  background: var(--paper);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+@media (min-width: 60rem) {
+  .sheet {
+    inset-block-start: var(--space-6);
+    inset-inline-start: var(--space-6);
+    width: 46ch;
+    padding: var(--space-6);
+  }
+}
+
+/* The document's own typography, which is Helvetica at 10pt in the file the
+   applicant downloads (`src/render/pdf.ts`). The body face here rather than
+   Fraunces for exactly that reason: this is a picture of a document, and a
+   resume set in a display serif is not the document this product produces.
+   Sizes and spacing come from the scale, since it is being rendered by this
+   page and not by react-pdf.
+
+   Every level differs from the body in at least two of size, weight and space
+   (DESIGN.md §4). The section headings differ in weight and space alone
+   because they do in the file too: 12pt bold over 10pt regular is a step this
+   scale has no room for under --text-xs. */
+.h1 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-block-end: var(--space-3);
+}
+
+.h2 {
+  font-weight: 600;
+  margin-block-start: var(--space-4);
+  margin-block-end: var(--space-1);
+}
+
+.h3 {
+  font-weight: 600;
+  margin-block-start: var(--space-3);
+}
+
+.paragraph {
+  margin-block-end: var(--space-2);
+}
+
+.list {
+  list-style: none;
+  margin-block-end: var(--space-2);
+}
+
+/* A hanging indent, so a wrapped bullet reads as one bullet -- the same shape
+   `pdf.ts` builds with a fixed-width marker column. The marker is drawn rather
+   than typed, like FitScore's flag markers: no glyph decision leaks into a
+   stylesheet, and there is no character here to get wrong. */
+.item {
+  position: relative;
+  padding-inline-start: var(--space-4);
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.65em;
+  width: var(--space-2);
+  height: 1px;
+  background: var(--ink-soft);
+}

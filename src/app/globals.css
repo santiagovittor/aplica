@@ -42,7 +42,7 @@ body[data-stage='true'] {
   background: var(--ink-deep);
 }
 
-/* DESIGN.md §5a, impression: ink pressed into paper leaves an edge, so a
+/* DESIGN.md §6, impression: ink pressed into paper leaves an edge, so a
    heading on a light ground carries a 1px light highlight below it. Set here
    once rather than per screen, so a new heading cannot ship without it. On the
    dark ground there is no highlight, which is why the few headings that sit
@@ -92,7 +92,7 @@ a {
   white-space: nowrap;
 }
 
-/* DESIGN.md §9: a designed focus ring on every focusable element. Set globally so
+/* DESIGN.md §10: a designed focus ring on every focusable element. Set globally so
    a component cannot ship without one; components may move it, never remove it. */
 :focus-visible {
   outline: var(--focus-width) solid var(--green);

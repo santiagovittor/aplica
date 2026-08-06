@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/session';
 import { listApplications } from '@/lib/supabase';
 import buttonStyles from '@/ui/Button.module.css';
 import { FitScore } from '@/ui/FitScore';
+import { Motif } from '@/ui/Motif';
 import styles from './applications.module.css';
 
 /**
@@ -38,12 +39,21 @@ export default async function ApplicationsPage({
       </header>
 
       {applications.length === 0 ? (
+        /* SLICE-24 §2.3: the empty state is one of DESIGN.md §9's three motif
+           homes and had never rendered the motif -- so the one screen in the
+           product with nothing to show was also the one showing the least of
+           what the product does. A fixed demo pair, because no application
+           exists yet to draw a real line from, which is §9's own instruction
+           for exactly this case. */
         <div className={styles.empty}>
+          <div className={styles.emptyMotif}>
+            <Motif human={t('empty.motifHuman')} />
+          </div>
           <h2 className={styles.emptyInvite}>{t('empty.invite')}</h2>
           <p className={styles.emptyBody}>{t('empty.body')}</p>
           <Link
             href="/apply"
-            className={`${buttonStyles.button} ${buttonStyles.primary}`}
+            className={`${buttonStyles.button} ${buttonStyles.primary} ${styles.emptyCta}`}
           >
             {t('empty.cta')}
           </Link>

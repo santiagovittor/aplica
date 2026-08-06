@@ -2,12 +2,26 @@
    steps, capped at the measure; signing in is the first onboarding step. Every
    value here is a token. */
 
+/* SLICE-24 §2.1: captured for the first time, and the capture showed the
+   footer off the bottom of every one of these screens. This element used to
+   carry its own `min-height: 100dvh` and centre its panel inside it, on top of
+   the shell that is already exactly one viewport tall (Shell.module.css) -- so
+   every auth screen was a viewport plus a header plus a footer, scrolled by
+   the height of chrome nobody could see, with the page's own closing rule
+   below the fold. Top-aligned instead, which is what onboarding, /account,
+   /apply, /cv and both legal pages already do, and the shell's middle band
+   holds the footer down.
+
+   The bottom step is smaller than the top one, which is not decoration: at
+   1440x900 the longest of these screens (sign-up, with a second button and a
+   divider) stands 638px of content in a band 738px tall, and a symmetric
+   64/128 would put the last 90px of the page under the fold for nothing. The
+   footer contributes its own --space-5 of air above its rule, so what reads
+   under the last link is 56px, not 32. */
 .shell {
   display: grid;
-  align-content: center;
   justify-items: center;
-  min-height: 100dvh;
-  padding: var(--space-8) var(--margin-outer);
+  padding: var(--space-8) var(--margin-outer) var(--space-6);
 }
 
 .panel {
@@ -40,12 +54,15 @@
   gap: var(--space-7);
 }
 
-/* §3 hierarchy: 12px from a label to its control, so 32px between one field and
-   the next. A uniform gap would say nothing is related and nothing is separate. */
+/* §3 hierarchy: 8px from a label to its control, 24px between one field and the
+   next, 48px between one group and the next. A uniform gap would say nothing is
+   related and nothing is separate. This was 32px, which is a legal token but
+   sat one step under the 48 above it rather than the two the rule asks for --
+   and the 8px it returns is 8px the footer needs. */
 .fields {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .error {
@@ -86,7 +103,7 @@
   color: var(--ink-soft);
 }
 
-/* DESIGN.md §9: the underline draws on hover rather than sitting there
+/* DESIGN.md §10: the underline draws on hover rather than sitting there
    static, the same rule every other link in the product now follows. */
 .link {
   composes: underline from '@/ui/Link.module.css';
