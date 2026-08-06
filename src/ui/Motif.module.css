@@ -20,6 +20,21 @@
   /* The human line starts writing once the strike has finished drawing. */
   --motif-sequence: calc(var(--motif-strike-delay) + var(--dur-draw));
 
+  /* The strike's anchor. `rough-notation` inserts its SVG as a sibling of the
+     struck sentence at `position: absolute; top: 0; left: 0`, then draws the
+     path at the sentence's offset *from that SVG* -- so the drawing is only in
+     the right place if the SVG's containing block does not move afterwards.
+     With nothing positioned above it, the containing block was whichever
+     transformed ancestor happened to exist at the moment it was drawn, and
+     when Motion finished the reveal's entrance and dropped its transform, the
+     SVG fell to the top of the document and took the strike with it. Measured
+     on the result reveal: the sentence at y=1122, the strike at y=39, at every
+     network timing.
+
+     One declaration fixes it everywhere and for good: the figure is the
+     containing block, so the anchor is the object the strike belongs to. */
+  position: relative;
+
   display: flex;
   flex-direction: column;
   gap: var(--space-5);

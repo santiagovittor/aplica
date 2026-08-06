@@ -22,12 +22,18 @@ export function Button({
   loadingLabel,
   disabled,
   type = 'button',
+  className,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type={type}
-      className={`${styles.button} ${styles[variant]}`}
+      // Merged, not overwritten. `className` used to fall through in `rest`,
+      // which lands *after* this attribute and so replaced the variant with
+      // whatever a caller passed -- a caller adding one adjustment silently
+      // lost the button entirely. A caller that wants to grow the target or
+      // the type can now say so and keep the variant it asked for.
+      className={`${styles.button} ${styles[variant]}${className ? ` ${className}` : ''}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}

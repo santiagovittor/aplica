@@ -291,16 +291,13 @@
     "tier": {
       "label": "Elegí un plan",
       "basic": {
-        "title": "Básico",
-        "description": "Currículum, en PDF."
+        "title": "Básico"
       },
       "standard": {
-        "title": "Estándar",
-        "description": "Currículum y carta de presentación, en PDF."
+        "title": "Estándar"
       },
       "full": {
-        "title": "Completo",
-        "description": "Currículum y carta de presentación, en PDF y Word."
+        "title": "Completo"
       }
     },
     "research": {
@@ -311,7 +308,6 @@
       }
     },
     "generate": "Adaptar mi postulación",
-    "hint": "Pegá un aviso para empezar.",
     "notice": "Escribir algo que valga la pena mandar tarda alrededor de un minuto. Esto es lo que está pasando mientras tanto.",
     "elapsedSuffix": "s hasta ahora",
     "stages": {
@@ -372,7 +368,11 @@
       "streamInterrupted": "Perdimos la conexión antes de tener noticias. Esperá un momento y probá de nuevo."
     },
     "retry": "Probar de nuevo",
-    "retryRender": "Probar la descarga de nuevo"
+    "retryRender": "Probar la descarga de nuevo",
+    "missing": {
+      "posting": "Falta el aviso. Pegalo, o pegá un enlace a él.",
+      "model": "Falta el nombre del modelo. Agregá uno en Modelo."
+    }
   },
   "Cv": {
     "title": "Tu CV",

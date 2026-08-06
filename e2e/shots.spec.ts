@@ -100,16 +100,6 @@ async function capture(
     wordmark?: boolean;
     contrast?: boolean;
     /**
-     * SLICE-24: whether the footer's own check runs. Off for the two mid-run
-     * captures, and nowhere else. That check now also reports a page that
-     * scrolls by less than its footer's height, which is a statement about a
-     * screen at rest; a working card grows by a line every time a stage
-     * reports a real count, so on those two screens it measures whichever
-     * instant the capture happened to land on rather than a layout. Measured
-     * during a parse: 60px of overflow ten seconds in, and more by the end.
-     */
-    footer?: boolean;
-    /**
      * SLICE-26: whether the pixels behind text over a photograph are read
      * back (`checkComposite`). Opt-in rather than opt-out, and the only
      * check here that is: DESIGN.md §7 is Editorial-only and §2 bans
@@ -166,9 +156,7 @@ async function capture(
     // Only at the desktop breakpoint: §6.2 states the footer rule at
     // 1440x900, and hover is not a thing a 390px touch viewport has.
     if (breakpoint.name === 'desktop') {
-      if (options.footer !== false) {
-        found.push(...(await checkFooter(page)));
-      }
+      found.push(...(await checkFooter(page)));
       if (options.hover !== false) {
         found.push(...(await checkHover(page)));
       }
@@ -520,7 +508,6 @@ test.describe('the real flow', () => {
     await capture(page, 'cv-midrun', {
       motif: false,
       hover: false,
-      footer: false,
     });
 
     await expect(
@@ -591,7 +578,6 @@ test.describe('the real flow', () => {
     await capture(page, 'apply-midrun', {
       motif: false,
       hover: false,
-      footer: false,
     });
 
     await expect(

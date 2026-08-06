@@ -37,6 +37,15 @@ const STAGE_ORDER: readonly ServerStage[] = [
   'saving',
 ];
 
+/** The stages that report a real count as they finish, and so the ones whose
+ *  row holds a line for it. `uploading` is the client's own phase and `saving`
+ *  has nothing to count; both say nothing and reserve nothing. */
+const REPORTING_STAGES: readonly ServerStage[] = [
+  'reading',
+  'parsing',
+  'checking',
+];
+
 const ERROR_CODES = [
   'unauthorized',
   'bad_request',
@@ -415,6 +424,12 @@ export function CvUpload({
       statusLabel: t(`stageStatus.${status}`),
       meta,
       detail: stage === 'uploading' ? undefined : detailLine(stage),
+      // The three `detailLine` can ever answer for. Holding their line from
+      // the first frame is what keeps this card one height for a whole parse,
+      // and the run screen inside one viewport.
+      expectsDetail:
+        stage !== 'uploading' &&
+        REPORTING_STAGES.includes(stage as ServerStage),
     };
   });
 

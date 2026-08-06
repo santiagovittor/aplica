@@ -66,8 +66,18 @@
 
 /* The content band takes every spare pixel, which is what holds the footer
    down. `min-width: 0` so a wide child (the result reveal's PDF preview)
-   shrinks rather than widening the whole column. */
+   shrinks rather than widening the whole column.
+
+   A flex column rather than a block, so a screen that wants the leftover
+   height can ask for it with `flex: 1` instead of re-deriving it from
+   `100dvh` minus a header and a footer whose heights are nobody's to hardcode.
+   The Stage run screens are the one caller (apply/cv.module.css): they centre
+   one paper object in whatever the chrome leaves. It is a no-op for every
+   other screen -- a single block child of a stretch-aligned flex column lays
+   out exactly as it did as a block child. */
 .main {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
 }

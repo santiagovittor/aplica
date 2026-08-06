@@ -4,6 +4,7 @@ import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { TIER_FILES } from '@/core/tiers';
 import { Link } from '@/i18n/navigation';
 import { detectPostingLanguage } from '@/lib/detect-language';
 import { Button } from '@/ui/Button';
@@ -43,6 +44,11 @@ const STAGE_ORDER: readonly GenStage[] = [
   'revise',
   'saving',
 ];
+
+/** The stages that finish with a real count to report, and so the ones whose
+ *  row holds a line for it (`detailLine` below answers for these three and
+ *  nothing else). */
+const REPORTING_STAGES: readonly GenStage[] = ['draft', 'review', 'revise'];
 
 const ERROR_CODES = [
   'unauthorized',
@@ -123,25 +129,52 @@ const WORKING_VARIANTS = {
   },
 };
 
-/** DESIGN.md §10 peak-end: the result reveal gets the motion budget. Staggered
- *  60ms per SLICE-20 §2.5, starting the instant the working card has
- *  dissolved (`delayChildren` matches its exit duration above) so the two
- *  read as one move rather than a fade-out-then-fade-in. */
-const DONE_CONTAINER = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.06, delayChildren: DUR_MICRO_S },
-  },
-};
+/**
+ * DESIGN.md §10 peak-end: the result reveal gets the motion budget, and §8
+ * says what it may be spent on. Enter is a --enter-rise translate plus a fade,
+ * one --stagger apart, starting the instant the working card has dissolved so
+ * the two read as one move rather than a fade-out-then-fade-in.
+ *
+ * **Every step names its own position rather than inheriting one.** This was a
+ * `staggerChildren` container, which numbers its children by counting them --
+ * and half of this reveal's children are conditional on `renderStatus`, so the
+ * position of the download sheet moved depending on whether a render had
+ * failed first. The reveal has an order it has to say (score, verdict, flags,
+ * downloads) and an order derived from a child count is not that order. It
+ * costs an argument per element and it is legible at the call site.
+ *
+ * Nothing here predicts or performs thinking (§8): every value being revealed
+ * arrived before the first frame of it. It is a group of elements entering in
+ * reading order.
+ */
+const STAGGER_S = 0.05; // --stagger
+const RISE = 10; // --enter-rise
 
-const DONE_ITEM = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: DUR_REVEAL_S, ease: EASE_SOFT },
-  },
-};
+/** Step `i` of the reveal. Step 0 lands as the working card finishes leaving. */
+function step(i: number) {
+  return {
+    initial: { opacity: 0, y: RISE },
+    animate: { opacity: 1, y: 0 },
+    transition: {
+      duration: DUR_REVEAL_S,
+      delay: DUR_MICRO_S + i * STAGGER_S,
+      ease: EASE_SOFT,
+    },
+  };
+}
+
+/** Where each part of the reveal sits in that sequence. The three the fit
+ *  score owns are consecutive because it staggers them itself, from the delay
+ *  step 1 resolves to (FitScore.tsx's `enterDelay`). */
+const REVEAL = {
+  heading: 0,
+  score: 1,
+  // verdict: 2, flags: 3 -- FitScore's own, counted from `score`.
+  downloads: 4,
+  coverage: 5,
+  motif: 6,
+  again: 7,
+} as const;
 
 export function ApplyForm({
   cvOnFile,
@@ -465,6 +498,24 @@ export function ApplyForm({
 
   const showForm = phase === 'empty' || phase === 'error';
 
+  /**
+   * What the run is still waiting for, or `null` when it can start. One value
+   * rather than a boolean, because "disabled" and "why" have to agree: the
+   * button used to go dark on two different conditions and explain only one
+   * of them, so an `openai_compatible` account with an empty model field got
+   * a dead control and the hint "Paste a posting to get started" under a
+   * posting it had already pasted.
+   *
+   * Order is the order the user fills the screen in: the posting is the point
+   * of the page, the model is a setting most accounts never see.
+   */
+  const missing: 'posting' | 'model' | null =
+    posting.trim() === '' && postingUrl.trim() === ''
+      ? 'posting'
+      : requiresModel && model.trim() === ''
+        ? 'model'
+        : null;
+
   /** The real, server-discovered sub-line for a stage, or none yet: never
    *  invented, only what the server actually sent. `starting` and `saving`
    *  have nothing to report and say nothing. */
@@ -534,6 +585,10 @@ export function ApplyForm({
       statusLabel: t(`stageStatus.${status}`),
       meta,
       detail: detailLine(stage),
+      // The same three `detailLine` can ever answer for. Holding their line
+      // from the first frame is what keeps this card one height for a whole
+      // run, and the run screen inside one viewport.
+      expectsDetail: REPORTING_STAGES.includes(stage),
     };
   });
 
@@ -588,9 +643,19 @@ export function ApplyForm({
                   <span className={styles.tierTitle}>
                     {t(`tier.${option}.title`)}
                   </span>
-                  <span className={styles.tierDescription}>
-                    {t(`tier.${option}.description`)}
-                  </span>
+                  {/* The files themselves, read from the same table the
+                      renderer renders from (core/tiers.ts), so a card cannot
+                      promise a document that never arrives. */}
+                  <ul className={styles.tierFiles}>
+                    {TIER_FILES[option].map(([kind, format]) => (
+                      <li key={`${kind}.${format}`} className={styles.tierFile}>
+                        {t(`result.download.${kind}`)}{' '}
+                        <span className={styles.tierFormat}>
+                          {format.toUpperCase()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </label>
               ))}
             </fieldset>
@@ -600,22 +665,6 @@ export function ApplyForm({
                 {errorMessage(errorCode, errorLimit)}
               </p>
             )}
-
-            <div className={styles.row}>
-              <Button
-                variant="primary"
-                onClick={submit}
-                disabled={
-                  (posting.trim() === '' && postingUrl.trim() === '') ||
-                  (requiresModel && model.trim() === '')
-                }
-              >
-                {t('generate')}
-              </Button>
-              {posting.trim() === '' && postingUrl.trim() === '' && (
-                <span className={styles.hint}>{t('hint')}</span>
-              )}
-            </div>
           </div>
 
           <div className={styles.aside}>
@@ -680,6 +729,31 @@ export function ApplyForm({
                 ))}
               </div>
             </div>
+
+            {/* DESIGN.md §10: the primary is the largest target and sits where
+                the flow ends. It closes the rail, which is sticky, so it is on
+                screen for the whole scroll instead of 227px below the fold at
+                the bottom of the form column. */}
+            <div className={styles.submit}>
+              <Button
+                variant="primary"
+                className={styles.submitButton}
+                onClick={submit}
+                disabled={missing !== null}
+                aria-describedby={
+                  missing === null ? undefined : 'submitMissing'
+                }
+              >
+                {t('generate')}
+              </Button>
+              {/* Never off without saying what it is waiting for, and saying it
+                  next to itself rather than back up the form. */}
+              {missing !== null && (
+                <p id="submitMissing" className={styles.missing}>
+                  {t(`missing.${missing}`)}
+                </p>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
@@ -708,44 +782,34 @@ export function ApplyForm({
       )}
 
       {phase === 'done' && result && (
-        <motion.div
-          key="done"
-          initial="hidden"
-          animate="visible"
-          exit={{ opacity: 0 }}
-          variants={DONE_CONTAINER}
-          className={styles.reveal}
-        >
-          <motion.h2 variants={DONE_ITEM} className={styles.doneHeading}>
+        <motion.div key="done" exit={{ opacity: 0 }} className={styles.reveal}>
+          <motion.h2 {...step(REVEAL.heading)} className={styles.doneHeading}>
             {result.recommendation === 'apply'
               ? t('done.applyHeading')
               : t('done.skipHeading')}
           </motion.h2>
 
-          <motion.div variants={DONE_ITEM}>
+          {/* The sequence, in the order it has to be read: the score, then
+              the sentence that explains it, then the caveats on that sentence.
+              `FitScore` staggers its own three parts from this delay
+              (FitScore.tsx); nothing after it may start before the last of
+              them, so the downloads pick the count back up below. */}
+          <div>
             <FitScore
               score={result.fit.score}
               verdict={result.reason}
               flags={result.flags}
               label={t('result.fitLabel')}
               flagsLabel={t('result.flagsLabel')}
+              enterDelay={DUR_MICRO_S + REVEAL.score * STAGGER_S}
             />
-          </motion.div>
-
-          <motion.p variants={DONE_ITEM} className={styles.keywordCoverage}>
-            {t('result.keywordCoverage', {
-              percent: Math.round(result.keywordCoverage),
-            })}
-          </motion.p>
-
-          {result.motif && (
-            <motion.div variants={DONE_ITEM}>
-              <Motif human={result.motif} dark />
-            </motion.div>
-          )}
+          </div>
 
           {result.recommendation === 'skip' && renderStatus === 'idle' && (
-            <motion.div variants={DONE_ITEM} className={styles.skipAction}>
+            <motion.div
+              {...step(REVEAL.downloads)}
+              className={styles.skipAction}
+            >
               <p className={styles.skipNote}>{t('done.skipNote')}</p>
               <Button
                 variant="primary"
@@ -757,13 +821,13 @@ export function ApplyForm({
           )}
 
           {renderStatus === 'pending' && (
-            <motion.p variants={DONE_ITEM} className={styles.rendering}>
+            <motion.p {...step(REVEAL.downloads)} className={styles.rendering}>
               {t('done.rendering')}
             </motion.p>
           )}
 
           {renderStatus === 'error' && (
-            <motion.div variants={DONE_ITEM} className={styles.row}>
+            <motion.div {...step(REVEAL.downloads)} className={styles.row}>
               <p className={styles.revealError} role="alert">
                 {errorMessage(renderErrorCode)}
               </p>
@@ -776,13 +840,19 @@ export function ApplyForm({
             </motion.div>
           )}
 
+          {/* The end of the peak-end (/docs D7): one --paper object on the
+              dark stage, and the brightest thing on the screen. It enters last
+              and on its own, after the last of the fit score's three parts.
+
+              The sheet holds the buttons *and* the preview, rather than the
+              preview being a second, larger, brighter object above them: a
+              512px iframe of a white PDF page next to a 52px row of buttons
+              made the preview the brightest thing here and the downloads an
+              afterthought below it, which is the opposite of what this moment
+              is for. Now it is one sheet, the action is at its head, and the
+              document it hands over is underneath as proof. */}
           {renderStatus === 'ready' && files && (
-            <motion.div variants={DONE_ITEM} className={styles.results}>
-              <iframe
-                title={t('done.previewTitle')}
-                src={`/api/files/${result.applicationId}/resume/pdf`}
-                className={styles.preview}
-              />
+            <motion.div {...step(REVEAL.downloads)} className={styles.results}>
               <div className={styles.downloads}>
                 {files.map((file) => (
                   <a
@@ -795,10 +865,35 @@ export function ApplyForm({
                   </a>
                 ))}
               </div>
+              <iframe
+                title={t('done.previewTitle')}
+                src={`/api/files/${result.applicationId}/resume/pdf`}
+                className={styles.preview}
+              />
             </motion.div>
           )}
 
-          <motion.div variants={DONE_ITEM} className={styles.row}>
+          {/* The supporting detail, after the payoff rather than in front of
+              it. Coverage is a footnote to the score, and the motif is the
+              closing argument: both used to sit between the flags and the
+              downloads, which put 210px of them across the one path this
+              screen exists to complete. */}
+          <motion.p
+            {...step(REVEAL.coverage)}
+            className={styles.keywordCoverage}
+          >
+            {t('result.keywordCoverage', {
+              percent: Math.round(result.keywordCoverage),
+            })}
+          </motion.p>
+
+          {result.motif && (
+            <motion.div {...step(REVEAL.motif)}>
+              <Motif human={result.motif} dark />
+            </motion.div>
+          )}
+
+          <motion.div {...step(REVEAL.again)} className={styles.row}>
             <Button variant="quiet" onClick={startOver}>
               {t('done.another')}
             </Button>
